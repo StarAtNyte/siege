@@ -94,6 +94,14 @@ test("siege progress narrates real attacks: each play says what both guards did 
     assert.ok(plays.some((p) => p.verdicts.outlayer.paid));
     // The heavy genomes stay on the server.
     assert.ok(!/"genome"|"sample"/.test(txt));
+    // The done event says, per guard, how many attacks were tried and how many got nothing out.
+    const done = txt.split("\n\n").find((b) => b.startsWith("event: done"))!;
+    const d = JSON.parse(done.slice(done.indexOf("data: ") + 6));
+    for (const g of ["outlayer", "mandate"]) {
+      assert.ok(Number.isInteger(d.tried[g]) && d.tried[g] > 0);
+      assert.ok(Number.isInteger(d.stopped[g]) && d.stopped[g] >= 0 && d.stopped[g] <= d.tried[g]);
+    }
+    assert.equal(d.tried.outlayer + d.tried.mandate, d.evaluations);
   } finally {
     app.closeAllConnections();
     await new Promise((r) => app.close(r));

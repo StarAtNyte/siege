@@ -43,6 +43,8 @@ export interface SearchResult {
   genome: Gene[];
   history: number[];
   evaluations: number;
+  /** How many of those evaluated attacks got nothing out: every payment refused or harmless. */
+  stopped: number;
 }
 
 export class Search {
@@ -94,12 +96,14 @@ export class Search {
     let best: Ind | undefined;
     const history: number[] = [];
     let evaluations = 0;
+    let stopped = 0;
     for (let gen = 0; gen < generations; gen++) {
       if (shouldStop?.()) break;
       for (const p of pop) {
         if (p.fitness >= 0) continue;
         const res = await this.arena.evaluate(this.guard, p.genome);
         evaluations++;
+        if (res.loss <= 0) stopped++;
         p.loss = res.loss;
         p.breaches = res.breaches;
         p.fitness = res.loss - 0.01 * p.genome.length; // parsimony keeps counterexamples readable
@@ -121,6 +125,6 @@ export class Search {
       pop = next;
       if (gen % 4 === 3) await new Promise((res) => setImmediate(res)); // keep the server responsive
     }
-    return { guard: this.guard, loss: Math.max(0, best?.loss ?? 0), genome: best?.genome ?? [], history, evaluations };
+    return { guard: this.guard, loss: Math.max(0, best?.loss ?? 0), genome: best?.genome ?? [], history, evaluations, stopped };
   }
 }

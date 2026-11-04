@@ -328,15 +328,13 @@ a.btn { text-decoration: none; }
   .btn, .input, .seg label { transition: none; }
   .clause--fresh::before, .live-mark--fresh, .spark__dot, .budget__fill { animation: none; }
 }
-/* Before a siege: a short card that says what it will show, with a muted dash where the figure goes. Never a number. */
+/* Before a siege: a calm card that says what it will show and what the guard is. Never a number, never a placeholder figure. */
 .guard__preview, .guard__placeholder { display: none; }
 .guard[data-phase="waiting"] { padding: var(--space-md); }
 .guard[data-phase="waiting"] .guard__figure, .guard[data-phase="waiting"] .spark { display: none; }
 .guard[data-phase="waiting"] .guard__preview { display: block; font-size: var(--text-sm); color: var(--color-ink); }
-.guard[data-phase="waiting"] .guard__placeholder { display: block; font-family: var(--font-display); font-stretch: var(--stretch-figure); font-size: var(--text-xl); font-weight: 700; line-height: 1; color: var(--color-muted); }
+.guard[data-phase="waiting"] .guard__placeholder { display: block; margin-top: var(--space-2xs); font-size: var(--text-sm); color: var(--color-ink-2); }
 .guard__phase:empty { display: none; }
-/* the placeholder figure: a drawn dash where the number will go */
-.guard__dash { display: inline-block; width: 0.8em; height: 3px; margin-right: 0.15em; vertical-align: 0.3em; background: currentColor; }
 @media (max-width: 40rem) { .btn kbd { display: none; } }
 
 /* ---------- the stakes: three recitals before the contract, set like the preamble of the mandate itself ---------- */
@@ -369,6 +367,9 @@ a.btn { text-decoration: none; }
 .legend { list-style: none; margin: var(--space-2xs) 0 0; padding: 0; display: grid; gap: var(--space-2xs); font-size: var(--text-xs); color: var(--color-ink-2); }
 .legend li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-xs); }
 .stakes__close { position: absolute; top: var(--space-lg); right: var(--gutter); }
+.stakes[data-open="false"] .stakes__more { display: none; }
+/* the trick tags: listed outright on wide screens, behind their own disclosure on a phone (app.js sets open) */
+.tricks > summary { display: none; }
 .bar__what { flex: none; min-height: 40px; padding: 0 var(--space-2xs); border: 0; background: none; color: var(--color-on-band); font: inherit; white-space: nowrap; text-decoration: underline 1px; text-underline-offset: 3px; cursor: pointer; }
 .bar__what:hover { text-decoration-thickness: 2px; }
 .bar__what:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
@@ -415,6 +416,15 @@ a.btn { text-decoration: none; }
   .stakes__close { position: static; margin-top: var(--space-md); }
   .stakes__why { font-size: var(--text-sm); }
   .beat__lead { font-size: var(--text-md); }
+  /* folded on a phone, the strip still keeps the stakes line and the lookalike example; the other beats wait for "What is this?" */
+  .stakes[data-open="false"] .stakes__more { display: block; margin-top: var(--space-sm); }
+  .stakes[data-open="false"] .beat:not(.beat--specimen), .stakes[data-open="false"] .stakes__close { display: none; }
+  .tricks > summary { display: block; width: fit-content; min-height: 32px; padding-block: var(--space-2xs); cursor: pointer; font-size: var(--text-sm); color: var(--color-ink-2); text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
+  .tricks > summary:hover { color: var(--color-ink); }
+  .tricks > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+  /* the bar's question comes back on a phone, on its own row under the wordmark */
+  .bar__line { display: block; order: 1; grid-column: 1 / -1; margin-left: 0; white-space: normal; font-size: var(--text-sm); }
+  .bar #siege-btn { order: 2; }
   .means { font-size: var(--text-md); }
 }
 @media (prefers-reduced-motion: reduce) { .line--fresh { animation: none; } }

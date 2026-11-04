@@ -162,7 +162,9 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
         })),
       });
     }
-    emit("done", { ...diagnose(text!, c, runs), losses: Object.fromEntries(results.map((r) => [r.guard, r.loss])), budget, evaluations: results.reduce((a, r) => a + r.evaluations, 0) });
+    emit("done", { ...diagnose(text!, c, runs), losses: Object.fromEntries(results.map((r) => [r.guard, r.loss])), budget, evaluations: results.reduce((a, r) => a + r.evaluations, 0),
+      // Per guard: attacks tried and how many of them got nothing out, so a card can say what its guard stopped.
+      tried: Object.fromEntries(results.map((r) => [r.guard, r.evaluations])), stopped: Object.fromEntries(results.map((r) => [r.guard, r.stopped])) });
   } finally {
     running--;
     res.end();

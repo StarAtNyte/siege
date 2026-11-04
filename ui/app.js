@@ -38,6 +38,7 @@
   let es = null;
   let legit = new Set();
   let lastBudget = null; // the Mandate guard's new-payee budget, from the finished siege
+  let lastStops = null; // per guard, attacks tried and attacks that got nothing out, from the finished siege
   let hasResult = false; // a finished siege is on screen; it stays until a new run actually connects
   let lastRun = null; // { text, losses } of the last finished siege
   let prevRun = null; // the finished run a new siege is compared against
@@ -102,11 +103,10 @@
   // Why SIEGE exists: one line that always stays, and three beats under it. The beats are open on a first visit;
   // once a siege has finished they start folded, and "What is this?" in the bar brings them back.
   const stakes = $("#stakes");
-  const stakesMore = $("#stakes-more");
   const stakesOpen = $("#stakes-open");
   const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  // Folded, a wide screen keeps only the one line; a phone also keeps the lookalike example (CSS), since its bar has no tagline.
   function showStakes(open, byHand = false) {
-    stakesMore.hidden = !open;
     stakes.dataset.open = String(open);
     stakesOpen.setAttribute("aria-expanded", String(open));
     if (!byHand) return;
@@ -115,7 +115,13 @@
   }
   showStakes(!["folded", "seen"].includes(store.get("siege.stakes")));
   $("#stakes-close").addEventListener("click", () => showStakes(false, true));
-  stakesOpen.addEventListener("click", () => showStakes(stakesMore.hidden, true));
+  stakesOpen.addEventListener("click", () => showStakes(stakes.dataset.open !== "true", true));
+  // On a phone the four trick tags fold behind their own disclosure; on wider screens they are always listed.
+  const phone = matchMedia("(max-width: 40rem)");
+  const tricks = $("#tricks");
+  const fitTricks = () => (tricks.open = !phone.matches);
+  fitTricks();
+  phone.addEventListener("change", fitTricks);
 
   // ---------- terms ----------
   // A dotted term opens one shared tooltip: on hover, on keyboard focus, and on tap or click (which pins it until Escape or a tap elsewhere).
@@ -334,7 +340,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), hist: [], loss: 0 };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), unit: $(".guard__unit", root), hist: [], loss: 0 };
   }
 
   function resetSiege(keepStream = false) {
@@ -359,12 +365,14 @@
       delete g.root.dataset.outcome;
       g.phase.textContent = "";
       g.num.textContent = near(0);
+      g.unit.textContent = "NEAR lost";
       g.path.setAttribute("d", "");
       g.dots.replaceChildren();
       $(".spark__val", g.root).hidden = true;
       g.budget.hidden = true;
     }
     lastBudget = null;
+    lastStops = null;
     $("#siege-verdict").hidden = true;
     $("#means").hidden = true;
     $("#means-more").hidden = true;
@@ -549,12 +557,24 @@
       g.root.dataset.outcome = "budget";
       g.phase.textContent = "Held to its allowance";
       g.compare.hidden = true;
+      // Lead with what the guard stopped: the attacks in this search that got nothing out. What it let through,
+      // all of it from the allowance, comes second.
+      const tried = lastStops?.tried?.[k], stopped = lastStops?.stopped?.[k];
+      if (tried > 0 && Number.isInteger(stopped)) {
+        g.num.textContent = stopped.toLocaleString("en");
+        g.unit.textContent = `of ${tried.toLocaleString("en")} attacks stopped`;
+      } else {
+        g.num.textContent = "Held";
+        g.unit.textContent = "";
+      }
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of ${near(b.cap)} NEAR`, el("span", { class: "budget__of" }, term("new-payee allowance", "allowance"), ` used ${hours(b.hours)}`));
+      $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} NEAR spent of its ${near(b.cap)} allowance`, el("span", { class: "budget__of" }, term("new-payee allowance", "allowance"), ` ${hours(b.hours)}`));
       g.budget.hidden = false;
       return;
     }
     g.budget.hidden = true;
+    g.num.textContent = near(g.loss);
+    g.unit.textContent = "NEAR lost";
     const [ok, other] = Object.entries(guards).find(([x]) => x !== k);
     const theirs = other.root.dataset.phase === "done" ? other.loss : null;
     const v = g.loss;
@@ -687,6 +707,7 @@
 
   function onDone(d) {
     lastBudget = d.budget ?? null;
+    lastStops = d.tried && d.stopped ? { tried: d.tried, stopped: d.stopped } : null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
     const said = verdictLine(d) + " " + meansLine(d);
     // Each card says how many of the mandate's clauses its guard let through, counted from the same findings the clauses show.

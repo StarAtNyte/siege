@@ -62,6 +62,8 @@ test("search finds the plain-policy race and diagnosis pins it to the cap senten
   assert.ok(r.loss > 0, "plain policy should leak");
   const m = await new Search(arena, "mandate", 1).run(12, 32);
   assert.equal(m.loss, 0, "whitelisted mandate should hold");
+  assert.equal(m.stopped, m.evaluations, "every attack on a holding guard got nothing out");
+  assert.ok(r.stopped < r.evaluations, "some attacks on plain policy got money out");
   const ev = await arena.evaluate("outlayer", r.genome);
   const d = diagnose(M, c, [{ guard: "outlayer", breaches: ev.breaches }]);
   const flagged = d.sentences.filter((s) => s.findings.length);

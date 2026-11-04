@@ -67,12 +67,15 @@
       <li class="beat">
         <p class="beat__lead">SIEGE attacks your spending rules first.</p>
         <p class="beat__body">With four tricks, to find the rule that leaks:</p>
+        <details class="tricks" id="tricks" open>
+        <summary>The four tricks</summary>
         <ul class="legend" aria-label="The four attack tricks">
           <li><span class="tech tech--hidden">Hidden instruction</span> a buried order</li>
           <li><span class="tech tech--lookalike">Lookalike name</span> one character off</li>
           <li><span class="tech tech--drip">Drip</span> many small payments</li>
           <li><span class="tech tech--race">Race</span> payments fired at once</li>
         </ul>
+        </details>
       </li>
     </ol>
     <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes-more">Hide</button>
@@ -193,8 +196,8 @@
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> policy</h3>
         <p class="guard__what">Without SIEGE</p>
-        <p class="guard__preview">What the attacker gets past it</p>
-        <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
+        <p class="guard__preview">Run a siege to see what gets past</p>
+        <p class="guard__placeholder">Basic limits only: who to pay and how much.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__phase"></p>
         <p class="guard__clauses" hidden></p>
@@ -212,8 +215,8 @@
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
         <h3 id="g-mandate-h"><button type="button" class="term" data-tip="guard" aria-describedby="def-guard">Mandate guard</button></h3>
         <p class="guard__what">With SIEGE</p>
-        <p class="guard__preview">What the attacker gets past it</p>
-        <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
+        <p class="guard__preview">Run a siege to see what gets past</p>
+        <p class="guard__placeholder">Checks each payment against your rules, and who asked for it.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__phase"></p>
         <p class="guard__clauses" hidden></p>
