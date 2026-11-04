@@ -226,6 +226,9 @@ a.btn { text-decoration: none; }
 /* results for a mandate that has since been edited: still readable, clearly not current */
 .siege[data-stale] .guards, .siege[data-stale] .siege__verdict, .siege[data-stale] .ledgers { opacity: 0.5; transition: opacity var(--dur-short) var(--ease-out); }
 .siege[data-stale] .siege__state { color: var(--color-ink); font-weight: 600; }
+/* a new run that never connected: the last finished result stays, dimmed and labelled beside the error */
+.siege[data-prev] .guards, .siege[data-prev] .siege__verdict, .siege[data-prev] .ledgers, .siege[data-prev] .honest, .clauses[data-prev], .clauses[data-prev] + .general { opacity: 0.5; transition: opacity var(--dur-short) var(--ease-out); }
+.siege__prev { font-size: var(--text-sm); font-weight: 600; color: var(--color-ink-2); }
 .siege__head h2:focus, .siege__verdict:focus, .siege__verdict[tabindex="-1"]:focus { outline: none; }
 .siege__head h2:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; border-radius: 2px; }
 

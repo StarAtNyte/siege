@@ -13,7 +13,7 @@ export interface Finding {
   to: string;
   amount: number;
   how: string; // one sentence: what the attack did
-  fix: string; // one sentence: what to change
+  fix: string; // one sentence, an action the user can take first, then the reason after a colon
 }
 
 export interface Annotated {
@@ -86,7 +86,7 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
         target = find("window-cap", "cap");
         fix =
           run.guard === "outlayer"
-            ? "Plain policy counts spend best-effort, so concurrent requests overshoot. Mandate's ledger reserves atomically and holds this cap."
+            ? "Put Mandate in front of the wallet: plain policy counts spend best-effort, so concurrent requests overshoot this cap."
             : "Lower this cap, or split it per payee.";
       } else if (t.kind === "call") {
         target = find("calls");
@@ -95,9 +95,9 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
         target = find("open-recipients", "recipients");
         fix = target?.roles.includes("open-recipients")
           ? run.guard === "mandate"
-            ? `An invoice naming a new payee cannot be told apart from a real one. Name your payees, or accept the novel-payee budget of ${Number.isFinite(novelDaily) ? fromMicro(novelDaily).toFixed(2) : "10% of each cap"} NEAR.`
-            : "An open mandate gives plain policy no whitelist to enforce. Name the payees, or put Mandate in front of the wallet."
-          : `${routedTo(t)} is not one of the named payees; this should not pass. Report it.`;
+            ? `Name your payees, or accept a new-payee budget of ${Number.isFinite(novelDaily) ? `${fromMicro(novelDaily).toFixed(2)} NEAR` : "10% of each cap"}: an invoice naming a new payee can't be told apart from a real one.`
+            : "Name your payees, or put Mandate in front of the wallet: an open mandate gives plain policy no list of payees to enforce."
+          : `Report this to the SIEGE maintainers: ${routedTo(t)} is not one of the named payees, so it should not have passed.`;
       }
       const key = `${target?.index ?? "general"}|${b.kind}|${t.kind}`;
       const g = groups.get(key);

@@ -153,6 +153,11 @@
     <p class="siege__intro" id="siege-intro">Lay siege runs an evolutionary attacker against plain OutLayer policy, then against the Mandate guard, and marks each sentence it got through.</p>
 
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="siege__error" id="siege-error" hidden>
+      <p id="siege-error-msg"></p>
+      <button type="button" class="btn btn--quiet" id="retry-btn">Try again</button>
+    </div>
+    <p class="siege__prev" id="siege-prev" hidden>From the last run</p>
     <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
 
     <div class="guards">
@@ -190,11 +195,6 @@
           <figcaption class="spark__axis"><span>1</span><span>Generation</span><span class="spark__end">30</span></figcaption>
         </figure>
       </article>
-    </div>
-
-    <div class="siege__error" id="siege-error" hidden>
-      <p id="siege-error-msg"></p>
-      <button type="button" class="btn btn--quiet" id="retry-btn">Try again</button>
     </div>
 
     <p class="honest" id="honest" hidden></p>

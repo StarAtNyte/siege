@@ -38,6 +38,7 @@
   let es = null;
   let legit = new Set();
   let lastBudget = null; // the Mandate guard's new-payee budget, from the finished siege
+  let hasResult = false; // a finished siege is on screen; it stays until a new run actually connects
 
   // ---------- helpers ----------
   const human = (code) => {
@@ -272,13 +273,17 @@
     guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), hist: [], loss: 0 };
   }
 
-  function resetSiege() {
-    if (es) es.close(), (es = null);
+  function resetSiege(keepStream = false) {
+    if (es && !keepStream) es.close(), (es = null);
     queue.length = 0;
     clearTimeout(drainTimer);
     drainTimer = null;
     siegeEl.dataset.state = "idle";
     delete siegeEl.dataset.stale;
+    delete siegeEl.dataset.prev;
+    clausesEl.removeAttribute("data-prev");
+    $("#siege-prev").hidden = true;
+    hasResult = false;
     stateEl.textContent = "Not started";
     btnLabel.textContent = "Lay siege";
     for (const g of Object.values(guards)) {
@@ -534,6 +539,7 @@
     honest.hidden = false;
     $("#ledgers").hidden = false;
     siegeEl.dataset.state = "done";
+    hasResult = true;
     stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} evaluations`;
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
@@ -576,9 +582,17 @@
     $("#siege-error").hidden = false;
     siegeBtn.removeAttribute("aria-busy");
     btnLabel.textContent = "Lay siege";
-    for (const g of Object.values(guards)) if (g.root.dataset.phase !== "done") (g.phase.textContent = g.root.dataset.phase === "running" ? "Interrupted" : "Not run"), (g.root.dataset.phase = "waiting");
     const typing = document.activeElement === ta && !ta.hidden;
-    setMode("edit");
+    if (hasResult) {
+      // The new run never connected: the last finished result stays, dimmed and labelled, beside the error.
+      siegeEl.dataset.prev = "true";
+      clausesEl.dataset.prev = "true";
+      $("#siege-prev").hidden = false;
+      if (typing) setMode("edit");
+    } else {
+      for (const g of Object.values(guards)) if (g.root.dataset.phase !== "done") (g.phase.textContent = g.root.dataset.phase === "running" ? "Interrupted" : "Not run"), (g.root.dataset.phase = "waiting");
+      setMode("edit");
+    }
     announce(msg, true);
     if (!typing && focusAfter()) $("#retry-btn").focus({ preventScroll: true });
   }
@@ -590,21 +604,35 @@
       return void (status.textContent ||= "Fix the mandate first.");
     }
     const moveFocus = focusAfter();
-    resetSiege();
-    setMode(liveClauses() ? "annotated" : "edit");
+    const running = (label) => {
+      siegeEl.dataset.state = "running";
+      stateEl.textContent = label;
+      siegeBtn.setAttribute("aria-busy", "true");
+      btnLabel.textContent = "Laying siege…";
+    };
+    // Clear the board and show the live clauses. With a finished result on screen this waits for the first event, so a dead server does not wipe it.
+    const clearBoard = (keepStream) => {
+      resetSiege(keepStream);
+      setMode(liveClauses() ? "annotated" : "edit");
+    };
+    if (hasResult) {
+      if (es) es.close(), (es = null);
+      queue.length = 0;
+      clearTimeout(drainTimer);
+      drainTimer = null;
+      $("#siege-error").hidden = true;
+    } else clearBoard();
     if (moveFocus) $("#siege-h").focus({ preventScroll: true });
     announce("Siege started. Attacking plain OutLayer policy first, then the Mandate guard.", true);
     // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    siegeEl.dataset.state = "running";
-    stateEl.textContent = "Starting the attacker…";
-    siegeBtn.setAttribute("aria-busy", "true");
-    btnLabel.textContent = "Laying siege…";
+    running("Starting the attacker…");
     const text = ta.value;
     let started = false, finished = false;
     es = new EventSource(`/api/siege?mandate=${encodeURIComponent(text)}&generations=${GENERATIONS}`);
     es.addEventListener("start", (e) => {
       started = true;
+      if (hasResult) clearBoard(true), running("Starting the attacker…");
       const s = JSON.parse(e.data);
       legit = new Set(s.legit || []);
       guards.outlayer.root.dataset.phase = "running";
