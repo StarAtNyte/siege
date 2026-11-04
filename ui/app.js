@@ -207,7 +207,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), hist: [], loss: 0 };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), hist: [], loss: 0 };
   }
 
   function resetSiege() {
@@ -221,6 +221,7 @@
       g.hist = [];
       g.loss = 0;
       g.compare.hidden = true;
+      g.clauses.hidden = true;
       g.root.dataset.phase = "waiting";
       delete g.root.dataset.outcome;
       g.phase.textContent = "Waiting";
@@ -362,12 +363,14 @@
       const lost = s.verdict === "allow" && !legit.has(dest) && !(s.kind === "call" && !s.routedTo);
       const cls = s.verdict !== "allow" ? "stopped" : lost ? "lost" : "paid";
       const word = cls === "stopped" ? "Stopped" : cls === "lost" ? "Lost" : "Paid";
+      // Against the plain policy losing is the default, so only the rows that went otherwise carry a chip.
+      const chip = a.guard === "outlayer" && cls === "lost" ? el("span", { class: "step__v step__v--none" }, el("span", { class: "visually-hidden", text: word })) : el("span", { class: "step__v", text: word });
       const to = el("span", { class: "step__to" }, account(s.to));
       if (s.kind === "call") to.append(el("span", { class: "via", text: ` calls ${s.method}, routed to ` }), s.routedTo ? account(s.routedTo) : el("span", { class: "via", text: "itself" }));
       const ctx = el("p", { class: "step__ctx" }, `Asked: \u201c${s.user}\u201d`);
       if (s.doc) ctx.append(` Read: \u201c${s.doc.split("\n").join(" ").slice(0, 110)}${s.doc.length > 110 ? "…" : ""}\u201d`);
       if (cls === "stopped" && s.reasons?.length) ctx.append(el("br"), `Stopped for: ${s.reasons.map(human).join("; ").toLowerCase()}`);
-      return el("li", { class: `step step--${cls}` }, to, el("span", { class: "step__amt", text: `${near(s.amount)} NEAR` }), el("span", { class: "step__v", text: word }), ctx);
+      return el("li", { class: `step step--${cls}` }, to, el("span", { class: "step__amt", text: `${near(s.amount)} NEAR` }), chip, ctx);
     });
     const LIMIT = 5;
     rows.forEach((r, i) => (i >= LIMIT && (r.hidden = true), ol.append(r)));
@@ -434,6 +437,14 @@
     lastBudget = d.budget ?? null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
     verdictLine(d);
+    // Each card says how many of the mandate's clauses its guard let through, counted from the same findings the clauses show.
+    const total = d.sentences.length;
+    for (const [k, g] of Object.entries(guards)) {
+      const n = d.sentences.filter((s) => s.findings.some((f) => f.guard === k)).length;
+      const word = total === 1 ? "clause" : "clauses";
+      g.clauses.textContent = n > 0 ? `Breached ${n} of ${total} ${word}` : `Held all ${total} ${word}`;
+      g.clauses.hidden = total === 0;
+    }
     clausesEl.replaceChildren();
     for (const s of d.sentences) {
       const breach = s.findings.length > 0;
