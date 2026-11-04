@@ -54,24 +54,30 @@
 <section class="stakes" id="stakes" aria-labelledby="stakes-h" tabindex="-1">
   <div class="container stakes__in">
     <h2 id="stakes-h" class="visually-hidden">Why SIEGE exists</h2>
+    <p class="stakes__why"><b>Why it matters:</b> companies are starting to let AI agents pay invoices and subscriptions on their own. One poisoned email can make an agent send money to a thief, and payments on a blockchain can’t be reversed.</p>
     <ol class="stakes__beats">
       <li class="beat">
         <p class="beat__lead">AI agents now hold money.</p>
-        <p class="beat__body">They pay invoices and bills on their own, and act on whatever they read. Here the money is NEAR, a cryptocurrency, on its test network: nothing real moves.</p>
+        <p class="beat__body">Here the money is NEAR (a public blockchain; here, test money only).</p>
       </li>
       <li class="beat beat--specimen">
         <p class="beat__lead">Attackers hide payment orders in what agents read.</p>
-        <p class="beat__body">A forged email or invoice names the attacker’s account, often one character away from the real one:</p>
+        <p class="beat__body">A forged email names a lookalike account:</p>
         <p class="specimen" aria-label="The real payee cloudhost.testnet, and the attacker’s lookalike c1oudhost.testnet, with the letter l swapped for the digit 1">
           <span class="specimen__row"><span class="mono">cloudhost.testnet</span><span class="specimen__tag">your real vendor</span></span>
-          <span class="specimen__row specimen__row--fake"><span class="mono">c<mark>1</mark>oudhost.testnet</span><span class="specimen__tag">the attacker, from SIEGE’s attack library</span></span>
+          <span class="specimen__row specimen__row--fake"><span class="mono">c<mark>1</mark>oudhost.testnet</span><span class="specimen__tag">the attacker</span></span>
         </p>
       </li>
       <li class="beat">
         <p class="beat__lead">SIEGE attacks your agent’s spending rules first.</p>
-        <p class="beat__body">It throws thousands of forged invoices and poisoned documents at them and marks exactly which rule lets money leak, before a real attacker finds it.</p>
+        <p class="beat__body">It finds the rule that leaks, using four tricks:</p>
+        <ul class="legend" aria-label="The four attack tricks">
+          <li><span class="tech tech--hidden">Hidden instruction</span> orders buried in a document</li>
+          <li><span class="tech tech--lookalike">Lookalike name</span> one character off</li>
+          <li><span class="tech tech--drip">Drip</span> many small payments</li>
+          <li><span class="tech tech--race">Race</span> payments fired at once</li>
+        </ul>
       </li>
-    </ol>
     <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes">Hide</button>
   </div>
 </section>
@@ -178,8 +184,9 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__intro" id="siege-intro">SIEGE plays the thief. Press Lay siege: it feeds your agent thousands of forged invoices and poisoned documents, first with only the wallet’s plain limits, then with SIEGE’s guard in front, and measures how much money gets out each time.</p>
+    <p class="siege__intro" id="siege-intro">Press Lay siege. SIEGE attacks your agent twice: with only OutLayer’s limits (a wallet service for AI agents on NEAR, with basic spending limits), then with its own guard in front.</p>
 
+    <p class="siege__gloss">Attack round: each round, the attacker breeds better attacks from the ones that worked.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
       <p id="siege-error-msg"></p>
@@ -203,7 +210,7 @@
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Plain OutLayer policy</h3>
-        <p class="guard__what">Without SIEGE: only the wallet’s own limits (OutLayer, a wallet for AI agents)</p>
+        <p class="guard__what">Without SIEGE: OutLayer alone, a wallet service for AI agents on NEAR, with basic spending limits</p>
         <p class="guard__phase"></p>
         <p class="guard__preview">How much the attacker gets past plain OutLayer policy</p>
         <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
@@ -246,7 +253,7 @@
         <h3 id="play-h">Play by play</h3>
         <p class="play__totals num" id="play-totals"></p>
       </div>
-      <p class="play__gloss">Real attacks from this siege, newest first. Each round the attacker keeps what got furthest and breeds new variations of it.</p>
+      <p class="play__gloss">Real attacks from this siege, newest first, tagged by trick.</p>
       <ol class="play__lines" id="play-lines"></ol>
     </section>
 

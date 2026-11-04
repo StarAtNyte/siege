@@ -180,6 +180,8 @@ a.btn { text-decoration: none; }
 .siege__state { font-size: var(--text-sm); color: var(--color-ink-2); font-variant-numeric: tabular-nums; }
 .siege__intro { color: var(--color-ink-2); max-width: 46ch; }
 .siege:not([data-state="idle"]) .siege__intro { display: none; }
+.siege__gloss { font-size: var(--text-sm); color: var(--color-ink-2); max-width: 52ch; }
+.siege[data-state="idle"] .siege__gloss { display: none; }
 
 .guards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-md); }
 .guard { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-lg); border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink); border: 1px solid var(--color-rule); }
@@ -350,6 +352,17 @@ a.btn { text-decoration: none; }
 .specimen__row--fake .mono { text-decoration: underline 3px var(--color-breach); text-underline-offset: 0.25em; text-decoration-skip-ink: none; }
 .specimen mark { background: var(--color-breach); color: var(--color-breach-ink); border-radius: 2px; padding: 0 1px; }
 .specimen__tag { font-size: var(--text-xs); color: var(--color-ink-2); }
+.stakes__why { max-width: 72ch; margin-bottom: var(--space-lg); padding-right: var(--space-3xl); font-size: var(--text-lg); line-height: 1.4; color: var(--color-ink); text-wrap: pretty; }
+.stakes__why b { font-weight: 700; }
+/* a trick tag: purple field, square corners and a leading shape, so it never reads as an account name (mono) or a verdict (round coral or green) */
+.tech { display: inline-flex; align-items: center; gap: var(--space-2xs); padding: 0 var(--space-xs) 0 var(--space-2xs); border: 1px solid var(--color-trick-edge); background: var(--color-trick); color: var(--color-trick-ink); font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; line-height: 1.7; white-space: nowrap; }
+.tech::before { content: ""; width: 0.6em; height: 0.6em; background: currentColor; flex: none; }
+.tech--hidden::before { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 60%, 60% 60%, 60% 40%, 0 40%); }
+.tech--lookalike::before { border-radius: 50%; }
+.tech--drip::before { clip-path: polygon(50% 0, 100% 60%, 50% 100%, 0 60%); }
+.tech--race::before { clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.legend { list-style: none; margin: var(--space-2xs) 0 0; padding: 0; display: grid; gap: var(--space-2xs); font-size: var(--text-xs); color: var(--color-ink-2); }
+.legend li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-xs); }
 .stakes__close { position: absolute; top: var(--space-lg); right: var(--gutter); }
 .bar__what { margin-left: var(--space-xs); padding: 0; border: 0; background: none; color: var(--color-on-band); font: inherit; text-decoration: underline 1px; text-underline-offset: 3px; cursor: pointer; }
 .bar__what:hover { text-decoration-thickness: 2px; }
@@ -366,7 +379,6 @@ a.btn { text-decoration: none; }
 .line:first-child { border-left-color: var(--color-ink); }
 .line__meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2xs) var(--space-xs); color: var(--color-ink-2); }
 .line__round { font-weight: 700; color: var(--color-ink); }
-.line__tag { padding: 0 var(--space-2xs); border: 1px solid var(--color-rule-strong); border-radius: 3px; color: var(--color-ink); font-size: var(--text-xs); line-height: 1.6; }
 .line__what { color: var(--color-ink); }
 .line__what mark { background: var(--color-breach); color: var(--color-breach-ink); border-radius: 2px; }
 .line__out { color: var(--color-ink); }
@@ -389,7 +401,8 @@ a.btn { text-decoration: none; }
 }
 @media (max-width: 40rem) {
   .stakes__in { padding-block: var(--space-md); }
-  .stakes__beats { padding-right: 0; }
+  .stakes__beats, .stakes__why { padding-right: 0; }
+  .stakes__why { font-size: var(--text-md); }
   .stakes__close { position: static; margin-top: var(--space-md); }
   .beat__lead { font-size: var(--text-md); }
   .means { font-size: var(--text-md); }

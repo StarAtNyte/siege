@@ -400,15 +400,13 @@
     };
     return plain[c] ?? "it breaks your rules";
   }
+  // The four tricks, each with the same name and mark in the strip's legend and on every line.
   const tagsOf = (p) =>
     [
-      p.lure === "injection" && "Prompt injection: orders hidden in text the agent reads",
-      p.imitates && "Lookalike payee",
-      p.technique === "deputy" && "Redirected contract call",
-      p.raced && "Racing the limit",
-      p.dripped && "Many small payments",
-      p.lure && p.lure !== "injection" && !p.imitates && p.technique !== "deputy" && "Poisoned document",
-      !p.lure && !p.imitates && p.technique !== "deputy" && "A bare request",
+      p.lure === "injection" && ["hidden", "Hidden instruction"],
+      p.imitates && ["lookalike", "Lookalike name"],
+      p.dripped && ["drip", "Drip"],
+      p.raced && ["race", "Race"],
     ].filter(Boolean);
   function playLine(p) {
     const lure = p.lure ? LURE[p.lure] ?? "A forged document" : "A request with no paperwork";
@@ -425,12 +423,12 @@
       ? `Plain policy paid it${o.lost > p.amount + 0.005 ? `; the whole attack took ${near(o.lost)} NEAR` : ""}.`
       : `Plain policy refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of the attack still took ${near(o.lost)} NEAR` : ""}.`;
     const guard = m.paid
-      ? m.novel ? "The guard paid it from its small allowance for unknown payees." : "The guard paid it too."
+      ? m.novel ? "The guard paid it from its new-payee allowance: the most it lets go to payees your rules never named." : "The guard paid it too."
       : `The guard refused: ${because(m.reason, p)}.`;
     return el(
       "li",
       { class: `line${reduced ? "" : " line--fresh"}` },
-      el("p", { class: "line__meta" }, el("span", { class: "line__round num", text: `Round ${p.round}` }), ` against ${p.guard === "outlayer" ? "plain policy" : "the guard"}`, ...tagsOf(p).map((t) => el("span", { class: "line__tag", text: t }))),
+      el("p", { class: "line__meta" }, el("span", { class: "line__round num", text: `Round ${p.round}` }), ` against ${p.guard === "outlayer" ? "plain policy" : "the guard"}`, ...tagsOf(p).map(([k, t]) => el("span", { class: `tech tech--${k}`, text: t }))),
       what,
       el("p", { class: "line__out" }, el("span", { class: `line__v line__v--${o.paid ? "lost" : "held"}`, text: plain }), " ", el("span", { class: `line__v line__v--${m.paid ? (m.novel ? "budget" : "lost") : "held"}`, text: guard })),
     );
@@ -508,7 +506,7 @@
       g.compare.textContent = `All of it went to new payees, inside the ${near(b.cap)} NEAR ${hours(b.hours)} the mandate allows them.`;
       g.compare.hidden = false;
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR new-payee allowance used`;
+      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR new-payee allowance used ${hours(b.hours)}`;
       g.budget.hidden = false;
       return;
     }
@@ -599,7 +597,7 @@
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
     const first = o > 0 ? `Without SIEGE, the attacker took ${near(o)} NEAR.` : "Without SIEGE, the attacker took nothing.";
     const second =
-      m <= 0 ? "With the Mandate guard: 0.00 NEAR." : b?.withinBudget ? `With the Mandate guard: ${near(m)}, within its new-payee allowance.` : `With the Mandate guard: ${near(m)} NEAR.`;
+      m <= 0 ? "With the Mandate guard: 0.00 NEAR." : b?.withinBudget ? `With the Mandate guard: ${near(m)} NEAR, within its new-payee allowance.` : `With the Mandate guard: ${near(m)} NEAR.`;
     const v = $("#siege-verdict");
     v.replaceChildren(el("span", { class: "siege__verdict-a", text: first }), " ", el("span", { class: "siege__verdict-b", text: second }));
     v.hidden = false;
@@ -621,7 +619,7 @@
       parts.push(". ");
     } else parts.push("plain policy held against every attack SIEGE found this time. ");
     if (m <= 0) parts.push("With the guard in front, no attack got any money out.");
-    else parts.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR ${hours(b.hours)} allowance for unknown payees` : ""}.`);
+    else parts.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR new-payee allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
     box.replaceChildren(...parts);
     box.hidden = false;
     return box.textContent;

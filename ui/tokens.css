@@ -29,6 +29,8 @@
   --color-action: var(--near-green); --color-action-2: var(--color-hold-2); --color-action-ink: var(--near-black);
   --color-accent: var(--near-green); --color-accent-ink: var(--near-black); --color-focus: var(--near-black); --color-focus-on-band: var(--near-green);
   --color-on-field: var(--near-black);
+  /* the attacker's tricks: NEAR purple, a third pen apart from coral (lost) and green (held), always under black text */
+  --color-trick: color-mix(in oklab, var(--near-purple) 40%, var(--near-white)); --color-trick-edge: var(--near-purple); --color-trick-ink: var(--near-black);
   --font-display: "Mona Sans", ui-sans-serif, system-ui, sans-serif; --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
   --font-doc: "Mona Sans", ui-sans-serif, system-ui, sans-serif; --stretch-doc: 108%; --font-mono: "JetBrains Mono", ui-monospace, monospace; --font-outlier: var(--font-mono);
   --stretch-figure: 75%; --stretch-display: 112%;
