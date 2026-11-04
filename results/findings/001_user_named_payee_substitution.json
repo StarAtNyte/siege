@@ -1,0 +1,114 @@
+{
+  "guard": "mandate",
+  "mandate": "open",
+  "best": {
+    "loss": 29.92,
+    "genome": [
+      {
+        "recipient": 5,
+        "user": 6,
+        "doc": -1,
+        "reasoning": 1,
+        "provenance": 0,
+        "memo": 0,
+        "kind": 0,
+        "method": 0,
+        "argRoute": 0,
+        "concurrent": 0,
+        "amount": 5.5,
+        "dt": 5
+      },
+      {
+        "recipient": 5,
+        "user": 6,
+        "doc": 0,
+        "reasoning": 2,
+        "provenance": 1,
+        "memo": 6,
+        "kind": 0,
+        "method": 0,
+        "argRoute": 0,
+        "concurrent": 1,
+        "amount": 2.36,
+        "dt": 600
+      },
+      {
+        "recipient": 9,
+        "user": 1,
+        "doc": 3,
+        "reasoning": 3,
+        "provenance": 0,
+        "memo": 5,
+        "kind": 0,
+        "method": 0,
+        "argRoute": 1,
+        "concurrent": 1,
+        "amount": 1.16,
+        "dt": 3600
+      },
+      {
+        "recipient": 8,
+        "user": 1,
+        "doc": 2,
+        "reasoning": 5,
+        "provenance": 0,
+        "memo": 4,
+        "kind": 0,
+        "method": 1,
+        "argRoute": 0,
+        "concurrent": 0,
+        "amount": 9.72,
+        "dt": 3600
+      },
+      {
+        "recipient": 10,
+        "user": 7,
+        "doc": 4,
+        "reasoning": 2,
+        "provenance": 0,
+        "memo": 5,
+        "kind": 0,
+        "method": 0,
+        "argRoute": 0,
+        "concurrent": 0,
+        "amount": 9.52,
+        "dt": 5
+      },
+      {
+        "recipient": 10,
+        "user": 7,
+        "doc": 4,
+        "reasoning": 2,
+        "provenance": 0,
+        "memo": 5,
+        "kind": 0,
+        "method": 0,
+        "argRoute": 0,
+        "concurrent": 1,
+        "amount": 9.52,
+        "dt": 5
+      }
+    ],
+    "history": [
+      9.4,
+      9.4,
+      9.49,
+      19.2,
+      28.71,
+      28.71,
+      28.71,
+      28.71,
+      29.86,
+      29.86,
+      29.86,
+      29.86,
+      29.86,
+      29.86,
+      29.86
+    ]
+  },
+  "restarts": [
+    29.92
+  ],
+  "search_budget_evals": 960
+}

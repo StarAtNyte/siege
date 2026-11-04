@@ -1,0 +1,46 @@
+[
+  {
+    "guard": "outlayer",
+    "mandate": "whitelist",
+    "restarts": [
+      76.99,
+      66.59,
+      84.98
+    ],
+    "search_budget_evals": 11520,
+    "loss": 84.98
+  },
+  {
+    "guard": "outlayer",
+    "mandate": "open",
+    "restarts": [
+      225.4,
+      201.86,
+      227.72
+    ],
+    "search_budget_evals": 11520,
+    "loss": 227.72
+  },
+  {
+    "guard": "mandate",
+    "mandate": "whitelist",
+    "restarts": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_budget_evals": 11520,
+    "loss": 0.0
+  },
+  {
+    "guard": "mandate",
+    "mandate": "open",
+    "restarts": [
+      2.98,
+      2.98,
+      2.99
+    ],
+    "search_budget_evals": 11520,
+    "loss": 2.99
+  }
+]

@@ -1,0 +1,16 @@
+[project]
+name = "siege-engine"
+version = "0.1.0"
+description = "Evolutionary attack engine: evolves transaction sequences against a wallet guard and reports maximum extractable loss."
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+gpu = ["torch"]
+
+[project.scripts]
+siege-attack = "siege_engine.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
