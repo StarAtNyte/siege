@@ -1,0 +1,28 @@
+# Fly.io deploy: `flyctl deploy` from this directory. Scales to zero when idle; first request wakes it in a few seconds.
+app = "near-siege"
+primary_region = "iad"
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8686"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 8686
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

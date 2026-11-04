@@ -2,6 +2,10 @@
 
 Track: AI Security & Defense. Testnet only, no funds spent.
 
+- **Live:** [near-siege.fly.dev](https://near-siege.fly.dev)
+- **Code:** [github.com/StarAtNyte/near-siege](https://github.com/StarAtNyte/near-siege)
+- **Sister project:** [DARWIN](https://github.com/StarAtNyte/near-darwin)
+
 ![SIEGE red-lining an open invoice mandate: plain policy lost 177.20 NEAR, the Mandate guard lost 1.02, inside its 3.00 NEAR new-payee budget](docs/app.png)
 
 [Watch the 15-second demo](docs/demo.mp4): a siege runs, red-lines the mandate clause by clause and lands on the verdict.
