@@ -1,0 +1,24 @@
+:root {
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(52% 0.19 27); --color-success: oklch(50% 0.12 150);
+  --container: 1440px; --gutter: 40px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  --color-paper: oklch(97.6% 0.006 255); --color-paper-2: oklch(95.2% 0.009 255); --color-paper-3: oklch(92.4% 0.012 256);
+  --color-ink: oklch(21% 0.026 262); --color-ink-2: oklch(37% 0.022 260); --color-muted: oklch(49% 0.02 258);
+  --color-rule: oklch(87.5% 0.013 258); --color-rule-strong: oklch(62% 0.018 258);
+  /* the red pen: breaches, losses, the attack */
+  --color-breach: oklch(54% 0.205 31); --color-breach-ink: oklch(48% 0.19 30); --color-breach-2: oklch(47% 0.19 30);
+  /* the guard's mark: what held */
+  --color-hold: oklch(40% 0.19 266); --color-hold-2: oklch(34% 0.17 266);
+  --color-accent: var(--color-breach); --color-accent-ink: oklch(98.5% 0.006 255); --color-focus: oklch(40% 0.19 266);
+  --color-on-field: oklch(98.5% 0.006 255);
+  --font-display: "Clash Grotesk", ui-sans-serif, system-ui, sans-serif; --font-body: "Clash Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-doc: "Newsreader", Georgia, serif; --font-mono: "JetBrains Mono", ui-monospace, monospace; --font-outlier: var(--font-mono);
+  --text-doc: 1.3125rem; --text-figure: 3.583rem;
+  --radius-card: 6px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: 0 1px 2px oklch(20% 0.02 260 / 0.05);
+  --tracking-display: -0.02em;
+}
