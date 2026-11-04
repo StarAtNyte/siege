@@ -56,6 +56,9 @@ a.btn { text-decoration: none; }
 .doc__status { min-height: 1lh; font-size: var(--text-sm); color: var(--color-muted); }
 .doc__status[data-tone="error"] { color: var(--color-breach-ink); font-size: var(--text-md); padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-input); background: var(--color-breach-wash); }
 
+.doc__gloss { color: var(--color-ink-2); max-width: 62ch; margin-top: calc(-1 * var(--space-sm)); }
+.export__note a { color: var(--color-ink); text-underline-offset: 3px; }
+.export__note a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .doc__count { font-size: var(--text-sm); color: var(--color-ink-2); font-variant-numeric: tabular-nums; margin-top: calc(-1 * var(--space-md)); }
 .doc__count[data-tone="full"] { color: var(--color-ink); font-weight: 600; }
 
@@ -224,7 +227,7 @@ a.btn { text-decoration: none; }
 .guard[data-outcome] .guard__phase { color: var(--color-on-field); }
 
 /* results for a mandate that has since been edited: still readable, clearly not current */
-.siege[data-stale] .guards, .siege[data-stale] .siege__verdict, .siege[data-stale] .ledgers { opacity: 0.5; transition: opacity var(--dur-short) var(--ease-out); }
+.siege[data-stale] .guards, .siege[data-stale] .siege__verdict, .siege[data-stale] .ledgers, .siege[data-stale] .next, .siege[data-prev] .next { opacity: 0.5; transition: opacity var(--dur-short) var(--ease-out); }
 .siege[data-stale] .siege__state { color: var(--color-ink); font-weight: 600; }
 /* a new run that never connected: the last finished result stays, dimmed and labelled beside the error */
 .siege[data-prev] .guards, .siege[data-prev] .siege__verdict, .siege[data-prev] .ledgers, .siege[data-prev] .honest, .clauses[data-prev], .clauses[data-prev] + .general { opacity: 0.5; transition: opacity var(--dur-short) var(--ease-out); }
@@ -240,6 +243,16 @@ a.btn { text-decoration: none; }
 .siege__error p { color: var(--color-ink); }
 
 .honest { font-size: var(--text-sm); color: var(--color-ink-2); max-width: 60ch; }
+
+/* ---------- next step: the weak clause, a one-click rewrite, the way out to the export ---------- */
+.next { display: grid; gap: var(--space-sm); justify-items: start; padding: var(--space-lg); border: 1px solid var(--color-rule-strong); border-radius: var(--radius-card); background: var(--color-paper); }
+.next h3 { font-size: var(--text-md); font-weight: 600; }
+.next__delta { font-weight: 600; font-variant-numeric: tabular-nums; padding: var(--space-2xs) var(--space-sm); border-radius: var(--radius-input); background: var(--color-hold-wash); color: var(--color-hold-ink); }
+.next__weak { max-width: 52ch; }
+.next__fix { display: grid; gap: var(--space-sm); justify-items: start; }
+.next__quote { font-family: var(--font-doc); font-stretch: var(--stretch-doc); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-input); background: var(--color-paper-3); max-width: 52ch; }
+@media (prefers-reduced-motion: no-preference) { .next:not([hidden]) { animation: next-in var(--dur-long) var(--ease-out) both; } }
+@keyframes next-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 .honest b { color: var(--color-ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .ledgers { display: grid; gap: var(--space-xl); }

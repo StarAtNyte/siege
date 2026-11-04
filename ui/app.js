@@ -39,6 +39,8 @@
   let legit = new Set();
   let lastBudget = null; // the Mandate guard's new-payee budget, from the finished siege
   let hasResult = false; // a finished siege is on screen; it stays until a new run actually connects
+  let lastRun = null; // { text, losses } of the last finished siege
+  let prevRun = null; // the finished run a new siege is compared against
 
   // ---------- helpers ----------
   const human = (code) => {
@@ -304,6 +306,7 @@
     $("#siege-verdict").hidden = true;
     $("#honest").hidden = true;
     $("#ledgers").hidden = true;
+    $("#next").hidden = true;
     $("#siege-error").hidden = true;
     siegeBtn.removeAttribute("aria-busy");
   }
@@ -337,7 +340,7 @@
       const dot = g.dots.children[k] ?? g.dots.appendChild(el("span", { class: "spark__dot" }));
       dot.style.left = left;
       dot.style.top = top;
-      dot.title = `Generation ${i + 1}: ${near(h[i])} NEAR`;
+      dot.title = `Round ${i + 1}: ${near(h[i])} NEAR`;
     });
     const last = h.at(-1) ?? 0;
     const endY = (y(last) / 40) * 100;
@@ -346,7 +349,7 @@
     label.style.left = `${Math.max(0, Math.min(100, (h.length / n) * 100)).toFixed(2)}%`;
     label.style.top = `${endY.toFixed(2)}%`;
     const name = g.svg.getAttribute("aria-label").split(", ").slice(-1)[0];
-    g.svg.setAttribute("aria-label", `Chart: best loss found by generation, ${name}. ${breaks.length ? `Bigger breaks found at generation ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
+    g.svg.setAttribute("aria-label", `Chart: best loss found by attack round, ${name}. ${breaks.length ? `Bigger breaks found in round ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
   }
 
   function onProgress(p) {
@@ -356,9 +359,9 @@
     g.root.dataset.phase = "running";
     g.hist[p.generation] = p.bestLoss;
     g.num.textContent = near(p.bestLoss);
-    g.phase.textContent = `Generation ${p.generation + 1} of ${p.generations}`;
+    g.phase.textContent = `Attack round ${p.generation + 1} of ${p.generations}`;
     stateEl.textContent = `Attacking ${SHORT[p.guard].toLowerCase()}, ${p.evaluations.toLocaleString("en")} attacks tried`;
-    announce(`${GUARD[p.guard]}: generation ${p.generation + 1} of ${p.generations}, ${near(p.bestLoss)} NEAR lost so far.`);
+    announce(`${GUARD[p.guard]}: attack round ${p.generation + 1} of ${p.generations}, ${near(p.bestLoss)} NEAR lost so far.`);
     Object.values(guards).forEach(drawSpark);
     redline(p);
   }
@@ -381,7 +384,7 @@
       let mark = note && $(`[data-guard="${p.guard}"]`, note);
       if (!note) continue;
       if (!mark) {
-        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]} broken at generation ${p.generation + 1}, `, el("span", { class: "note__loss" }));
+        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]} broken in round ${p.generation + 1}, `, el("span", { class: "note__loss" }));
         note.append(mark);
         if (!li.classList.contains("clause--breach")) li.classList.replace("clause--pending", "clause--breach"), li.classList.add("clause--fresh");
       }
@@ -404,11 +407,11 @@
     if (k === "mandate" && g.loss > 0 && lastBudget?.withinBudget) {
       const b = lastBudget;
       g.root.dataset.outcome = "budget";
-      g.phase.textContent = "Held to budget";
+      g.phase.textContent = "Held to its allowance";
       g.compare.textContent = `All of it went to new payees, inside the ${near(b.cap)} NEAR ${hours(b.hours)} the mandate allows them.`;
       g.compare.hidden = false;
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR budget used`;
+      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR new-payee allowance used`;
       g.budget.hidden = false;
       return;
     }
@@ -478,7 +481,7 @@
           "div",
           { class: `note__guard note__guard--${inBudget ? "budget" : "breach"}` },
           el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: `lost ${near(sum)} NEAR` })),
-          inBudget && el("span", { class: "note__why", text: `Inside its ${near(lastBudget.cap)} NEAR new-payee budget.` }),
+          inBudget && el("span", { class: "note__why", text: `Inside the guard’s ${near(lastBudget.cap)} NEAR ${hours(lastBudget.hours)} allowance for new payees.` }),
           fixes.length && el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), shortFix(fixes[0])),
           (fixes.length || fs[0].how) &&
             el(
@@ -496,9 +499,9 @@
 
   function verdictLine(d) {
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
-    const first = o > 0 ? `Plain policy lost ${near(o)} NEAR.` : "Plain policy lost nothing.";
+    const first = o > 0 ? `Without SIEGE, the attacker took ${near(o)} NEAR.` : "Without SIEGE, the attacker took nothing.";
     const second =
-      m <= 0 ? "Mandate guard lost 0.00 NEAR." : b?.withinBudget ? `Mandate guard lost ${near(m)}, capped by its ${near(b.cap)} NEAR new-payee budget.` : `Mandate guard lost ${near(m)} NEAR.`;
+      m <= 0 ? "With the Mandate guard: 0.00 NEAR." : b?.withinBudget ? `With the Mandate guard: ${near(m)}, within its new-payee allowance.` : `With the Mandate guard: ${near(m)} NEAR.`;
     const v = $("#siege-verdict");
     v.replaceChildren(el("span", { class: "siege__verdict-a", text: first }), " ", el("span", { class: "siege__verdict-b", text: second }));
     v.hidden = false;
@@ -535,12 +538,13 @@
     }
     setMode("annotated");
     const honest = $("#honest");
-    honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` evaluations. This is a bounded search, not a proof.`);
+    honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` attacks tried. This is a bounded search, not a proof.`);
     honest.hidden = false;
     $("#ledgers").hidden = false;
     siegeEl.dataset.state = "done";
     hasResult = true;
-    stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} evaluations`;
+    stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} attacks tried`;
+    renderNext(d);
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
@@ -628,6 +632,7 @@
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     running("Starting the attacker…");
     const text = ta.value;
+    prevRun = lastRun && lastRun.text !== text ? lastRun : null;
     let started = false, finished = false;
     es = new EventSource(`/api/siege?mandate=${encodeURIComponent(text)}&generations=${GENERATIONS}`);
     es.addEventListener("start", (e) => {
@@ -636,7 +641,7 @@
       const s = JSON.parse(e.data);
       legit = new Set(s.legit || []);
       guards.outlayer.root.dataset.phase = "running";
-      guards.outlayer.phase.textContent = `Generation 0 of ${s.generations}`;
+      guards.outlayer.phase.textContent = `Attack round 0 of ${s.generations}`;
     });
     es.addEventListener("progress", (e) => push("progress", JSON.parse(e.data)));
     es.addEventListener("attack", (e) => push("attack", JSON.parse(e.data)));
@@ -667,6 +672,52 @@
     }
   });
   if (/Mac|iPhone|iPad/.test(navigator.platform)) $("#siege-btn kbd").textContent = "\u2318 Enter";
+
+  // ---------- next step ----------
+  // After the verdict: the weakest clause, a one-click rewrite where the findings support one, and the way to use the guard.
+  function suggestFor(s) {
+    if (!s.roles?.includes("open-recipients") || !legit.size || !s.findings.some((f) => f.kind === "theft")) return null;
+    const who = list([...legit]);
+    const cap = s.text.match(/up to ([\d.]+)\s*(NEAR)?\s*per (transaction|tx|payment|transfer)/i);
+    return cap ? `Pay up to ${cap[1]} ${cap[2] || "NEAR"} per transaction to ${who}.` : `Pay only ${who}.`;
+  }
+  let pendingFix = null;
+  function renderNext(d) {
+    const losses = d.losses || {};
+    const delta = $("#next-delta");
+    if (prevRun) {
+      const was = prevRun.losses;
+      delta.textContent = `Since your edit: with the guard ${near(was.mandate ?? 0)} → ${near(losses.mandate ?? 0)} NEAR lost; without SIEGE ${near(was.outlayer ?? 0)} → ${near(losses.outlayer ?? 0)}.`;
+    }
+    delta.hidden = !prevRun;
+    lastRun = { text: ta.value, losses };
+    const scored = d.sentences.map((s) => ({ s, loss: s.findings.reduce((a, f) => a + f.loss, 0), guardLoss: s.findings.filter((f) => f.guard === "mandate").reduce((a, f) => a + f.loss, 0) }));
+    // The weak point is the clause the guard itself lost on; failing that, the one that lost the most without SIEGE.
+    const weak = [...scored].sort((a, b) => b.guardLoss - a.guardLoss || b.loss - a.loss)[0];
+    const weakEl = $("#next-weak");
+    if (!weak || weak.loss <= 0) weakEl.textContent = "No clause let money out. Use the guard as it is.";
+    else if (weak.guardLoss > 0) weakEl.textContent = `Weak point: clause ${weak.s.index + 1}, “${weak.s.text}” It let ${near(weak.guardLoss)} NEAR past the guard, and ${near(weak.loss - weak.guardLoss)} without it.`;
+    else weakEl.textContent = `The guard held every clause. Clause ${weak.s.index + 1} lost the most without it, ${near(weak.loss)} NEAR, so put the guard in front of your wallet.`;
+    const fix = weak?.guardLoss > 0 ? suggestFor(weak.s) : null;
+    pendingFix = fix ? { from: weak.s.text, to: fix } : null;
+    $("#next-fix").hidden = !fix;
+    if (fix) $("#next-fix-text").textContent = `Suggested: name the payees. “${fix}”`;
+    $("#next").hidden = false;
+  }
+  $("#next-fix-btn").addEventListener("click", async () => {
+    if (!pendingFix || !ta.value.includes(pendingFix.from)) return;
+    ta.value = ta.value.replace(pendingFix.from, pendingFix.to);
+    pendingFix = null;
+    fit();
+    await compile();
+    laySiege();
+  });
+  $("#next-use").addEventListener("click", () => {
+    const x = $("#export");
+    x.open = true;
+    x.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    $("summary", x).focus({ preventScroll: true });
+  });
 
   // ---------- try a transaction ----------
   const form = $("#try-form");
