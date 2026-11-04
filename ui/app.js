@@ -295,7 +295,7 @@
       g.clauses.hidden = true;
       g.root.dataset.phase = "waiting";
       delete g.root.dataset.outcome;
-      g.phase.textContent = "Waiting";
+      g.phase.textContent = "";
       g.num.textContent = near(0);
       g.path.setAttribute("d", "");
       g.dots.replaceChildren();

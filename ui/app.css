@@ -19,7 +19,9 @@
 .bar__pick { display: none; }
 .bar .bar__select { min-height: 40px; background: var(--color-band); color: var(--color-on-band); border-color: var(--color-band-rule); }
 .bar .bar__select:hover { border-color: var(--color-on-band-2); }
-kbd { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 400; padding: 0 var(--space-2xs); border: 1px solid currentColor; border-radius: 3px; }
+kbd { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 400; }
+/* The shortcut on Lay siege: a quiet hint after the label, no box. */
+.btn kbd { margin-left: var(--space-2xs); opacity: 0.65; }
 
 .main { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--space-2xl); padding-block: var(--space-xl) var(--space-3xl); align-items: start; }
 
@@ -50,7 +52,7 @@ a.btn { text-decoration: none; }
 .doc__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); min-height: 40px; }
 .doc__head h1 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
 .doc__page { background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: var(--radius-card); padding: var(--space-xl) var(--space-xl) var(--space-xl); box-shadow: var(--shadow-card); }
-.doc__text { display: block; width: 100%; min-height: 15rem; field-sizing: content; resize: none; overflow: hidden; border: 0; border-left: 2px solid var(--color-muted); padding: 0 0 0 var(--space-lg); background: transparent; color: var(--color-ink); font-family: var(--font-doc); font-stretch: var(--stretch-doc); font-size: var(--text-doc); line-height: 1.6; max-width: 62ch; }
+.doc__text { display: block; width: 100%; min-height: 3lh; field-sizing: content; resize: none; overflow: hidden; border: 0; border-left: 2px solid var(--color-muted); padding: 0 0 0 var(--space-lg); background: transparent; color: var(--color-ink); font-family: var(--font-doc); font-stretch: var(--stretch-doc); font-size: var(--text-doc); line-height: 1.6; max-width: 62ch; }
 .doc__text:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 12px; border-radius: 2px; }
 .doc__text[aria-invalid="true"] { text-decoration: underline wavy var(--color-breach) 2px; text-underline-offset: 0.3em; }
 .doc__status { min-height: 1lh; font-size: var(--text-sm); color: var(--color-muted); }
@@ -280,7 +282,7 @@ a.btn { text-decoration: none; }
   /* the sections are reordered, so the browser would anchor scrolling to one that sits below the siege and jump as the guards grow */
   .main { overflow-anchor: none; }
   .doc { display: contents; }
-  .doc__head, .doc__page, .doc__status { order: 1; }
+  .doc__head, .doc__gloss, .doc__page, .doc__status { order: 1; }
   .siege { order: 2; position: static; padding-block: var(--space-md) var(--space-xl); }
   .doc__status:empty { display: none; }
   .reading, .disclose { order: 3; }
@@ -305,8 +307,7 @@ a.btn { text-decoration: none; }
   .spark { padding-top: var(--space-md); }
   .bar__line { flex-basis: 100%; }
   .doc__text { min-height: 0; }
-  .guard[data-phase="waiting"] { padding: var(--space-md); }
-  .guard[data-phase="waiting"] .guard__figure, .guard[data-phase="waiting"] .spark { display: none; }
+  .guard[data-phase="waiting"] .guard__preview { font-size: var(--text-xs); }
   /* a compact bar: wordmark and the example picker on one row, the line small, the action full width */
   .bar__in { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-xs) var(--space-md); min-height: 0; padding-block: var(--space-sm); }
   .wordmark { font-size: var(--text-lg); }
@@ -322,7 +323,15 @@ a.btn { text-decoration: none; }
   .btn, .input, .seg label { transition: none; }
   .clause--fresh::before, .live-mark--fresh, .spark__dot, .budget__fill { animation: none; }
 }
-.guard[data-phase="waiting"] .guard__figure, .guard[data-phase="waiting"] .spark { visibility: hidden; }
+/* Before a siege: a short card that says what it will show, with a muted dash where the figure goes. Never a number. */
+.guard__preview, .guard__placeholder { display: none; }
+.guard[data-phase="waiting"] { padding: var(--space-md); }
+.guard[data-phase="waiting"] .guard__figure, .guard[data-phase="waiting"] .spark, .guard[data-phase="waiting"] .guard__what { display: none; }
+.guard[data-phase="waiting"] .guard__preview { display: block; font-size: var(--text-sm); color: var(--color-ink); }
+.guard[data-phase="waiting"] .guard__placeholder { display: block; font-family: var(--font-display); font-stretch: var(--stretch-figure); font-size: var(--text-xl); font-weight: 700; line-height: 1; color: var(--color-muted); }
+.guard__phase:empty { display: none; }
+/* the placeholder figure: a drawn dash where the number will go */
+.guard__dash { display: inline-block; width: 0.8em; height: 3px; margin-right: 0.15em; vertical-align: 0.3em; background: currentColor; }
 @media (max-width: 40rem) { .btn kbd { display: none; } }
 
 /* ---------- footer: code and sister-project links ---------- */
