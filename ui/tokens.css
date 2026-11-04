@@ -20,13 +20,15 @@
   /* the guard's mark: NEAR green fills under black text */
   --color-hold: var(--near-green); --color-hold-ink: var(--near-black); --color-hold-2: color-mix(in oklab, var(--near-green) 88%, var(--near-black));
   --color-hold-wash: color-mix(in oklab, var(--near-green) 45%, var(--near-white));
+  /* mostly held: NEAR amber fills under black text */
+  --color-partial: var(--near-amber); --color-partial-ink: var(--near-black);
   /* the bar is a near.org black band; the primary action is NEAR green with black text, everywhere */
   --color-band: var(--near-black); --color-on-band: var(--near-white); --color-on-band-2: var(--near-black-subtle); --color-band-rule: var(--near-grey-2); --color-band-hover: var(--near-grey-3);
   --color-action: var(--near-green); --color-action-2: var(--color-hold-2); --color-action-ink: var(--near-black);
   --color-accent: var(--near-green); --color-accent-ink: var(--near-black); --color-focus: var(--near-black); --color-focus-on-band: var(--near-green);
   --color-on-field: var(--near-black);
   --font-display: "Mona Sans", ui-sans-serif, system-ui, sans-serif; --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-doc: "Newsreader", Georgia, serif; --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; --font-outlier: var(--font-mono);
+  --font-doc: "Mona Sans", ui-sans-serif, system-ui, sans-serif; --stretch-doc: 108%; --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; --font-outlier: var(--font-mono);
   --stretch-figure: 75%; --stretch-display: 112%;
   --text-doc: 1.3125rem; --text-figure: 3.583rem;
   --radius-card: 6px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;

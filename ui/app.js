@@ -194,7 +194,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), path: $(".spark__line", root), hist: [] };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), path: $(".spark__line", root), hist: [], loss: 0 };
   }
   let maxLoss = 1;
 
@@ -207,6 +207,8 @@
     stateEl.textContent = "Not started";
     for (const g of Object.values(guards)) {
       g.hist = [];
+      g.loss = 0;
+      g.compare.hidden = true;
       g.root.dataset.phase = "waiting";
       delete g.root.dataset.outcome;
       g.phase.textContent = "Waiting";
@@ -247,11 +249,24 @@
   }
   function finishGuard(k, loss) {
     const g = guards[k];
-    const v = loss ?? g.hist.at(-1) ?? 0;
+    g.loss = loss ?? g.hist.at(-1) ?? 0;
     g.root.dataset.phase = "done";
-    g.root.dataset.outcome = v > 0 ? "breach" : "held";
-    g.num.textContent = near(v);
-    g.phase.textContent = v > 0 ? "Drained" : "Held";
+    g.num.textContent = near(g.loss);
+    Object.keys(guards).forEach(grade);
+  }
+  // Held: nothing lost. Mostly held: lost, but at least 90% less than the other guard. Drained: otherwise.
+  function grade(k) {
+    const g = guards[k];
+    if (g.root.dataset.phase !== "done") return;
+    const [ok, other] = Object.entries(guards).find(([x]) => x !== k);
+    const theirs = other.root.dataset.phase === "done" ? other.loss : null;
+    const v = g.loss;
+    const cut = theirs > 0 ? 1 - v / theirs : 0;
+    const tier = v <= 0 ? "held" : cut >= 0.9 ? "partial" : "breach";
+    g.root.dataset.outcome = tier;
+    g.phase.textContent = tier === "held" ? "Held" : tier === "partial" ? "Mostly held" : "Drained";
+    g.compare.textContent = tier === "partial" ? `${Math.floor(cut * 100)}% less lost than ${SHORT[ok].toLowerCase()}` : "";
+    g.compare.hidden = tier !== "partial";
   }
 
   function onAttack(a) {
@@ -303,8 +318,8 @@
           "div",
           { class: "note__guard note__guard--breach" },
           el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: `lost ${near(sum)} NEAR` })),
-          el("span", { class: "note__how", text: fs[0].how }),
           ...fixes.map((f) => el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), f)),
+          fs[0].how && el("details", { class: "note__story" }, el("summary", { text: "How it was attacked" }), el("p", { class: "note__how", text: fs[0].how })),
         ),
       );
     }
@@ -330,7 +345,7 @@
       generalEl.append(el("h3", { text: "Not tied to one sentence" }), noteFor(d.general));
     }
     setMode("annotated");
-        const honest = $("#honest");
+    const honest = $("#honest");
     honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` evaluations. This is a bounded search, not a proof.`);
     honest.hidden = false;
     $("#ledgers").hidden = false;

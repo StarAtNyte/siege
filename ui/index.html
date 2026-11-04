@@ -8,7 +8,7 @@
 <meta name="description" content="Write your agent’s spending mandate, attack it with an evolutionary search, and see which sentences let money out.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&amp;family=Newsreader:opsz,wght@6..72,400&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&amp;display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -127,14 +127,18 @@
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Plain OutLayer policy</h3>
+        <p class="guard__what">What OutLayer’s policy enforces today</p>
         <p class="guard__phase">Waiting</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
+        <p class="guard__compare" hidden></p>
         <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, plain OutLayer policy"><path class="spark__line" d=""/></svg>
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
         <h3 id="g-mandate-h">Mandate guard</h3>
+        <p class="guard__what">SIEGE’s guard in front of the same wallet</p>
         <p class="guard__phase">Waiting</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
+        <p class="guard__compare" hidden></p>
         <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, Mandate guard"><path class="spark__line" d=""/></svg>
       </article>
     </div>
