@@ -1,0 +1,24 @@
+{
+  "name": "siege",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "SIEGE: can your AI wallet be drained? Mandate guard + attack engine + eval harness for OutLayer agent wallets.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "eval": "tsx src/eval/run.ts",
+    "oracle": "tsx src/oracle.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0"
+  }
+}
