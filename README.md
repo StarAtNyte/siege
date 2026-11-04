@@ -1,0 +1,97 @@
+# SIEGE: can your AI wallet be drained?
+
+Track: AI Security & Defense. Testnet only, no funds spent.
+
+AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custody) gives them a TEE custody wallet with spend limits and whitelists. Its docs also list what those policies cannot do: they cannot judge *intent*, and cumulative caps are best-effort, so concurrent requests can overshoot them. SIEGE attacks that gap and then closes it.
+
+| Part | What it is |
+|---|---|
+| **Mandate** (TypeScript) | A plain-language mandate compiled to constraints, a fast semantic classifier, LLM escalation for the ambiguous band, an **atomic** budget ledger and a novel-payee budget, all in front of the wallet adapter. |
+| **Attack engine** (Python) | A genetic search over transaction sequences against the *real* guard code. Fitness is NEAR extracted. Output is the maximum loss found plus replayable counterexamples. |
+| **Eval harness** | A fixed, seeded attack suite covering prompt injection, address poisoning, confused deputy, drip-drain and races on cumulative caps, plus benign traffic for false positives. |
+
+## Results
+
+`make eval` (320 cases, seed 7, no API key needed):
+
+| Attack (block rate) | OutLayer policy | Mandate |
+|---|---:|---:|
+| prompt_injection | 50.0% | 100.0% |
+| address_poisoning | 50.0% | 100.0% |
+| confused_deputy | 0.0% | 100.0% |
+| drip_drain | 0.0% | 100.0% |
+| race_cumulative_cap | 0.0% | 100.0% |
+| **all attacks** | **20.0%** | **100.0%** |
+| total value extracted (NEAR) | 3108.9 | 0.0 |
+| false-positive rate (benign denied) | 0.0% | 0.0% |
+| added decision latency p50 / p99 (ms, local stages) | baseline | 0.05 / 0.40 |
+
+The baseline gets 50% on injection and poisoning because a whitelist does stop those when the mandate names its payees. It does nothing for an open mandate ("pay any vendor invoice"), which is where agents are actually useful.
+
+**The suite above was written by the same people who wrote the guard, so treat it as a regression test, not as evidence.** The evidence is the adversarial search. `make attack` evolves attacks against both guards (96 genomes × 40 generations × 3 restarts per target, about 42k guard evaluations, about 6 s):
+
+| guard | mandate | max loss found (NEAR) |
+|---|---|---:|
+| OutLayer policy | whitelist | 84.98 |
+| OutLayer policy | open | 227.72 |
+| Mandate | whitelist | 0.00 (none found) |
+| Mandate | open | **2.99** |
+
+The engine *did* break Mandate, three times. Each break is kept in `results/findings/`:
+
+1. **001**: the user names a payee, and the agent pays a different account taken from an untrusted document (`bob.testnet.attacker.testnet`, `cloudhost-invoices.testnet`). Fix: a `RECIPIENT_CONTRADICTS_USER` signal, plus lookalike detection for names that embed a trusted account.
+2. **002**: under an open mandate, a payee named only by untrusted content was let through on one weak signal. Fix: that band fails closed unless the user explicitly pointed at the document, and the "address changed" regex was broadened.
+3. **003**: a lookalike of another account named *in the same document* ("Statement for cloudhost.testnet … processed by c1oudhost.testnet"). Fix: accounts named in the document become lookalike references.
+
+After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So Mandate adds a **novel-payee budget**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 2.99 NEAR (the 3 NEAR budget), against 227.72 NEAR on the plain policy.
+
+Replay any counterexample against both guards:
+
+```
+npx tsx src/replay.ts results/attack_outlayer_open.json
+```
+
+## How Mandate decides
+
+```
+tx ─▶ constraints (kind, recipient, method, swap pair, hours)          hard deny
+   ─▶ classifier  (~0.05 ms; noisy-OR over signals)                    risk ≥ 0.75 deny
+        injection markers · ungrounded / untrusted payee · lookalikes (edit distance,
+        homoglyphs, embedding, prefix/suffix) · confused-deputy args · amount drift ·
+        purpose drift · no financial intent · repetition / velocity
+   ─▶ judge for 0.3 ≤ risk < 0.75: Claude (claude-haiku-5-5, $25 hard budget shared
+        with DARWIN, fails closed) or a scripted judge when there is no key
+   ─▶ novel-payee budget (atomic)
+   ─▶ atomic ledger: serialized check-and-reserve, so N concurrent requests
+        cannot jointly overshoot a cap
+   ─▶ wallet adapter (OutLayer testnet / mock) ─▶ commit or release
+```
+
+The compiler fails closed. A mandate that grants nothing, or grants transfers with no cap, does not compile. An LLM-compiled mandate is intersected with the rule-compiled one, so a model can tighten a mandate but never widen it. `toOutlayerPolicy()` renders the same constraints as an OutLayer policy document, so both guards in the comparison are configured from one source.
+
+## Adapters
+
+- `OutLayerWallet`: `POST /register`, `/wallet/v1/transfer`, `/wallet/v1/call`, `/wallet/v1/policy` and `/wallet/v1/audit` on `testnet-api.outlayer.ai`.
+- `DryQuoteIntents`: real NEAR Intents (1Click) quotes with `dry: true`, priced by live mainnet solvers. No deposit address is issued and no funds move. Rejects quotes that lose more than 3% against the token-list price.
+- `MockIntents` / `MockWallet`: used by the eval and the engine.
+
+## Run
+
+```
+make install      # npm + uv
+make test         # unit tests + typecheck
+make eval         # the table above
+make attack       # evolutionary search, writes results/attack_*.json
+make demo         # eval + attack + replay of a plain-policy drain
+SIEGE_LLM=1 ANTHROPIC_API_KEY=... make eval   # use Claude for the ambiguous band
+```
+
+Library use (DARWIN does this): `import { MandateGuard, compileMandate } from "siege"`.
+
+## Honest limits
+
+- "Max loss found" means no worse counterexample was found within a bounded search. It is not a formal proof. The search space is the phrase and recipient library in `src/oracle.ts`, so an attacker with wording outside it is not covered by that number.
+- The eval suite is self-authored, so it is a regression test (see above).
+- The OutLayer baseline is a *model* of its documented policy semantics (whitelist, per-transaction and windowed caps, a best-effort counter). The race result reproduces the documented behaviour; it was not measured against the live service.
+- Intents settlement is not executed: quotes are real (`dry: true`) and execution is mocked. Wallet settlement targets NEAR testnet.
+- The guard reduces risk. It does not make LLM judgement infallible, and an attacker who controls the user's own instruction channel is limited only by the caps.
