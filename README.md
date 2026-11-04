@@ -86,7 +86,7 @@ make demo         # eval + attack + replay of a plain-policy drain
 SIEGE_LLM=1 ANTHROPIC_API_KEY=... make eval   # use Claude for the ambiguous band
 ```
 
-Library use (DARWIN does this): `import { MandateGuard, compileMandate } from "siege"`.
+Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](https://github.com/StarAtNyte/near-darwin) uses it to guard every payment in a 50-agent evolving economy, where it blocks a live rogue agent. Running DARWIN also caught a real bug here: a repetition pattern that stopped at the decimal point in "0.05 NEAR".
 
 ## Honest limits
 
