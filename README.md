@@ -102,6 +102,16 @@ x-siege-context: base64({"userInstruction": "...", "retrieved": ["..."], "reason
 - **Custody endpoints are refused** (delete, api-key, intents, EVM/Solana signing, sign-message), because the guard cannot judge them.
 - **Spend survives restarts:** spend is persisted in `.siege/ledger.json`, so caps hold across restarts. Every decision goes to `.siege/audit.jsonl`.
 
+**Run against live OutLayer testnet (2026-11-04).** A registered OutLayer wallet, funded with 1 testnet NEAR, sat behind the proxy:
+
+| request | proxy answer |
+|---|---|
+| 0.01 NEAR to a mandate payee, with the user's instruction | 200, forwarded: tx [`HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p`](https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p) |
+| the same transfer to an account injected by a retrieved email | 403 `mandate_denied` (never reached OutLayer) |
+| `POST /wallet/v1/delete` | 403 `refused_by_guard` |
+
+The wallet balance dropped by exactly the allowed transfer and its gas.
+
 ## Run
 
 ```
@@ -115,6 +125,8 @@ make attack       # evolutionary search, writes results/attack_*.json
 make demo         # eval + attack + replay of a plain-policy drain
 SIEGE_LLM=1 ANTHROPIC_API_KEY=... make eval   # use Claude for the ambiguous band
 ```
+
+With the Claude judge on (`SIEGE_LLM=1`, claude-haiku-5-5, 40 cases), the eval still blocks 100% of attacks with 0% false positives. The whole run cost $0.0009, and p99 decision latency rises to about 2 s for the cases sent to the judge.
 
 Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](https://github.com/StarAtNyte/near-darwin) uses it to guard every payment in a 50-agent evolving economy, where it blocks a live rogue agent. Running DARWIN also caught a real bug here: a repetition pattern that stopped at the decimal point in "0.05 NEAR".
 
