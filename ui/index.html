@@ -33,7 +33,7 @@
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
-    <p class="bar__line">Can your AI agent’s wallet be drained? Write its mandate and find out.</p>
+    <p class="bar__line">Can your AI agent’s wallet be drained? Write its spending rules and find out. <button type="button" class="bar__what" id="stakes-open" aria-controls="stakes" aria-expanded="true" hidden>What is this?</button></p>
     <div class="bar__examples" role="group" aria-label="Load an example mandate">
       <span class="bar__label">Examples</span>
       <button type="button" class="btn btn--quiet" data-example="whitelist">Named payees</button>
@@ -50,6 +50,31 @@
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span> <kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
+
+<section class="stakes" id="stakes" aria-labelledby="stakes-h" tabindex="-1">
+  <div class="container stakes__in">
+    <h2 id="stakes-h" class="visually-hidden">Why SIEGE exists</h2>
+    <ol class="stakes__beats">
+      <li class="beat">
+        <p class="beat__lead">AI agents now hold money.</p>
+        <p class="beat__body">They pay invoices and bills on their own, and act on whatever they read. Here the money is NEAR, a cryptocurrency, on its test network: nothing real moves.</p>
+      </li>
+      <li class="beat beat--specimen">
+        <p class="beat__lead">Attackers hide payment orders in what agents read.</p>
+        <p class="beat__body">A forged email or invoice names the attacker’s account, often one character away from the real one:</p>
+        <p class="specimen" aria-label="The real payee cloudhost.testnet, and the attacker’s lookalike c1oudhost.testnet, with the letter l swapped for the digit 1">
+          <span class="specimen__row"><span class="mono">cloudhost.testnet</span><span class="specimen__tag">your real vendor</span></span>
+          <span class="specimen__row specimen__row--fake"><span class="mono">c<mark>1</mark>oudhost.testnet</span><span class="specimen__tag">the attacker, from SIEGE’s attack library</span></span>
+        </p>
+      </li>
+      <li class="beat">
+        <p class="beat__lead">SIEGE attacks your agent’s spending rules first.</p>
+        <p class="beat__body">It throws thousands of forged invoices and poisoned documents at them and marks exactly which rule lets money leak, before a real attacker finds it.</p>
+      </li>
+    </ol>
+    <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes">Hide</button>
+  </div>
+</section>
 
 <main class="container main">
   <section class="doc" aria-labelledby="doc-h">
@@ -153,7 +178,7 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__intro" id="siege-intro">SIEGE plays the thief. It feeds your agent thousands of forged invoices and poisoned documents, measures how much money gets out, and marks the sentence that let it. Testnet only: no real money moves.</p>
+    <p class="siege__intro" id="siege-intro">SIEGE plays the thief. Press Lay siege: it feeds your agent thousands of forged invoices and poisoned documents, first with only the wallet’s plain limits, then with SIEGE’s guard in front, and measures how much money gets out each time.</p>
 
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
@@ -162,6 +187,7 @@
     </div>
     <p class="siege__prev" id="siege-prev" hidden>From the last run</p>
     <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
+    <p class="means" id="means" hidden></p>
 
     <section class="next" id="next" aria-labelledby="next-h" hidden>
       <h3 id="next-h">What to do next</h3>
@@ -177,7 +203,7 @@
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Plain OutLayer policy</h3>
-        <p class="guard__what">Without SIEGE: the spend limits of OutLayer, an agent wallet on NEAR</p>
+        <p class="guard__what">Without SIEGE: only the wallet’s own limits (OutLayer, a wallet for AI agents)</p>
         <p class="guard__phase"></p>
         <p class="guard__preview">How much the attacker gets past plain OutLayer policy</p>
         <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
@@ -196,7 +222,7 @@
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
         <h3 id="g-mandate-h">Mandate guard</h3>
-        <p class="guard__what">With SIEGE: a guard that checks each payment against the mandate</p>
+        <p class="guard__what">With SIEGE: a guard checks each payment, and who asked for it</p>
         <p class="guard__phase"></p>
         <p class="guard__preview">How much gets past the Mandate guard</p>
         <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
@@ -214,6 +240,15 @@
         </figure>
       </article>
     </div>
+
+    <section class="play" id="play" aria-labelledby="play-h" hidden>
+      <div class="play__head">
+        <h3 id="play-h">Play by play</h3>
+        <p class="play__totals num" id="play-totals"></p>
+      </div>
+      <p class="play__gloss">Real attacks from this siege, newest first. Each round the attacker keeps what got furthest and breeds new variations of it.</p>
+      <ol class="play__lines" id="play-lines"></ol>
+    </section>
 
     <p class="honest" id="honest" hidden></p>
 
@@ -233,7 +268,7 @@
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/near-siege" rel="noopener">Code on GitHub</a>
   <a href="https://near-darwin.fly.dev" rel="noopener">DARWIN, the sister project</a>
-  <span>Built for the NEAR hackathon. Testnet only.</span>
+  <span>Built for the NEAR hackathon. Test network only: no real money moves.</span>
 </footer>
 <script src="app.js" defer></script>
 </body>

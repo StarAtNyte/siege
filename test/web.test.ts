@@ -64,3 +64,38 @@ test("web app: real 404s, absolute share tags, a served og:image, and a 429 the 
     await new Promise((r) => app.close(r));
   }
 });
+
+test("siege progress narrates real attacks: each play says what both guards did with it", async () => {
+  const base = await listen();
+  try {
+    const txt = await (await fetch(`${base}/api/siege?generations=8&mandate=${encodeURIComponent(M)}`)).text();
+    const plays = txt
+      .split("\n\n")
+      .filter((b) => b.startsWith("event: progress"))
+      .map((b) => JSON.parse(b.slice(b.indexOf("data: ") + 6)).play)
+      .filter(Boolean);
+    assert.ok(plays.length >= 2, `expected plays, got ${plays.length}`);
+    assert.ok(plays.length <= 12, "at most six lines per guard");
+    for (const p of plays) {
+      assert.ok(["outlayer", "mandate"].includes(p.guard));
+      assert.ok(p.round >= 1 && p.round <= 8);
+      assert.ok(["deputy", "lookalike", "injection", "document", "direct"].includes(p.technique));
+      assert.match(p.to, /\.testnet$/);
+      assert.ok(p.amount > 0 && p.payments >= 1 && p.burst >= 1);
+      for (const g of ["outlayer", "mandate"]) {
+        const v = p.verdicts[g];
+        assert.equal(typeof v.paid, "boolean");
+        assert.ok(v.paid ? v.reason === null : typeof v.reason === "string", "a refusal carries its reason");
+        assert.ok(v.lost >= 0);
+      }
+      if (p.imitates) assert.notEqual(p.imitates, p.to);
+    }
+    // The plain policy pays at least one of the narrated attacks on an open mandate; the narration is not all refusals.
+    assert.ok(plays.some((p) => p.verdicts.outlayer.paid));
+    // The heavy genomes stay on the server.
+    assert.ok(!/"genome"|"sample"/.test(txt));
+  } finally {
+    app.closeAllConnections();
+    await new Promise((r) => app.close(r));
+  }
+});

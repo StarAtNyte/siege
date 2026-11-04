@@ -13,6 +13,7 @@ import { toMicro, fromMicro } from "./mandate/types.ts";
 import { Arena, render, routedTo } from "./attack/arena.ts";
 import { Search, type Progress } from "./attack/ga.ts";
 import { diagnose, rolesOf, sentences } from "./attack/diagnose.ts";
+import { narrate, type Play } from "./attack/narrate.ts";
 import { MANDATES } from "./eval/suite.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -113,20 +114,32 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
     const arena = new Arena(c);
     emit("start", { generations, recipients: arena.lib.recipients, legit: [...arena.lib.legit] });
     const results = [];
+    // A second arena re-runs a few of the real attacks against both guards, for the plain-English play-by-play.
+    const judge = new Arena(c);
     for (const guard of ["outlayer", "mandate"] as const) {
       const s = new Search(arena, guard, 1);
       // Pin the best attack's breaches to clauses whenever the best attack improves, so the UI can red-line live.
       let lastLoss = -1;
       let marks: { index: number; loss: number }[] = [];
       let general = 0;
-      const onProgress = ({ breaches, ...p }: Progress) => {
+      // Narrate each new best attack, and now and then another strong attempt, at most six lines per guard.
+      let plays = 0, playedLoss = -1, lastKey = "";
+      const onProgress = async ({ breaches, genome, sample, ...p }: Progress) => {
         if (p.bestLoss !== lastLoss) {
           lastLoss = p.bestLoss;
           const d = diagnose(text!, c, [{ guard, breaches: breaches ?? [] }]);
           marks = d.sentences.filter((x) => x.findings.length).map((x) => ({ index: x.index, loss: Math.round(x.findings.reduce((a, f) => a + f.loss, 0) * 100) / 100 }));
           general = Math.round(d.general.filter((f) => f.loss > 0).reduce((a, f) => a + f.loss, 0) * 100) / 100;
         }
-        emit("progress", { ...p, marks, general });
+        let play: Play | null = null;
+        const improved = p.bestLoss > playedLoss + 1e-9;
+        if (plays < 6 && (improved || p.generation % 6 === 3)) {
+          play = await narrate(judge, guard, p.generation + 1, (improved ? genome : sample) ?? []);
+          const key = play ? `${play.technique}|${play.to}` : "";
+          if (play && !improved && key === lastKey) play = null;
+          if (play) (plays++, (lastKey = key), (playedLoss = Math.max(playedLoss, p.bestLoss)));
+        }
+        emit("progress", { ...p, marks, general, play });
       };
       results.push(await s.run(generations, 64, onProgress, () => closed));
     }

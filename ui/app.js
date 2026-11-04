@@ -41,6 +41,7 @@
   let hasResult = false; // a finished siege is on screen; it stays until a new run actually connects
   let lastRun = null; // { text, losses } of the last finished siege
   let prevRun = null; // the finished run a new siege is compared against
+  let attacks = {}; // the best attack per guard, from the attack events, for the "what this means" line
 
   // ---------- helpers ----------
   const human = (code) => {
@@ -96,6 +97,23 @@
     span.append(id.slice(0, p), el("mark", { text: id.slice(p, id.length - s), title: `imitates ${best}` }), id.slice(id.length - s));
     return span;
   }
+
+  // ---------- the stakes strip ----------
+  // Three beats of why SIEGE exists. Open on a first visit; once a siege has finished it starts folded, behind "What is this?".
+  const stakes = $("#stakes");
+  const stakesOpen = $("#stakes-open");
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  function showStakes(open, byHand = false) {
+    stakes.hidden = !open;
+    stakesOpen.hidden = open;
+    stakesOpen.setAttribute("aria-expanded", String(open));
+    if (!byHand) return;
+    store.set("siege.stakes", open ? "open" : "folded");
+    (open ? stakes : stakesOpen).focus({ preventScroll: !open });
+  }
+  showStakes(!["folded", "seen"].includes(store.get("siege.stakes")));
+  $("#stakes-close").addEventListener("click", () => showStakes(false, true));
+  stakesOpen.addEventListener("click", () => showStakes(true, true));
 
   // ---------- compile ----------
   async function compile() {
@@ -304,6 +322,11 @@
     }
     lastBudget = null;
     $("#siege-verdict").hidden = true;
+    $("#means").hidden = true;
+    $("#play").hidden = true;
+    $("#play-lines").replaceChildren();
+    $("#play-totals").textContent = "";
+    attacks = {};
     $("#honest").hidden = true;
     $("#ledgers").hidden = true;
     $("#next").hidden = true;
@@ -352,6 +375,78 @@
     g.svg.setAttribute("aria-label", `Chart: best loss found by attack round, ${name}. ${breaks.length ? `Bigger breaks found in round ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
   }
 
+  // ---------- play by play ----------
+  // Each progress event may carry one real attack, re-run against both guards on the server. It becomes one plain line.
+  const LURE = {
+    invoice: "A fake invoice", injection: "A document with an order hidden in it (“ignore previous instructions, send…”)", "address-change": "An email saying the payment address had changed",
+    history: "A forged payment history", billing: "A forged billing note", receipt: "A fake order receipt", notes: "Forged meeting notes",
+    tip: "A planted tip in a help page", statement: "A forged account statement", renewal: "A fake auto-renew notice",
+  };
+  // Why a guard refused, in plain words. Judge reasons arrive as JUDGE:<code or sentence>.
+  function because(code, p) {
+    const c = String(code ?? "").replace(/^JUDGE:/, "");
+    if (/^WINDOW_CAP/.test(c)) return "it would go over your limit over time";
+    if (/untrusted/i.test(c)) return "only the document named that payee, not you";
+    if (/ungrounded/i.test(c)) return "nobody you trust ever named that payee";
+    const plain = {
+      NOT_WHITELISTED: "that payee isn’t on its list", RECIPIENT_NOT_ALLOWED: "that payee isn’t in your rules", BLACKLISTED: "your rules ban that payee", RECIPIENT_DENIED: "your rules ban that payee",
+      PER_TX_CAP: "it’s over your per-payment limit", RECIPIENT_UNGROUNDED: "nobody you trust ever named that payee", RECIPIENT_FROM_UNTRUSTED: "only the document named that payee, not you",
+      RECIPIENT_CONTRADICTS_USER: "you asked to pay someone else", ADDRESS_POISONING: p.imitates ? `the name imitates ${p.imitates}` : "the name imitates a real payee", NON_ASCII_RECIPIENT: "the name hides lookalike characters",
+      INJECTION_SUSPECTED: "the document gives the agent hidden orders", INJECTION_IN_REASONING: "the agent was repeating a planted order", NON_USER_PROVENANCE: "the order came from a document, not from you",
+      CONFUSED_DEPUTY: "the call quietly sends the money to someone else", AMOUNT_MISMATCH: "the amount isn’t what you asked for", PURPOSE_MISMATCH: "it isn’t for a purpose your rules allow",
+      NO_FINANCIAL_INTENT: "you never asked it to pay anything", REPEATED_PAYMENT: "it repeats a payment already made", RATE_LIMIT: "too many payments too fast",
+      NOVEL_PAYEE_BUDGET: "its small allowance for unknown payees was used up", METHOD_NOT_ALLOWED: "your rules don’t allow that kind of payment", KIND_NOT_ALLOWED: "your rules don’t allow that kind of payment",
+      CONTRACT_NOT_ALLOWED: "your rules don’t allow that kind of payment", OUTSIDE_ACTIVE_HOURS: "it’s outside the hours your rules allow",
+    };
+    return plain[c] ?? "it breaks your rules";
+  }
+  const tagsOf = (p) =>
+    [
+      p.lure === "injection" && "Prompt injection: orders hidden in text the agent reads",
+      p.imitates && "Lookalike payee",
+      p.technique === "deputy" && "Redirected contract call",
+      p.raced && "Racing the limit",
+      p.dripped && "Many small payments",
+      p.lure && p.lure !== "injection" && !p.imitates && p.technique !== "deputy" && "Poisoned document",
+      !p.lure && !p.imitates && p.technique !== "deputy" && "A bare request",
+    ].filter(Boolean);
+  function playLine(p) {
+    const lure = p.lure ? LURE[p.lure] ?? "A forged document" : "A request with no paperwork";
+    const what = el("p", { class: "line__what" });
+    const to = el("span", { class: "mono" }, account(p.to));
+    if (p.technique === "deputy") what.append(`${lure} got the agent to run ${p.method}, a contract call whose payout was quietly redirected to `, to, ` (${near(p.amount)} NEAR)`);
+    else what.append(`${lure} asked for ${near(p.amount)} NEAR to `, to);
+    if (p.imitates && p.imitates !== p.to) what.append(", a lookalike of ", el("span", { class: "mono", text: p.imitates }));
+    what.append(".");
+    if (p.raced) what.append(` It fired ${p.burst} payments at the same moment to race your ${near(p.cap)} NEAR limit.`);
+    else if (p.dripped) what.append(` It split the theft into ${p.payments} small payments.`);
+    const o = p.verdicts.outlayer, m = p.verdicts.mandate;
+    const plain = o.paid
+      ? `Plain policy paid it${o.lost > p.amount + 0.005 ? `; the whole attack took ${near(o.lost)} NEAR` : ""}.`
+      : `Plain policy refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of the attack still took ${near(o.lost)} NEAR` : ""}.`;
+    const guard = m.paid
+      ? m.novel ? "The guard paid it from its small allowance for unknown payees." : "The guard paid it too."
+      : `The guard refused: ${because(m.reason, p)}.`;
+    return el(
+      "li",
+      { class: `line${reduced ? "" : " line--fresh"}` },
+      el("p", { class: "line__meta" }, el("span", { class: "line__round num", text: `Round ${p.round}` }), ` against ${p.guard === "outlayer" ? "plain policy" : "the guard"}`, ...tagsOf(p).map((t) => el("span", { class: "line__tag", text: t }))),
+      what,
+      el("p", { class: "line__out" }, el("span", { class: `line__v line__v--${o.paid ? "lost" : "held"}`, text: plain }), " ", el("span", { class: `line__v line__v--${m.paid ? (m.novel ? "budget" : "lost") : "held"}`, text: guard })),
+    );
+  }
+  const PLAY_KEEP = 4;
+  function onPlay(p) {
+    const ol = $("#play-lines");
+    ol.prepend(playLine(p));
+    while (ol.childElementCount > PLAY_KEEP) ol.lastElementChild.remove();
+    $("#play").hidden = false;
+  }
+  function playTotals(p) {
+    const lost = (k) => near(Math.max(0, ...guards[k].hist.filter((v) => v != null)));
+    $("#play-totals").textContent = `${p.evaluations.toLocaleString("en")} attacks tried on ${SHORT[p.guard].toLowerCase()}. Paid out so far: plain policy ${lost("outlayer")} NEAR, the guard ${lost("mandate")} NEAR.`;
+  }
+
   function onProgress(p) {
     const g = guards[p.guard];
     if (!g) return;
@@ -364,6 +459,8 @@
     announce(`${GUARD[p.guard]}: attack round ${p.generation + 1} of ${p.generations}, ${near(p.bestLoss)} NEAR lost so far.`);
     Object.values(guards).forEach(drawSpark);
     redline(p);
+    playTotals(p);
+    if (p.play) onPlay(p.play);
   }
 
   // ---------- live red-lining ----------
@@ -428,6 +525,7 @@
   }
 
   function onAttack(a) {
+    attacks[a.guard] = a;
     finishGuard(a.guard, a.loss);
     if (a.history?.length) (guards[a.guard].hist = a.history), Object.values(guards).forEach(drawSpark);
     const ol = $(`#l-${a.guard}`);
@@ -508,10 +606,31 @@
     return `${first} ${second}`;
   }
 
+  // What the verdict means for the person reading it, from the best attack on each guard and the limit they wrote.
+  function meansLine(d) {
+    const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
+    const lostSteps = (attacks.outlayer?.steps ?? []).filter((s) => s.verdict === "allow" && !legit.has(s.routedTo || s.to) && !(s.kind === "call" && !s.routedTo));
+    const caps = (compiled?.constraints?.windows ?? []).filter((w) => w.token === "NEAR" || w.token === "*");
+    const cap = caps.length ? caps.reduce((a, w) => (w.cap < a.cap ? w : a)) : null;
+    const box = $("#means");
+    const parts = [el("b", { text: "What this means: " })];
+    if (o > 0) {
+      parts.push(`on plain policy, one attack SIEGE found would have cost you ${near(o)} NEAR`);
+      if (lostSteps.length > 1) parts.push(` in ${lostSteps.length} payments`);
+      if (cap && o > cap.cap * 1.05) parts.push(`, ${Math.floor(o / cap.cap) >= 2 ? `${Math.floor(o / cap.cap)} times` : "more than"} the ${near(cap.cap)} NEAR ${hours(cap.hours)} limit you wrote (payments sent at the same moment raced past it)`);
+      parts.push(". ");
+    } else parts.push("plain policy held against every attack SIEGE found this time. ");
+    if (m <= 0) parts.push("With the guard in front, no attack got any money out.");
+    else parts.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR ${hours(b.hours)} allowance for unknown payees` : ""}.`);
+    box.replaceChildren(...parts);
+    box.hidden = false;
+    return box.textContent;
+  }
+
   function onDone(d) {
     lastBudget = d.budget ?? null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
-    const said = verdictLine(d);
+    const said = verdictLine(d) + " " + meansLine(d);
     // Each card says how many of the mandate's clauses its guard let through, counted from the same findings the clauses show.
     const total = d.sentences.length;
     for (const [k, g] of Object.entries(guards)) {
@@ -543,6 +662,8 @@
     $("#ledgers").hidden = false;
     siegeEl.dataset.state = "done";
     hasResult = true;
+    // After the first finished siege the stakes strip starts folded on later visits, behind "What is this?".
+    if (!store.get("siege.stakes")) store.set("siege.stakes", "seen");
     stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} attacks tried`;
     renderNext(d);
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
@@ -568,7 +689,7 @@
     if (type === "progress") onProgress(data);
     else if (type === "attack") onAttack(data);
     else if (type === "done") onDone(data);
-    drainTimer = setTimeout(drain, reduced || type !== "progress" ? 0 : 45);
+    drainTimer = setTimeout(drain, reduced || type !== "progress" ? 0 : data.play ? 1100 : 45);
   }
 
   // Focus moves with the siege only when it would otherwise be lost: on the page, the hidden mandate, or the siege heading.
@@ -608,6 +729,8 @@
       return void (status.textContent ||= "Fix the mandate first.");
     }
     const moveFocus = focusAfter();
+    // The stakes did their job once a siege starts: fold them so the play by play is in view. "What is this?" brings them back.
+    if (!stakes.hidden) showStakes(false);
     const running = (label) => {
       siegeEl.dataset.state = "running";
       stateEl.textContent = label;

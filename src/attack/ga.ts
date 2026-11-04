@@ -32,6 +32,9 @@ export interface Progress {
   evaluations: number;
   /** The breaches of the best attack so far, so a caller can pin them to clauses as they are found. */
   breaches?: Breach[];
+  /** The best attack so far, and one other strong attack from this generation, so a caller can narrate real attempts. */
+  genome?: Gene[];
+  sample?: Gene[];
 }
 
 export interface SearchResult {
@@ -85,7 +88,7 @@ export class Search {
     return child.length ? child.map((x) => ({ ...x })) : [this.gene(r)];
   }
 
-  async run(generations = 30, popSize = 64, onProgress?: (p: Progress) => void, shouldStop?: () => boolean): Promise<SearchResult> {
+  async run(generations = 30, popSize = 64, onProgress?: (p: Progress) => void | Promise<void>, shouldStop?: () => boolean): Promise<SearchResult> {
     const r = rng(this.seed * 7919 + (this.guard === "mandate" ? 1 : 2));
     let pop: Ind[] = Array.from({ length: popSize }, () => ({ genome: Array.from({ length: 1 + ri(r, 6) }, () => this.gene(r)), fitness: -1, loss: 0 }));
     let best: Ind | undefined;
@@ -104,7 +107,8 @@ export class Search {
       pop.sort((a, b) => b.fitness - a.fitness);
       if (!best || pop[0].fitness > best.fitness) best = { ...pop[0], genome: pop[0].genome.map((x) => ({ ...x })) };
       history.push(Math.max(0, best.loss));
-      onProgress?.({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations, breaches: best.breaches ?? [] });
+      const sample = pop[1 + ((gen * 5) % Math.max(1, (popSize >> 1) - 1))]?.genome;
+      await onProgress?.({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations, breaches: best.breaches ?? [], genome: best.genome, sample });
       const elite = pop.slice(0, Math.max(2, popSize >> 3));
       const next: Ind[] = elite.map((e) => ({ ...e }));
       const rate = gen < generations / 2 ? 0.25 : 0.1;
