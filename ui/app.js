@@ -227,6 +227,7 @@
       g.num.textContent = near(0);
       g.path.setAttribute("d", "");
       g.dots.replaceChildren();
+      $(".spark__val", g.root).hidden = true;
       g.budget.hidden = true;
     }
     lastBudget = null;
@@ -237,13 +238,19 @@
     siegeBtn.removeAttribute("aria-busy");
   }
 
+  // One y-max for both guards, so 1.02 against 177.20 shows the real gap; a loss above 0 still rises at least 2px, gets its break dots and a value label.
+  function sparkPeak() {
+    return Math.max(0, ...Object.values(guards).flatMap((o) => o.hist.filter((v) => v != null)));
+  }
   function drawSpark(g) {
     const h = g.hist;
-    if (!h.length) return g.path.setAttribute("d", "");
+    const label = $(".spark__val", g.root);
+    if (!h.length) return g.path.setAttribute("d", ""), label && (label.hidden = true);
     const n = Math.max(GENERATIONS, h.length);
-    // Each line is scaled to its own peak, so a 1 NEAR loss is as visible as a 100 NEAR one; the figure above gives the size.
-    const peak = Math.max(0, ...h.filter((v) => v != null));
-    const y = (v) => (peak > 0 ? 38 - ((v ?? 0) / peak) * 36 : 38);
+    const peak = sparkPeak();
+    const plotH = g.svg.getBoundingClientRect().height || 48;
+    const minRise = (2 * 40) / plotH;
+    const y = (v) => (peak > 0 && (v ?? 0) > 0 ? 38 - Math.max(((v ?? 0) / peak) * 36, minRise) : 38);
     let d = `M0 ${y(h[0]).toFixed(2)}`;
     h.forEach((v, i) => {
       const x0 = (i / n) * 100, x1 = ((i + 1) / n) * 100;
@@ -262,6 +269,12 @@
       dot.style.top = top;
       dot.title = `Generation ${i + 1}: ${near(h[i])} NEAR`;
     });
+    const last = h.at(-1) ?? 0;
+    const endY = (y(last) / 40) * 100;
+    label.hidden = false;
+    label.textContent = near(last);
+    label.style.left = `${Math.max(0, Math.min(100, (h.length / n) * 100)).toFixed(2)}%`;
+    label.style.top = `${endY.toFixed(2)}%`;
     const name = g.svg.getAttribute("aria-label").split(", ").slice(-1)[0];
     g.svg.setAttribute("aria-label", `Chart: best loss found by generation, ${name}. ${breaks.length ? `Bigger breaks found at generation ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
   }
@@ -373,6 +386,8 @@
     if (!rows.length) ol.append(el("li", { class: "step step--stopped" }, el("span", { class: "step__ctx", text: "The search kept no attack steps for this guard." })));
   }
 
+  // The short line is the fix's last sentence: in the diagnoser's strings that is the instruction, the earlier ones are the reason.
+  const shortFix = (f) => f.split(/(?<=[.!?])\s+(?=[A-Z"])/).filter(Boolean).at(-1) ?? f;
   function noteFor(findings) {
     const note = el("div", { class: "note" });
     for (const g of ["outlayer", "mandate"]) {
@@ -389,8 +404,15 @@
           "div",
           { class: `note__guard note__guard--${inBudget ? "budget" : "breach"}` },
           el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: inBudget ? `lost ${near(sum)} NEAR, inside its ${near(lastBudget.cap)} NEAR new-payee budget` : `lost ${near(sum)} NEAR` })),
-          ...fixes.map((f) => el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), f)),
-          fs[0].how && el("details", { class: "note__story" }, el("summary", { text: "How it was attacked" }), el("p", { class: "note__how", text: fs[0].how })),
+          fixes.length && el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), shortFix(fixes[0])),
+          (fixes.length || fs[0].how) &&
+            el(
+              "details",
+              { class: "note__story" },
+              el("summary", { text: "Details" }),
+              ...fixes.map((f) => el("p", { class: "note__fix note__fix--full" }, el("b", { text: "Fix: " }), f)),
+              fs[0].how && el("p", { class: "note__how" }, el("b", { text: "How it was attacked: " }), fs[0].how),
+            ),
         ),
       );
     }
