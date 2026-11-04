@@ -403,7 +403,8 @@
         el(
           "div",
           { class: `note__guard note__guard--${inBudget ? "budget" : "breach"}` },
-          el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: inBudget ? `lost ${near(sum)} NEAR, inside its ${near(lastBudget.cap)} NEAR new-payee budget` : `lost ${near(sum)} NEAR` })),
+          el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: `lost ${near(sum)} NEAR` })),
+          inBudget && el("span", { class: "note__why", text: `Inside its ${near(lastBudget.cap)} NEAR new-payee budget.` }),
           fixes.length && el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), shortFix(fixes[0])),
           (fixes.length || fs[0].how) &&
             el(
