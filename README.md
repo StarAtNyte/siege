@@ -4,6 +4,12 @@ Track: AI Security & Defense. Testnet only, no funds spent.
 
 AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custody) gives them a TEE custody wallet with spend limits and whitelists. Its docs also list what those policies cannot do: they cannot judge *intent*, and cumulative caps are best-effort, so concurrent requests can overshoot them. SIEGE attacks that gap and then closes it.
 
+Three ways to use it:
+
+- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it under plain OutLayer policy and under Mandate. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
+- **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
+- **The library**: `import { MandateGuard, compileMandate } from "siege"`.
+
 | Part | What it is |
 |---|---|
 | **Mandate** (TypeScript) | A plain-language mandate compiled to constraints, a fast semantic classifier, LLM escalation for the ambiguous band, an **atomic** budget ledger and a novel-payee budget, all in front of the wallet adapter. |
@@ -75,9 +81,31 @@ The compiler fails closed. A mandate that grants nothing, or grants transfers wi
 - `DryQuoteIntents`: real NEAR Intents (1Click) quotes with `dry: true`, priced by live mainnet solvers. No deposit address is issued and no funds move. Rejects quotes that lose more than 3% against the token-list price.
 - `MockIntents` / `MockWallet`: used by the eval and the engine.
 
+## The guard proxy
+
+```
+MANDATE="Pay up to 5 NEAR per transaction to alice.testnet and bob.testnet for invoices. Never spend more than 20 NEAR per day." \
+  npm run proxy          # http://127.0.0.1:8687 -> https://testnet-api.outlayer.ai
+```
+
+Your agent keeps its OutLayer API key and paths (`POST /wallet/v1/transfer`, `/wallet/v1/call`, every `GET`). It adds one header describing why it is spending:
+
+```
+x-siege-context: base64({"userInstruction": "...", "retrieved": ["..."], "reasoning": "...", "provenance": "user|retrieved|tool_output|agent"})
+```
+
+- **Allowed spends** are forwarded unchanged and get OutLayer's response.
+- **Denied spends** get `403 {"error": "mandate_denied", "reasons": [...]}`.
+- **No context, no money:** a spend without the header is judged as the agent acting on its own.
+- **Custody endpoints are refused** (delete, api-key, intents, EVM/Solana signing, sign-message), because the guard cannot judge them.
+- **Spend survives restarts:** spend is persisted in `.siege/ledger.json`, so caps hold across restarts. Every decision goes to `.siege/audit.jsonl`.
+
 ## Run
 
 ```
+npm start         # web app on http://127.0.0.1:8686
+npm run proxy     # guard proxy (see above)
+docker build -t siege . && docker run -p 8686:8686 siege
 make install      # npm + uv
 make test         # unit tests + typecheck
 make eval         # the table above
