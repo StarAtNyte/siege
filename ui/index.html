@@ -6,12 +6,29 @@
 <title>SIEGE: can your AI agent’s wallet be drained?</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Write your agent’s spending mandate, attack it with an evolutionary search, and see which sentences let money out.">
+<meta name="theme-color" content="#000000">
+<link rel="canonical" href="__ORIGIN__/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SIEGE">
+<meta property="og:title" content="SIEGE: can your AI agent’s wallet be drained?">
+<meta property="og:description" content="Write your agent’s spending mandate in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
+<meta property="og:url" content="__ORIGIN__/">
+<meta property="og:image" content="__ORIGIN__/og.png">
+<meta property="og:image:width" content="1440">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="A spending mandate red-lined clause by clause, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SIEGE: can your AI agent’s wallet be drained?">
+<meta name="twitter:description" content="Write your agent’s spending mandate in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
+<meta name="twitter:image" content="__ORIGIN__/og.png">
+<meta name="twitter:image:alt" content="A spending mandate red-lined clause by clause, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&amp;display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<a class="skip" href="#mandate">Skip to the mandate</a>
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
@@ -29,7 +46,7 @@
         <option value="open">Open invoices</option>
       </select>
     </div>
-    <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter">Lay siege <kbd>Ctrl Enter</kbd></button>
+    <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span> <kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
 
@@ -42,11 +59,12 @@
 
     <div class="doc__page">
       <label class="visually-hidden" for="mandate">Your agent’s spending mandate, in plain English</label>
-      <textarea id="mandate" class="doc__text" spellcheck="false" maxlength="2000" aria-describedby="doc-status">Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. For invoices, subscriptions and hosting. May call deposit_and_stake and unstake on pool.testnet. Never pay mixer.testnet.</textarea>
+      <textarea id="mandate" class="doc__text" spellcheck="false" maxlength="2000" aria-describedby="doc-status doc-count">Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. For invoices, subscriptions and hosting. May call deposit_and_stake and unstake on pool.testnet. Never pay mixer.testnet.</textarea>
       <ol class="clauses" id="clauses" hidden></ol>
       <div class="general" id="general" hidden></div>
     </div>
     <p class="doc__status" id="doc-status" role="status" aria-live="polite"></p>
+    <p class="doc__count" id="doc-count" hidden></p>
 
     <section class="reading" aria-labelledby="reading-h">
       <h2 id="reading-h">How SIEGE reads it</h2>
@@ -100,6 +118,7 @@
           <button type="submit" class="btn btn--quiet" id="try-btn">Check this transaction</button>
         </div>
         <p class="try__msg" id="try-msg" role="status" aria-live="polite"></p>
+        <p class="visually-hidden" id="try-live" role="status" aria-live="polite"></p>
       </form>
       <div class="verdicts" id="verdicts" hidden></div>
     </details>
@@ -108,18 +127,18 @@
       <summary>Export</summary>
       <div class="export">
         <div class="export__item">
-          <div class="export__head"><h3>OutLayer policy</h3><button type="button" class="btn btn--quiet btn--s" data-copy="x-policy">Copy</button></div>
-          <pre class="code" id="x-policy" tabindex="0">Compile a mandate to see its policy.</pre>
+          <div class="export__head"><h3>OutLayer policy</h3><span class="export__acts"><button type="button" class="btn btn--quiet btn--s" data-copy="x-policy">Copy</button><button type="button" class="btn btn--quiet btn--s" data-download="x-policy" data-file="outlayer-policy.json">Download</button></span></div>
+          <pre class="code" id="x-policy" tabindex="0" aria-label="OutLayer policy, JSON">Compile a mandate to see its policy.</pre>
         </div>
         <div class="export__item">
-          <div class="export__head"><h3>Guard config</h3><button type="button" class="btn btn--quiet btn--s" data-copy="x-guard">Copy</button></div>
-          <pre class="code" id="x-guard" tabindex="0"></pre>
+          <div class="export__head"><h3>Guard config</h3><span class="export__acts"><button type="button" class="btn btn--quiet btn--s" data-copy="x-guard">Copy</button><button type="button" class="btn btn--quiet btn--s" data-download="x-guard" data-file="siege-guard.json">Download</button></span></div>
+          <pre class="code" id="x-guard" tabindex="0" aria-label="Guard config, JSON"></pre>
         </div>
         <div class="export__item">
           <div class="export__head"><h3>Run the guard proxy</h3><button type="button" class="btn btn--quiet btn--s" data-copy="x-proxy">Copy</button></div>
-          <pre class="code" id="x-proxy" tabindex="0"></pre>
-          <p class="export__note">Your agent keeps its OutLayer key and paths, and sends one header saying why it is spending:</p>
-          <pre class="code" id="x-header" tabindex="0"></pre>
+          <pre class="code" id="x-proxy" tabindex="0" aria-label="Shell command to run the guard proxy"></pre>
+          <p class="export__note" id="x-for">Your agent keeps its OutLayer key and paths, and sends one header saying why it is spending:</p>
+          <pre class="code" id="x-header" tabindex="0" aria-label="Context header example"></pre>
         </div>
       </div>
     </details>
@@ -127,12 +146,13 @@
 
   <section class="siege" aria-labelledby="siege-h" id="siege" data-state="idle">
     <div class="siege__head">
-      <h2 id="siege-h">The siege</h2>
-      <p class="siege__state" id="siege-state" role="status" aria-live="polite">Not started</p>
+      <h2 id="siege-h" tabindex="-1">The siege</h2>
+      <p class="siege__state" id="siege-state">Not started</p>
     </div>
     <p class="siege__intro" id="siege-intro">Lay siege runs an evolutionary attacker against plain OutLayer policy, then against the Mandate guard, and marks each sentence it got through.</p>
 
-    <p class="siege__verdict" id="siege-verdict" hidden></p>
+    <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
 
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">

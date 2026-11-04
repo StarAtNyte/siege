@@ -19,6 +19,7 @@
   const GUARD = { outlayer: "Plain OutLayer policy", mandate: "Mandate guard" };
   const SHORT = { outlayer: "Plain policy", mandate: "Mandate guard" };
   const GENERATIONS = 30;
+  const MAX = Number($("#mandate").getAttribute("maxlength")) || 2000;
 
   const ta = $("#mandate");
   const status = $("#doc-status");
@@ -28,6 +29,8 @@
   const generalEl = $("#general");
   const siegeEl = $("#siege");
   const stateEl = $("#siege-state");
+  const liveEl = $("#siege-live");
+  const btnLabel = $(".btn__label", siegeBtn);
 
   let compiled = null; // last good compile response
   let compileOk = false;
@@ -50,6 +53,17 @@
     });
     return f;
   };
+  // A server message as one plain sentence: capital first, exactly one full stop.
+  const sentence = (s) => String(s).trim().replace(/[.\s]+$/, "").replace(/^./, (x) => x.toUpperCase()) + ".";
+  const why422 = (err) => `SIEGE can’t test this mandate yet: ${String(err).trim().replace(/[.\s]+$/, "")}.`;
+  // Screen-reader announcements for the siege, throttled so a fast run is not read out generation by generation.
+  let lastSaid = 0;
+  function announce(msg, force = false) {
+    const now = Date.now();
+    if (!force && now - lastSaid < 4000) return;
+    lastSaid = now;
+    liveEl.textContent = msg;
+  }
   const hours = (h) => (h === 24 ? "per day" : h === 1 ? "per hour" : h === 168 ? "per week" : h % 24 === 0 ? `per ${h / 24} days` : `per ${h} hours`);
 
   function lev(a, b) {
@@ -92,7 +106,7 @@
       const r = await fetch("/api/compile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mandate: text }) });
       if (seq !== compileSeq) return;
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) return showCompileError(r.status === 422 ? `This mandate does not compile: ${j.error}.` : j.error || `The server answered ${r.status}.`);
+      if (!r.ok) return showCompileError(r.status === 422 ? why422(j.error) : j.error ? sentence(j.error) : `The server answered ${r.status}. Edit the mandate to retry.`);
       compiled = j;
       compileOk = true;
       ta.removeAttribute("aria-invalid");
@@ -102,7 +116,7 @@
       renderExport(j, text);
     } catch {
       if (seq !== compileSeq) return;
-      showCompileError("Can't reach the SIEGE server. Start it with npm start, then edit the mandate to retry.");
+      showCompileError("Can’t reach the SIEGE server. It retries when you edit the mandate or come back to this tab.");
     } finally {
       if (seq === compileSeq) $(".reading").removeAttribute("aria-busy");
     }
@@ -114,7 +128,21 @@
     status.textContent = msg;
     siegeBtn.setAttribute("aria-disabled", "true");
     $(".reading").removeAttribute("aria-busy");
+    staleExport();
   }
+  // Characters left, shown only near the limit; a paste that would overflow says it was cut.
+  function count(cut = false) {
+    const n = ta.value.length;
+    const c = $("#doc-count");
+    c.hidden = n < MAX * 0.8 && !cut;
+    c.dataset.tone = n >= MAX ? "full" : "";
+    c.textContent = cut ? `The pasted text was cut at ${MAX.toLocaleString("en")} characters. Shorten a sentence to fit the rest.` : n >= MAX ? `At the ${MAX.toLocaleString("en")} character limit.` : `${n.toLocaleString("en")} of ${MAX.toLocaleString("en")} characters`;
+  }
+  ta.addEventListener("paste", (e) => {
+    const add = e.clipboardData?.getData("text")?.length ?? 0;
+    const sel = ta.selectionEnd - ta.selectionStart;
+    if (ta.value.length - sel + add > MAX) setTimeout(() => count(true));
+  });
   // Grow the mandate to fit its text (where field-sizing: content is missing, as on Safari and Firefox).
   const sizesItself = CSS.supports("field-sizing", "content");
   function fit() {
@@ -125,6 +153,14 @@
   let debounce;
   ta.addEventListener("input", () => {
     fit();
+    count();
+    // The siege tests the text it started with: an edit stops a running siege and marks a finished one as out of date.
+    if (siegeEl.dataset.state === "running") siegeError("Stopped: the mandate changed. Lay siege again to test the new text.", "Lay siege on the new text");
+    else if (siegeEl.dataset.state === "done" && !siegeEl.dataset.stale) {
+      siegeEl.dataset.stale = "true";
+      stateEl.textContent = "Out of date: the mandate changed. Lay siege again.";
+      announce("The siege results are out of date: the mandate changed.", true);
+    }
     clearTimeout(debounce);
     debounce = setTimeout(compile, 400);
   });
@@ -147,25 +183,50 @@
   }
 
   // ---------- export ----------
+  function staleExport() {
+    $("#x-policy").textContent = "Fix the mandate above to see its OutLayer policy.";
+    for (const id of ["x-guard", "x-proxy", "x-header"]) $("#" + id).textContent = "";
+    $$("[data-copy], [data-download]").forEach((b) => b.setAttribute("aria-disabled", "true"));
+  }
   function renderExport(j, text) {
+    $$("[data-copy], [data-download]").forEach((b) => b.removeAttribute("aria-disabled"));
     $("#x-policy").textContent = JSON.stringify(j.outlayerPolicy, null, 2);
     $("#x-guard").textContent = JSON.stringify(j.guardConfig, null, 2);
-    const esc = text.replace(/\s+/g, " ").trim().replace(/(["\\$`])/g, "\\$1");
-    $("#x-proxy").textContent = `MANDATE="${esc}" \\\n  npm run proxy`;
+    // Single quotes keep the shell from touching $, `, ! or \ in the mandate; a ' inside becomes '\''.
+    const esc = text.replace(/\s+/g, " ").trim().replace(/'/g, "'\\''");
+    $("#x-proxy").textContent = `MANDATE='${esc}' \\\n  npm run proxy`;
     const ctx = { userInstruction: "Pay the hosting invoice from cloudhost.testnet.", retrieved: ["Invoice #4471. Amount due: 3 NEAR. Pay to: cloudhost.testnet."], reasoning: "The user asked me to pay this invoice.", provenance: "user" };
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(ctx))));
     $("#x-header").textContent = `x-siege-context: ${b64}\n\n# decoded\n${JSON.stringify(ctx, null, 2)}`;
   }
   $$("[data-copy]").forEach((b) =>
     b.addEventListener("click", async () => {
-      const t = $("#" + b.dataset.copy).textContent;
+      if (b.getAttribute("aria-disabled") === "true") return;
+      const pre = $("#" + b.dataset.copy);
       try {
-        await navigator.clipboard.writeText(t);
+        await navigator.clipboard.writeText(pre.textContent);
         b.textContent = "Copied";
       } catch {
-        b.textContent = "Select and copy";
+        // No clipboard access (an insecure origin, or permission refused): select the text so the keyboard copy works.
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        getSelection().removeAllRanges();
+        getSelection().addRange(range);
+        pre.focus();
+        b.textContent = "Selected, now copy";
       }
-      setTimeout(() => (b.textContent = "Copy"), 1600);
+      setTimeout(() => (b.textContent = "Copy"), 2400);
+    }),
+  );
+  $$("[data-download]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (b.getAttribute("aria-disabled") === "true") return;
+      const blob = new Blob([$("#" + b.dataset.download).textContent + "\n"], { type: "application/json" });
+      const a = el("a", { href: URL.createObjectURL(blob), download: b.dataset.file });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }),
   );
 
@@ -176,7 +237,7 @@
     try {
       examples ??= await (await fetch("/api/examples")).json();
     } catch {
-      return showCompileError("Can't reach the SIEGE server to load the examples.");
+      return showCompileError("Can’t reach the SIEGE server to load the examples. Try again in a moment.");
     }
     setMode("edit");
     ta.value = examples[name] ?? ta.value;
@@ -216,7 +277,9 @@
     clearTimeout(drainTimer);
     drainTimer = null;
     siegeEl.dataset.state = "idle";
+    delete siegeEl.dataset.stale;
     stateEl.textContent = "Not started";
+    btnLabel.textContent = "Lay siege";
     for (const g of Object.values(guards)) {
       g.hist = [];
       g.loss = 0;
@@ -289,6 +352,7 @@
     g.num.textContent = near(p.bestLoss);
     g.phase.textContent = `Generation ${p.generation + 1} of ${p.generations}`;
     stateEl.textContent = `Attacking ${SHORT[p.guard].toLowerCase()}, ${p.evaluations.toLocaleString("en")} attacks tried`;
+    announce(`${GUARD[p.guard]}: generation ${p.generation + 1} of ${p.generations}, ${near(p.bestLoss)} NEAR lost so far.`);
     Object.values(guards).forEach(drawSpark);
     redline(p);
   }
@@ -324,6 +388,7 @@
     g.root.dataset.phase = "done";
     g.num.textContent = near(g.loss);
     Object.keys(guards).forEach(grade);
+    if (siegeEl.dataset.state === "running") announce(`${GUARD[k]} finished: ${near(g.loss)} NEAR lost.`, true);
   }
   // Held: nothing lost. Held to budget: everything lost went through the mandate's new-payee budget and stayed inside it.
   // Mostly held: lost, but at least 90% less than the other guard. Drained: otherwise.
@@ -431,12 +496,13 @@
     const v = $("#siege-verdict");
     v.replaceChildren(el("span", { class: "siege__verdict-a", text: first }), " ", el("span", { class: "siege__verdict-b", text: second }));
     v.hidden = false;
+    return `${first} ${second}`;
   }
 
   function onDone(d) {
     lastBudget = d.budget ?? null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
-    verdictLine(d);
+    const said = verdictLine(d);
     // Each card says how many of the mandate's clauses its guard let through, counted from the same findings the clauses show.
     const total = d.sentences.length;
     for (const [k, g] of Object.entries(guards)) {
@@ -459,7 +525,7 @@
     }
     generalEl.replaceChildren();
     if (d.general?.length) {
-      generalEl.append(el("h3", { text: "Not tied to one sentence" }), noteFor(d.general));
+      generalEl.append(el("h2", { text: "Not tied to one sentence" }), noteFor(d.general));
     }
     setMode("annotated");
     const honest = $("#honest");
@@ -471,7 +537,10 @@
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
-    siegeBtn.firstChild.textContent = "Lay siege again ";
+    btnLabel.textContent = "Lay siege again";
+    announce(`Siege finished. ${said} Breached clauses are marked in the mandate.`, true);
+    // A keyboard user who started the siege lands on the verdict, then tabs on to the clause details and ledgers.
+    if (focusAfter()) $("#siege-verdict").focus({ preventScroll: true });
   }
 
   // The engine is fast; pace the stream so each generation is seen. Reduced motion shows it at once.
@@ -491,14 +560,26 @@
     drainTimer = setTimeout(drain, reduced || type !== "progress" ? 0 : 45);
   }
 
-  function siegeError(msg) {
+  // Focus moves with the siege only when it would otherwise be lost: on the page, the hidden mandate, or the siege heading.
+  const focusAfter = () => [document.body, ta, $("#siege-h"), null].includes(document.activeElement);
+  function siegeError(msg, retry = "Try again") {
     if (es) es.close(), (es = null);
+    // Drop the events still queued for display, so the stopped run does not keep animating.
+    queue.length = 0;
+    clearTimeout(drainTimer);
+    drainTimer = null;
     siegeEl.dataset.state = "error";
     stateEl.textContent = "Stopped";
     $("#siege-error-msg").textContent = msg;
+    $("#retry-btn").textContent = retry;
     $("#siege-error").hidden = false;
     siegeBtn.removeAttribute("aria-busy");
-    for (const g of Object.values(guards)) if (g.root.dataset.phase === "running") (g.root.dataset.phase = "waiting"), (g.phase.textContent = "Interrupted");
+    btnLabel.textContent = "Lay siege";
+    for (const g of Object.values(guards)) if (g.root.dataset.phase !== "done") (g.phase.textContent = g.root.dataset.phase === "running" ? "Interrupted" : "Not run"), (g.root.dataset.phase = "waiting");
+    const typing = document.activeElement === ta && !ta.hidden;
+    setMode("edit");
+    announce(msg, true);
+    if (!typing && focusAfter()) $("#retry-btn").focus({ preventScroll: true });
   }
 
   async function laySiege() {
@@ -507,13 +588,17 @@
       ta.focus();
       return void (status.textContent ||= "Fix the mandate first.");
     }
+    const moveFocus = focusAfter();
     resetSiege();
     setMode(liveClauses() ? "annotated" : "edit");
+    if (moveFocus) $("#siege-h").focus({ preventScroll: true });
+    announce("Siege started. Attacking plain OutLayer policy first, then the Mandate guard.", true);
     // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     siegeEl.dataset.state = "running";
     stateEl.textContent = "Starting the attacker…";
     siegeBtn.setAttribute("aria-busy", "true");
+    btnLabel.textContent = "Laying siege…";
     const text = ta.value;
     let started = false, finished = false;
     es = new EventSource(`/api/siege?mandate=${encodeURIComponent(text)}&generations=${GENERATIONS}`);
@@ -538,9 +623,9 @@
       if (started) return siegeError("The siege stopped before it finished. The connection to the server dropped.");
       try {
         const h = await (await fetch("/healthz", { cache: "no-store" })).json();
-        siegeError(h.sieges > 0 ? "The attacker is busy with other sieges. Try again in a few seconds." : "The server refused this siege. Check the mandate compiles, then try again.");
+        siegeError(h.sieges >= (h.maxSieges ?? 1) ? `The attacker is busy: ${h.sieges} other sieges are running, the most it runs at once. Try again in a few seconds.` : "The server refused this siege. Check the mandate reads cleanly above, then try again.");
       } catch {
-        siegeError("Can't reach the SIEGE server. Check it is running, then try again.");
+        siegeError("Can’t reach the SIEGE server. Check your connection, then try again.");
       }
     });
   }
@@ -571,14 +656,14 @@
       const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mandate: ta.value, tx: { ...fd, amount: Number(fd.amount) } }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
-        msg.textContent = r.status === 422 ? `The mandate does not compile: ${j.error}.` : `${(j.error || "That did not go through").replace(/^./, (x) => x.toUpperCase())}.`;
+        msg.textContent = r.status === 422 ? why422(j.error) : sentence(j.error || "That did not go through");
         const bad = /amount/.test(j.error) ? "#t-amount" : /recipient/.test(j.error) ? "#t-to" : /arguments/.test(j.error) ? "#t-args" : null;
         if (bad) $(bad).setAttribute("aria-invalid", "true"), $(bad).focus();
         return;
       }
       renderVerdicts(j);
     } catch {
-      msg.textContent = "Can't reach the SIEGE server. Check it is running, then try again.";
+      msg.textContent = "Can’t reach the SIEGE server. Check your connection, then try again.";
     } finally {
       btn.removeAttribute("aria-busy");
     }
@@ -586,6 +671,8 @@
   function renderVerdicts(j) {
     const box = $("#verdicts");
     box.replaceChildren();
+    const says = (g) => (j[g].verdict === "allow" ? "would send it" : j[g].verdict === "deny" ? "would refuse it" : `would ${j[g].verdict} it`);
+    $("#try-live").textContent = `${GUARD.outlayer} ${says("outlayer")}. ${GUARD.mandate} ${says("mandate")}.`;
     for (const g of ["outlayer", "mandate"]) {
       const v = j[g];
       const allow = v.verdict === "allow";
@@ -600,7 +687,7 @@
         ),
       );
     }
-    const sig = el("div", { class: "signals" }, el("h4", { text: `What the classifier saw, risk ${Number(j.risk).toFixed(2)}` }));
+    const sig = el("div", { class: "signals" }, el("h3", { text: `What the classifier saw, risk ${Number(j.risk).toFixed(2)}` }));
     const ul = el("ul");
     if (!j.signals?.length) ul.append(el("li", {}, el("span", { class: "w", text: "0" }), el("span", { text: "No signals" }), el("span", { class: "d", text: "Nothing about this transaction looked off." })));
     for (const s of j.signals || []) ul.append(el("li", {}, el("span", { class: "w", text: Number(s.weight).toFixed(2) }), el("span", { text: human(s.code) }), el("span", { class: "d", text: s.detail })));
@@ -621,8 +708,14 @@
   new ResizeObserver(stick).observe(cols[1]);
   addEventListener("resize", () => (stick(), fit()));
 
+  // After a dropped connection, read the mandate again once the page is back online or back in view.
+  const recompile = () => !compileOk && document.visibilityState === "visible" && compile();
+  addEventListener("online", recompile);
+  document.addEventListener("visibilitychange", recompile);
+
   // ---------- start ----------
   fit();
+  count();
   compile().then(() => {
     if (new URLSearchParams(location.search).get("autosiege") === "1" && compileOk) laySiege();
   });

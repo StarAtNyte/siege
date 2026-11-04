@@ -44,7 +44,7 @@ async function body(req: http.IncomingMessage) {
 }
 
 class HttpError extends Error {
-  constructor(public status: number, msg: string) {
+  constructor(public status: number, msg: string, public headers: Record<string, string> = {}) {
     super(msg);
   }
 }
@@ -103,7 +103,7 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
   const text = url.searchParams.get("mandate");
   const c = compileOr400(text);
   const generations = Math.min(60, Math.max(5, Number(url.searchParams.get("generations") ?? 30)));
-  if (running >= MAX_SIEGES) throw new HttpError(429, "the attacker is busy with other sieges; try again in a few seconds");
+  if (running >= MAX_SIEGES) throw new HttpError(429, "the attacker is busy with other sieges; try again in a few seconds", { "retry-after": "5" });
   running++;
   let closed = false;
   req.on("close", () => (closed = true));
@@ -172,13 +172,27 @@ function novelBudget(c: ReturnType<typeof compileMandate>, ev: Awaited<ReturnTyp
   return { cap: round(cap), hours: tight.windowMs / 3_600_000, viaBudget: round(viaBudget), withinBudget: lost > 0 && viaBudget >= lost - 1e-9 && lost <= cap + 1e-9 };
 }
 
-const STATIC: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png" };
+const STATIC: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
+
+/** The page's absolute origin, for share-card tags that must be absolute. PUBLIC_URL wins; otherwise the request's own host, if it looks like one. */
+function origin(req: http.IncomingMessage) {
+  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/+$/, "");
+  const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");
+  const proto = String(req.headers["x-forwarded-proto"] ?? "http").split(",")[0].trim() === "https" ? "https" : "http";
+  return /^[a-z0-9.-]+(:\d+)?$/i.test(host) ? `${proto}://${host}` : `http://${HOST}:${PORT}`;
+}
+
+function notFound(res: http.ServerResponse, p: string) {
+  if (p.startsWith("/api/")) return send(res, 404, { error: "not found" });
+  res.writeHead(404, { "content-type": STATIC[".html"], "cache-control": "no-store", "x-content-type-options": "nosniff" });
+  fs.createReadStream(path.join(UI, "404.html")).pipe(res);
+}
 
 export const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
   const p = url.pathname;
   try {
-    if (req.method === "GET" && p === "/healthz") return send(res, 200, { ok: true, sieges: running });
+    if (req.method === "GET" && p === "/healthz") return send(res, 200, { ok: true, sieges: running, maxSieges: MAX_SIEGES });
     if (req.method === "GET" && p === "/api/examples") return send(res, 200, MANDATES);
     if (req.method === "POST" && p === "/api/compile") {
       const b = await body(req);
@@ -203,16 +217,21 @@ export const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && p === "/api/siege") return await siege(req, res, url);
     if (req.method === "GET") {
       const file = path.resolve(UI, "." + (p === "/" ? "/index.html" : p));
-      if (file.startsWith(UI + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-        res.writeHead(200, { "content-type": STATIC[path.extname(file)] ?? "application/octet-stream" });
+      if (p !== "/404.html" && file.startsWith(UI + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+        const headers = { "content-type": STATIC[path.extname(file)] ?? "application/octet-stream", "x-content-type-options": "nosniff" };
+        if (file === path.join(UI, "index.html")) {
+          res.writeHead(200, { ...headers, "cache-control": "no-cache" });
+          return void res.end(fs.readFileSync(file, "utf8").replaceAll("__ORIGIN__", origin(req)));
+        }
+        res.writeHead(200, headers);
         return void fs.createReadStream(file).pipe(res);
       }
     }
-    send(res, 404, { error: "not found" });
+    notFound(res, p);
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error(e);
-    if (!res.headersSent) send(res, status, { error: status === 500 ? "internal error" : (e as Error).message });
+    if (!res.headersSent) send(res, status, { error: status === 500 ? "internal error" : (e as Error).message }, e instanceof HttpError ? e.headers : {});
     else res.end();
   }
 });
