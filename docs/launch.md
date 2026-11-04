@@ -2,11 +2,12 @@
 
 ## X post (draft, ≤280 chars)
 
-AI agents now hold wallets. Can yours be drained?
+Can your AI agent's wallet be drained?
 
-SIEGE: write your agent's spending rules in plain English, then an evolutionary attacker tries to drain it live. Plain policy lost 177 NEAR. Our guard: 1.02, inside its budget.
+SIEGE: write your agent's spending rules in plain English; an evolutionary attacker tries to drain it live. Plain policy lost 177 NEAR. Our guard: 1.02, inside its budget.
 
-Built on @NEARProtocol #NEARHackathon
+Try it: near-siege.fly.dev
+On @NEARProtocol #NEARHackathon
 
 Attach: docs/demo.mp4
 
