@@ -152,9 +152,9 @@ export function compileMandate(text: string): Constraints {
 
   c.allowedKinds = [...kinds];
   // A mandate that names nothing allows nothing: fail closed.
-  if (c.allowedKinds.length === 0) throw new MandateParseError("mandate grants no capability; refusing to compile");
+  if (c.allowedKinds.length === 0) throw new MandateParseError("it does not let the agent do anything yet. Say who it may pay and how much, for example: Pay up to 5 NEAR per transaction to alice.testnet.");
   if (c.allowedKinds.includes("transfer") && Object.keys(c.perTx).length === 0 && Object.keys(c.windows).length === 0) {
-    throw new MandateParseError("transfer mandate has no amount cap; refusing to compile an unbounded mandate");
+    throw new MandateParseError("it lets the agent pay but sets no limit. Add a cap, for example: up to 5 NEAR per transaction, or never more than 20 NEAR per day.");
   }
   c.deniedRecipients = [...new Set(c.deniedRecipients)];
   c.allowedRecipients = c.allowedRecipients.filter((r) => !c.deniedRecipients.includes(r));
