@@ -311,3 +311,9 @@ a.btn { text-decoration: none; }
 }
 .guard[data-phase="waiting"] .guard__figure, .guard[data-phase="waiting"] .spark { visibility: hidden; }
 @media (max-width: 40rem) { .btn kbd { display: none; } }
+
+/* ---------- footer: code and sister-project links ---------- */
+.foot { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); padding-block: var(--space-lg) var(--space-xl); border-top: 1px solid var(--color-rule); font-size: var(--text-sm); color: var(--color-muted); }
+.foot a { color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.foot a:hover { text-decoration-thickness: 2px; }
+.foot a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
