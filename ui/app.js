@@ -456,6 +456,8 @@
     $("#ledgers").hidden = false;
     siegeEl.dataset.state = "done";
     stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} evaluations`;
+    // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
+    if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
     siegeBtn.firstChild.textContent = "Lay siege again ";
   }
