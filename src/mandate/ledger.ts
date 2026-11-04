@@ -11,7 +11,7 @@
 
 import type { Constraints, Micro, Tx } from "./types.ts";
 
-interface Entry {
+export interface Entry {
   id: string;
   token: string;
   amount: Micro;
@@ -65,6 +65,16 @@ const newId = () => `r${++seq}`;
 export class AtomicLedger implements Ledger {
   private entries: Entry[] = [];
   private mutex = new Mutex();
+  /** Called after every commit/release with the committed entries, for persistence. */
+  onChange?: (committed: Entry[]) => void;
+
+  /** Restore committed spend (e.g. after a restart) so caps keep counting. */
+  restore(entries: Entry[]) {
+    this.entries = entries.filter((e) => e.state === "committed");
+  }
+  committed() {
+    return this.entries.filter((e) => e.state === "committed");
+  }
 
   reserve(tx: Tx, c: Constraints): Promise<ReserveResult> {
     return this.mutex.run(() => {
@@ -79,6 +89,7 @@ export class AtomicLedger implements Ledger {
   commit(id: string) {
     const e = this.entries.find((x) => x.id === id);
     if (e) e.state = "committed";
+    this.onChange?.(this.committed());
   }
   release(id: string) {
     this.entries = this.entries.filter((x) => x.id !== id);

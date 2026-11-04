@@ -11,7 +11,9 @@
     "eval": "tsx src/eval/run.ts",
     "oracle": "tsx src/oracle.ts",
     "test": "node --import tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/server.ts",
+    "proxy": "tsx src/proxy.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
