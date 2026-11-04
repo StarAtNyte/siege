@@ -11,7 +11,7 @@ import { classify } from "./mandate/classifier.ts";
 import type { Tx, Provenance } from "./mandate/types.ts";
 import { toMicro, fromMicro } from "./mandate/types.ts";
 import { Arena, render, routedTo } from "./attack/arena.ts";
-import { Search } from "./attack/ga.ts";
+import { Search, type Progress } from "./attack/ga.ts";
 import { diagnose, rolesOf, sentences } from "./attack/diagnose.ts";
 import { MANDATES } from "./eval/suite.ts";
 
@@ -115,13 +115,28 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
     const results = [];
     for (const guard of ["outlayer", "mandate"] as const) {
       const s = new Search(arena, guard, 1);
-      results.push(await s.run(generations, 64, (p) => emit("progress", p), () => closed));
+      // Pin the best attack's breaches to clauses whenever the best attack improves, so the UI can red-line live.
+      let lastLoss = -1;
+      let marks: { index: number; loss: number }[] = [];
+      let general = 0;
+      const onProgress = ({ breaches, ...p }: Progress) => {
+        if (p.bestLoss !== lastLoss) {
+          lastLoss = p.bestLoss;
+          const d = diagnose(text!, c, [{ guard, breaches: breaches ?? [] }]);
+          marks = d.sentences.filter((x) => x.findings.length).map((x) => ({ index: x.index, loss: Math.round(x.findings.reduce((a, f) => a + f.loss, 0) * 100) / 100 }));
+          general = Math.round(d.general.filter((f) => f.loss > 0).reduce((a, f) => a + f.loss, 0) * 100) / 100;
+        }
+        emit("progress", { ...p, marks, general });
+      };
+      results.push(await s.run(generations, 64, onProgress, () => closed));
     }
     if (closed) return;
     const runs = [];
+    let budget: { cap: number; hours: number; viaBudget: number; withinBudget: boolean } | null = null;
     for (const r of results) {
       const ev = await arena.evaluate(r.guard, r.genome);
       runs.push({ guard: r.guard, breaches: ev.breaches });
+      if (r.guard === "mandate") budget = novelBudget(c, ev);
       emit("attack", {
         guard: r.guard,
         loss: r.loss,
@@ -130,15 +145,31 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
         steps: ev.txs.map((t) => ({
           to: t.recipient, routedTo: t.kind === "call" && routedTo(t) !== t.recipient ? routedTo(t) : null,
           kind: t.kind, method: t.method ?? null, amount: fromMicro(t.amount), user: t.context.userInstruction, doc: t.context.retrieved[0] ?? null,
-          verdict: ev.decisions.get(t.id)!.verdict, reasons: ev.decisions.get(t.id)!.reasons.slice(0, 4),
+          verdict: ev.decisions.get(t.id)!.verdict, reasons: ev.decisions.get(t.id)!.reasons.slice(0, 4), novelBudget: ev.decisions.get(t.id)!.novelBudget,
         })),
       });
     }
-    emit("done", { ...diagnose(text!, c, runs), losses: Object.fromEntries(results.map((r) => [r.guard, r.loss])), evaluations: results.reduce((a, r) => a + r.evaluations, 0) });
+    emit("done", { ...diagnose(text!, c, runs), losses: Object.fromEntries(results.map((r) => [r.guard, r.loss])), budget, evaluations: results.reduce((a, r) => a + r.evaluations, 0) });
   } finally {
     running--;
     res.end();
   }
+}
+
+/**
+ * The novel-payee budget bounds what the Mandate guard lets go to payees nobody vouched for.
+ * withinBudget is true only when every NEAR the best attack took went through that budget
+ * (theft by transfer, charged to the novel-payee ledger) and the total is no more than the tightest cap.
+ */
+function novelBudget(c: ReturnType<typeof compileMandate>, ev: Awaited<ReturnType<Arena["evaluate"]>>) {
+  const ws = new MandateGuard(c).novelWindows();
+  const tight = (ws.NEAR ?? ws["*"] ?? []).reduce<{ cap: number; windowMs: number } | null>((a, w) => (!a || w.cap < a.cap ? w : a), null);
+  if (!tight) return null;
+  const cap = fromMicro(tight.cap);
+  const lost = ev.loss;
+  const viaBudget = ev.breaches.filter((b) => b.kind === "theft" && ev.decisions.get(b.tx.id)?.novelBudget).reduce((a, b) => a + b.loss, 0);
+  const round = (x: number) => Math.round(x * 100) / 100;
+  return { cap: round(cap), hours: tight.windowMs / 3_600_000, viaBudget: round(viaBudget), withinBudget: lost > 0 && viaBudget >= lost - 1e-9 && lost <= cap + 1e-9 };
 }
 
 const STATIC: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png" };

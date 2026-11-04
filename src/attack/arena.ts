@@ -196,11 +196,11 @@ export class Arena {
     g.reset();
     const groups = render(this.lib, genome);
     const allowed: Tx[] = [];
-    const decisions = new Map<string, { verdict: string; reasons: string[] }>();
+    const decisions = new Map<string, { verdict: string; reasons: string[]; novelBudget: boolean }>();
     for (const grp of groups) {
       const ds = await Promise.all(grp.map((t) => g.submit(t)));
       ds.forEach((d, i) => {
-        decisions.set(grp[i].id, { verdict: d.verdict, reasons: d.reasons });
+        decisions.set(grp[i].id, { verdict: d.verdict, reasons: d.reasons, novelBudget: !!d.novelBudget });
         if (d.verdict === "allow") allowed.push(grp[i]);
       });
     }

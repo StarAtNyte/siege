@@ -2,7 +2,7 @@
 
 Track: AI Security & Defense. Testnet only, no funds spent.
 
-![SIEGE red-lining an open invoice mandate: plain policy drained 177.20 NEAR, Mandate held](docs/app.png)
+![SIEGE red-lining an open invoice mandate: plain policy lost 177.20 NEAR, the Mandate guard lost 1.02, inside its 3.00 NEAR new-payee budget](docs/app.png)
 
 AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custody) gives them a TEE custody wallet with spend limits and whitelists. Its docs also list what those policies cannot do: they cannot judge *intent*, and cumulative caps are best-effort, so concurrent requests can overshoot them. SIEGE attacks that gap and then closes it.
 

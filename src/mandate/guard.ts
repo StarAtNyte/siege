@@ -61,6 +61,11 @@ export class MandateGuard implements MandateGuardLike {
     this.novelConstraints = { ...constraints, windows: scale(constraints.windows) };
   }
 
+  /** The novel-payee budget: each window cap scaled by novelPayeeShare. Bounds what can go to payees nobody vouched for. */
+  novelWindows() {
+    return this.novelConstraints.windows;
+  }
+
   /** A payee nobody trusted vouched for: not allow-listed, not named by the user, never paid before. */
   isNovel(tx: Tx) {
     const r = tx.recipient.toLowerCase();
@@ -142,6 +147,6 @@ export class MandateGuard implements MandateGuardLike {
     if (tx.context.provenance === "user" && tx.context.userInstruction.toLowerCase().includes(tx.recipient.toLowerCase())) {
       this.state.knownPayees.add(tx.recipient.toLowerCase());
     }
-    return this.done(tx, { verdict: "allow", reasons: cls.signals.map((s) => s.code), stage, risk: cls.risk }, t0);
+    return this.done(tx, { verdict: "allow", reasons: cls.signals.map((s) => s.code), stage, risk: cls.risk, ...(novelId ? { novelBudget: true } : {}) }, t0);
   }
 }

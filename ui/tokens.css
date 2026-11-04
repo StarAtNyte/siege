@@ -22,6 +22,8 @@
   --color-hold-wash: color-mix(in oklab, var(--near-green) 45%, var(--near-white));
   /* mostly held: NEAR amber fills under black text */
   --color-partial: var(--near-amber); --color-partial-ink: var(--near-black);
+  /* held to budget: a pale NEAR green field, black text; what the budget let go is drawn in coral on a gauge */
+  --color-budget: var(--color-hold-wash); --color-budget-ink: var(--near-black);
   /* the bar is a near.org black band; the primary action is NEAR green with black text, everywhere */
   --color-band: var(--near-black); --color-on-band: var(--near-white); --color-on-band-2: var(--near-black-subtle); --color-band-rule: var(--near-grey-2); --color-band-hover: var(--near-grey-3);
   --color-action: var(--near-green); --color-action-2: var(--color-hold-2); --color-action-ink: var(--near-black);

@@ -21,6 +21,14 @@
       <button type="button" class="btn btn--quiet" data-example="whitelist">Named payees</button>
       <button type="button" class="btn btn--quiet" data-example="open">Open invoices</button>
     </div>
+    <div class="bar__pick">
+      <label class="visually-hidden" for="example-select">Load an example mandate</label>
+      <select id="example-select" class="input bar__select">
+        <option value="" selected>Examples</option>
+        <option value="whitelist">Named payees</option>
+        <option value="open">Open invoices</option>
+      </select>
+    </div>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter">Lay siege <kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
@@ -124,6 +132,8 @@
     </div>
     <p class="siege__intro" id="siege-intro">Lay siege runs an evolutionary attacker against plain OutLayer policy, then against the Mandate guard, and marks each sentence it got through.</p>
 
+    <p class="siege__verdict" id="siege-verdict" hidden></p>
+
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Plain OutLayer policy</h3>
@@ -131,7 +141,14 @@
         <p class="guard__phase">Waiting</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__compare" hidden></p>
-        <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, plain OutLayer policy"><path class="spark__line" d=""/></svg>
+        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
+        <figure class="spark">
+          <div class="spark__plot">
+            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, plain OutLayer policy"><path class="spark__line" d=""/></svg>
+            <div class="spark__dots" aria-hidden="true"></div>
+          </div>
+          <figcaption class="spark__axis"><span>1</span><span>Generation</span><span class="spark__end">30</span></figcaption>
+        </figure>
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
         <h3 id="g-mandate-h">Mandate guard</h3>
@@ -139,7 +156,14 @@
         <p class="guard__phase">Waiting</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__compare" hidden></p>
-        <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, Mandate guard"><path class="spark__line" d=""/></svg>
+        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
+        <figure class="spark">
+          <div class="spark__plot">
+            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, Mandate guard"><path class="spark__line" d=""/></svg>
+            <div class="spark__dots" aria-hidden="true"></div>
+          </div>
+          <figcaption class="spark__axis"><span>1</span><span>Generation</span><span class="spark__end">30</span></figcaption>
+        </figure>
       </article>
     </div>
 

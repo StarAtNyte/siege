@@ -50,6 +50,8 @@ export interface Decision {
   latencyMs: number;
   /** Classifier risk score 0..1 when computed. */
   risk?: number;
+  /** True when an allowed payment went to a novel payee and was charged to the novel-payee budget. */
+  novelBudget?: boolean;
 }
 
 export interface WindowCap {

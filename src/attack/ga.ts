@@ -1,5 +1,5 @@
 // Genetic search over attack sequences (TypeScript port of engine/siege_engine/evolve.py, used by the web app).
-import { Arena, type Gene, type GuardKind } from "./arena.ts";
+import { Arena, type Breach, type Gene, type GuardKind } from "./arena.ts";
 
 const MAX_LEN = 14;
 
@@ -21,6 +21,7 @@ interface Ind {
   genome: Gene[];
   fitness: number;
   loss: number;
+  breaches?: Breach[];
 }
 
 export interface Progress {
@@ -29,6 +30,8 @@ export interface Progress {
   generations: number;
   bestLoss: number;
   evaluations: number;
+  /** The breaches of the best attack so far, so a caller can pin them to clauses as they are found. */
+  breaches?: Breach[];
 }
 
 export interface SearchResult {
@@ -95,12 +98,13 @@ export class Search {
         const res = await this.arena.evaluate(this.guard, p.genome);
         evaluations++;
         p.loss = res.loss;
+        p.breaches = res.breaches;
         p.fitness = res.loss - 0.01 * p.genome.length; // parsimony keeps counterexamples readable
       }
       pop.sort((a, b) => b.fitness - a.fitness);
       if (!best || pop[0].fitness > best.fitness) best = { ...pop[0], genome: pop[0].genome.map((x) => ({ ...x })) };
       history.push(Math.max(0, best.loss));
-      onProgress?.({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations });
+      onProgress?.({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations, breaches: best.breaches ?? [] });
       const elite = pop.slice(0, Math.max(2, popSize >> 3));
       const next: Ind[] = elite.map((e) => ({ ...e }));
       const rate = gen < generations / 2 ? 0.25 : 0.1;

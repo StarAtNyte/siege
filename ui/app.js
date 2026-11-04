@@ -34,6 +34,7 @@
   let compileSeq = 0;
   let es = null;
   let legit = new Set();
+  let lastBudget = null; // the Mandate guard's new-payee budget, from the finished siege
 
   // ---------- helpers ----------
   const human = (code) => {
@@ -170,21 +171,23 @@
 
   // ---------- examples ----------
   let examples = null;
-  $$("[data-example]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      try {
-        examples ??= await (await fetch("/api/examples")).json();
-      } catch {
-        return showCompileError("Can't reach the SIEGE server to load the examples.");
-      }
-      setMode("edit");
-      ta.value = examples[b.dataset.example] ?? ta.value;
-      fit();
-      $$("[data-example]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-      resetSiege();
-      compile();
-    }),
-  );
+  const pick = $("#example-select");
+  async function loadExample(name) {
+    try {
+      examples ??= await (await fetch("/api/examples")).json();
+    } catch {
+      return showCompileError("Can't reach the SIEGE server to load the examples.");
+    }
+    setMode("edit");
+    ta.value = examples[name] ?? ta.value;
+    fit();
+    $$("[data-example]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.example === name)));
+    pick.value = name;
+    resetSiege();
+    compile();
+  }
+  $$("[data-example]").forEach((b) => b.addEventListener("click", () => loadExample(b.dataset.example)));
+  pick.addEventListener("change", () => pick.value && loadExample(pick.value));
 
   // ---------- document modes ----------
   function setMode(mode) {
@@ -204,7 +207,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), path: $(".spark__line", root), hist: [], loss: 0 };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), hist: [], loss: 0 };
   }
 
   function resetSiege() {
@@ -223,7 +226,11 @@
       g.phase.textContent = "Waiting";
       g.num.textContent = near(0);
       g.path.setAttribute("d", "");
+      g.dots.replaceChildren();
+      g.budget.hidden = true;
     }
+    lastBudget = null;
+    $("#siege-verdict").hidden = true;
     $("#honest").hidden = true;
     $("#ledgers").hidden = true;
     $("#siege-error").hidden = true;
@@ -243,6 +250,20 @@
       d += ` L${x0.toFixed(2)} ${y(v).toFixed(2)} L${x1.toFixed(2)} ${y(v).toFixed(2)}`;
     });
     g.path.setAttribute("d", d);
+    // A dot at each generation where the best attack got bigger, so a late jump reads as a find, not a glitch.
+    const breaks = [];
+    h.forEach((v, i) => v > 0 && v > (i ? h[i - 1] ?? 0 : 0) && breaks.push(i));
+    const have = g.dots.childElementCount;
+    if (have > breaks.length) g.dots.replaceChildren();
+    breaks.forEach((i, k) => {
+      const left = `${(((i + 0.5) / n) * 100).toFixed(2)}%`, top = `${((y(h[i]) / 40) * 100).toFixed(2)}%`;
+      const dot = g.dots.children[k] ?? g.dots.appendChild(el("span", { class: "spark__dot" }));
+      dot.style.left = left;
+      dot.style.top = top;
+      dot.title = `Generation ${i + 1}: ${near(h[i])} NEAR`;
+    });
+    const name = g.svg.getAttribute("aria-label").split(", ").slice(-1)[0];
+    g.svg.setAttribute("aria-label", `Chart: best loss found by generation, ${name}. ${breaks.length ? `Bigger breaks found at generation ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
   }
 
   function onProgress(p) {
@@ -255,6 +276,33 @@
     g.phase.textContent = `Generation ${p.generation + 1} of ${p.generations}`;
     stateEl.textContent = `Attacking ${SHORT[p.guard].toLowerCase()}, ${p.evaluations.toLocaleString("en")} attacks tried`;
     Object.values(guards).forEach(drawSpark);
+    redline(p);
+  }
+
+  // ---------- live red-lining ----------
+  // While the siege runs, the mandate is shown as clauses and each one is marked the moment the attacker first gets through it.
+  function liveClauses() {
+    clausesEl.replaceChildren();
+    generalEl.replaceChildren();
+    for (const s of compiled?.sentences ?? []) {
+      clausesEl.append(el("li", { class: "clause clause--pending", "data-index": s.index }, el("span", { class: "clause__text", text: s.text }), el("div", { class: "note note--live" })));
+    }
+    return clausesEl.childElementCount > 0;
+  }
+  function redline(p) {
+    for (const m of p.marks ?? []) {
+      const li = clausesEl.querySelector(`[data-index="${m.index}"]`);
+      if (!li) continue;
+      const note = $(".note--live", li);
+      let mark = note && $(`[data-guard="${p.guard}"]`, note);
+      if (!note) continue;
+      if (!mark) {
+        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]} broken at generation ${p.generation + 1}, `, el("span", { class: "note__loss" }));
+        note.append(mark);
+        if (!li.classList.contains("clause--breach")) li.classList.replace("clause--pending", "clause--breach"), li.classList.add("clause--fresh");
+      }
+      $(".note__loss", mark).textContent = `lost ${near(m.loss)} NEAR`;
+    }
   }
   function finishGuard(k, loss) {
     const g = guards[k];
@@ -263,10 +311,23 @@
     g.num.textContent = near(g.loss);
     Object.keys(guards).forEach(grade);
   }
-  // Held: nothing lost. Mostly held: lost, but at least 90% less than the other guard. Drained: otherwise.
+  // Held: nothing lost. Held to budget: everything lost went through the mandate's new-payee budget and stayed inside it.
+  // Mostly held: lost, but at least 90% less than the other guard. Drained: otherwise.
   function grade(k) {
     const g = guards[k];
     if (g.root.dataset.phase !== "done") return;
+    if (k === "mandate" && g.loss > 0 && lastBudget?.withinBudget) {
+      const b = lastBudget;
+      g.root.dataset.outcome = "budget";
+      g.phase.textContent = "Held to budget";
+      g.compare.textContent = `All of it went to new payees, inside the ${near(b.cap)} NEAR ${hours(b.hours)} the mandate allows them.`;
+      g.compare.hidden = false;
+      $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
+      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR budget used`;
+      g.budget.hidden = false;
+      return;
+    }
+    g.budget.hidden = true;
     const [ok, other] = Object.entries(guards).find(([x]) => x !== k);
     const theirs = other.root.dataset.phase === "done" ? other.loss : null;
     const v = g.loss;
@@ -322,11 +383,12 @@
       }
       const sum = fs.reduce((a, f) => a + f.loss, 0);
       const fixes = [...new Set(fs.map((f) => f.fix).filter(Boolean))];
+      const inBudget = g === "mandate" && lastBudget?.withinBudget && fs.every((f) => f.kind === "theft");
       note.append(
         el(
           "div",
-          { class: "note__guard note__guard--breach" },
-          el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: `lost ${near(sum)} NEAR` })),
+          { class: `note__guard note__guard--${inBudget ? "budget" : "breach"}` },
+          el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: inBudget ? `lost ${near(sum)} NEAR, inside its ${near(lastBudget.cap)} NEAR new-payee budget` : `lost ${near(sum)} NEAR` })),
           ...fixes.map((f) => el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), f)),
           fs[0].how && el("details", { class: "note__story" }, el("summary", { text: "How it was attacked" }), el("p", { class: "note__how", text: fs[0].how })),
         ),
@@ -335,15 +397,27 @@
     return note;
   }
 
+  function verdictLine(d) {
+    const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
+    const first = o > 0 ? `Plain policy lost ${near(o)} NEAR.` : "Plain policy lost nothing.";
+    const second =
+      m <= 0 ? "Mandate guard lost 0.00 NEAR." : b?.withinBudget ? `Mandate guard lost ${near(m)}, capped by its ${near(b.cap)} NEAR new-payee budget.` : `Mandate guard lost ${near(m)} NEAR.`;
+    const v = $("#siege-verdict");
+    v.replaceChildren(el("span", { class: "siege__verdict-a", text: first }), " ", el("span", { class: "siege__verdict-b", text: second }));
+    v.hidden = false;
+  }
+
   function onDone(d) {
+    lastBudget = d.budget ?? null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
+    verdictLine(d);
     clausesEl.replaceChildren();
     for (const s of d.sentences) {
       const breach = s.findings.length > 0;
       clausesEl.append(
         el(
           "li",
-          { class: `clause clause--${breach ? "breach" : "held"}` },
+          { class: `clause clause--${breach ? "breach" : "held"}`, "data-index": s.index },
           el("span", { class: "clause__text", text: s.text }),
           breach ? noteFor(s.findings) : el("div", { class: "note" }, el("span", { class: "note--held", text: "Held against both guards." })),
         ),
@@ -398,7 +472,7 @@
       return void (status.textContent ||= "Fix the mandate first.");
     }
     resetSiege();
-    setMode("edit");
+    setMode(liveClauses() ? "annotated" : "edit");
     // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     siegeEl.dataset.state = "running";
