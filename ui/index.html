@@ -33,12 +33,7 @@
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
-    <p class="bar__line">Can your AI agent’s wallet be drained? Write its spending rules and find out. <button type="button" class="bar__what" id="stakes-open" aria-controls="stakes" aria-expanded="true" hidden>What is this?</button></p>
-    <div class="bar__examples" role="group" aria-label="Load an example mandate">
-      <span class="bar__label">Examples</span>
-      <button type="button" class="btn btn--quiet" data-example="whitelist">Named payees</button>
-      <button type="button" class="btn btn--quiet" data-example="open">Open invoices</button>
-    </div>
+    <p class="bar__line">Can your AI agent’s wallet be drained?</p>
     <div class="bar__pick">
       <label class="visually-hidden" for="example-select">Load an example mandate</label>
       <select id="example-select" class="input bar__select">
@@ -47,38 +42,41 @@
         <option value="open">Open invoices</option>
       </select>
     </div>
+    <button type="button" class="bar__what" id="stakes-open" aria-controls="stakes-more" aria-expanded="true">What is this?</button>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span> <kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
 
-<section class="stakes" id="stakes" aria-labelledby="stakes-h" tabindex="-1">
+<section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="true">
   <div class="container stakes__in">
-    <h2 id="stakes-h" class="visually-hidden">Why SIEGE exists</h2>
-    <p class="stakes__why"><b>Why it matters:</b> companies are starting to let AI agents pay invoices and subscriptions on their own. One poisoned email can make an agent send money to a thief, and payments on a blockchain can’t be reversed.</p>
+    <p class="stakes__why">AI agents now pay bills on their own, in money like <button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button>. One poisoned email can send your money to a thief, and blockchain payments can’t be undone.</p>
+    <div class="stakes__more" id="stakes-more">
     <ol class="stakes__beats">
       <li class="beat">
-        <p class="beat__lead">AI agents now hold money.</p>
-        <p class="beat__body">Here the money is NEAR (a public blockchain; here, test money only).</p>
+        <p class="beat__lead">Agents act on what they read.</p>
+        <p class="beat__body">Email, invoices, web pages.</p>
       </li>
       <li class="beat beat--specimen">
-        <p class="beat__lead">Attackers hide payment orders in what agents read.</p>
-        <p class="beat__body">A forged email names a lookalike account:</p>
+        <p class="beat__lead">Attackers hide payment orders in them.</p>
+        <p class="beat__body">A forged invoice names a lookalike:</p>
         <p class="specimen" aria-label="The real payee cloudhost.testnet, and the attacker’s lookalike c1oudhost.testnet, with the letter l swapped for the digit 1">
           <span class="specimen__row"><span class="mono">cloudhost.testnet</span><span class="specimen__tag">your real vendor</span></span>
           <span class="specimen__row specimen__row--fake"><span class="mono">c<mark>1</mark>oudhost.testnet</span><span class="specimen__tag">the attacker</span></span>
         </p>
       </li>
       <li class="beat">
-        <p class="beat__lead">SIEGE attacks your agent’s spending rules first.</p>
-        <p class="beat__body">It finds the rule that leaks, using four tricks:</p>
+        <p class="beat__lead">SIEGE attacks your spending rules first.</p>
+        <p class="beat__body">With four tricks, to find the rule that leaks:</p>
         <ul class="legend" aria-label="The four attack tricks">
-          <li><span class="tech tech--hidden">Hidden instruction</span> orders buried in a document</li>
+          <li><span class="tech tech--hidden">Hidden instruction</span> a buried order</li>
           <li><span class="tech tech--lookalike">Lookalike name</span> one character off</li>
           <li><span class="tech tech--drip">Drip</span> many small payments</li>
           <li><span class="tech tech--race">Race</span> payments fired at once</li>
         </ul>
       </li>
-    <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes">Hide</button>
+    </ol>
+    <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes-more">Hide</button>
+    </div>
   </div>
 </section>
 
@@ -88,7 +86,7 @@
       <h1 id="doc-h">Spending mandate</h1>
       <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit mandate</button>
     </div>
-    <p class="doc__gloss">The rules your AI agent must follow when it pays: who, how much, what for. Plain English; edit freely.</p>
+    <p class="doc__gloss">The rules your AI agent pays by: who, how much, what for. Plain English; edit freely.</p>
 
     <div class="doc__page">
       <label class="visually-hidden" for="mandate">Your agent’s spending mandate, in plain English</label>
@@ -184,37 +182,21 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__intro" id="siege-intro">Press Lay siege. SIEGE attacks your agent twice: with only OutLayer’s limits (a wallet service for AI agents on NEAR, with basic spending limits), then with its own guard in front.</p>
-
-    <p class="siege__gloss">Attack round: each round, the attacker breeds better attacks from the ones that worked.</p>
+    <p class="siege__intro" id="siege-intro">Lay siege to attack your agent twice: with plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> limits, then with SIEGE’s guard in front.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
       <p id="siege-error-msg"></p>
       <button type="button" class="btn btn--quiet" id="retry-btn">Try again</button>
     </div>
     <p class="siege__prev" id="siege-prev" hidden>From the last run</p>
-    <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
-    <p class="means" id="means" hidden></p>
-
-    <section class="next" id="next" aria-labelledby="next-h" hidden>
-      <h3 id="next-h">What to do next</h3>
-      <p class="next__delta" id="next-delta" hidden></p>
-      <p class="next__weak" id="next-weak"></p>
-      <div class="next__fix" id="next-fix" hidden>
-        <p class="next__quote" id="next-fix-text"></p>
-        <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
-      </div>
-      <button type="button" class="btn btn--quiet next__use" id="next-use">Use the guard in your agent</button>
-    </section>
-
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
-        <h3 id="g-outlayer-h">Plain OutLayer policy</h3>
-        <p class="guard__what">Without SIEGE: OutLayer alone, a wallet service for AI agents on NEAR, with basic spending limits</p>
-        <p class="guard__phase"></p>
-        <p class="guard__preview">How much the attacker gets past plain OutLayer policy</p>
+        <h3 id="g-outlayer-h">Plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> policy</h3>
+        <p class="guard__what">Without SIEGE</p>
+        <p class="guard__preview">What the attacker gets past it</p>
         <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
+        <p class="guard__phase"></p>
         <p class="guard__clauses" hidden></p>
         <p class="guard__compare" hidden></p>
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
@@ -224,16 +206,16 @@
             <div class="spark__dots" aria-hidden="true"></div>
             <span class="spark__val" aria-hidden="true" hidden></span>
           </div>
-          <figcaption class="spark__axis"><span>1</span><span>Attack round</span><span class="spark__end">30</span></figcaption>
+          <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
-        <h3 id="g-mandate-h">Mandate guard</h3>
-        <p class="guard__what">With SIEGE: a guard checks each payment, and who asked for it</p>
-        <p class="guard__phase"></p>
-        <p class="guard__preview">How much gets past the Mandate guard</p>
+        <h3 id="g-mandate-h"><button type="button" class="term" data-tip="guard" aria-describedby="def-guard">Mandate guard</button></h3>
+        <p class="guard__what">With SIEGE</p>
+        <p class="guard__preview">What the attacker gets past it</p>
         <p class="guard__placeholder"><span class="guard__dash" aria-hidden="true"></span><span class="visually-hidden">No figure until a siege runs</span> NEAR</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
+        <p class="guard__phase"></p>
         <p class="guard__clauses" hidden></p>
         <p class="guard__compare" hidden></p>
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
@@ -243,10 +225,28 @@
             <div class="spark__dots" aria-hidden="true"></div>
             <span class="spark__val" aria-hidden="true" hidden></span>
           </div>
-          <figcaption class="spark__axis"><span>1</span><span>Attack round</span><span class="spark__end">30</span></figcaption>
+          <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
       </article>
     </div>
+
+    <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
+    <p class="means" id="means" hidden></p>
+    <details class="means-more" id="means-more" hidden>
+      <summary>How the worst attack worked</summary>
+      <p id="means-full"></p>
+    </details>
+
+    <section class="next" id="next" aria-labelledby="next-h" hidden>
+      <h3 id="next-h">Fix the weakest clause</h3>
+      <p class="next__delta" id="next-delta" hidden></p>
+      <p class="next__weak" id="next-weak"></p>
+      <div class="next__fix" id="next-fix" hidden>
+        <p class="next__quote" id="next-fix-text"></p>
+        <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
+      </div>
+      <button type="button" class="btn btn--quiet next__use" id="next-use">Use the guard in your agent</button>
+    </section>
 
     <section class="play" id="play" aria-labelledby="play-h" hidden>
       <div class="play__head">
@@ -272,6 +272,14 @@
     </div>
   </section>
 </main>
+<div class="defs" hidden>
+  <span id="def-near">A public blockchain. SIEGE runs on its test network, so no real money moves.</span>
+  <span id="def-outlayer">A wallet service for AI agents on NEAR. Its policy sets basic limits: who to pay and how much.</span>
+  <span id="def-guard">SIEGE’s guard. It checks each payment against your rules, and who asked for it.</span>
+  <span id="def-round">Each round, the attacker breeds new attacks from the ones that worked best. Thirty rounds per guard.</span>
+  <span id="def-allowance">The most the guard lets go to payees your rules never named. Named payees don’t count against it.</span>
+</div>
+<p class="tip" id="tip" role="tooltip" hidden></p>
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/near-siege" rel="noopener">Code on GitHub</a>
   <a href="https://near-darwin.fly.dev" rel="noopener">DARWIN, the sister project</a>

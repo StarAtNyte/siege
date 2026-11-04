@@ -99,13 +99,15 @@
   }
 
   // ---------- the stakes strip ----------
-  // Three beats of why SIEGE exists. Open on a first visit; once a siege has finished it starts folded, behind "What is this?".
+  // Why SIEGE exists: one line that always stays, and three beats under it. The beats are open on a first visit;
+  // once a siege has finished they start folded, and "What is this?" in the bar brings them back.
   const stakes = $("#stakes");
+  const stakesMore = $("#stakes-more");
   const stakesOpen = $("#stakes-open");
   const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
   function showStakes(open, byHand = false) {
-    stakes.hidden = !open;
-    stakesOpen.hidden = open;
+    stakesMore.hidden = !open;
+    stakes.dataset.open = String(open);
     stakesOpen.setAttribute("aria-expanded", String(open));
     if (!byHand) return;
     store.set("siege.stakes", open ? "open" : "folded");
@@ -113,7 +115,51 @@
   }
   showStakes(!["folded", "seen"].includes(store.get("siege.stakes")));
   $("#stakes-close").addEventListener("click", () => showStakes(false, true));
-  stakesOpen.addEventListener("click", () => showStakes(true, true));
+  stakesOpen.addEventListener("click", () => showStakes(stakesMore.hidden, true));
+
+  // ---------- terms ----------
+  // A dotted term opens one shared tooltip: on hover, on keyboard focus, and on tap or click (which pins it until Escape or a tap elsewhere).
+  // The definition itself is the button's accessible description, so screen readers hear it without the tooltip.
+  const tip = $("#tip");
+  let tipFor = null, tipPinned = false;
+  const term = (label, key) => el("button", { type: "button", class: "term", "data-tip": key, "aria-describedby": `def-${key}`, text: label });
+  function showTip(btn, pin = false) {
+    tipFor?.setAttribute("aria-expanded", "false");
+    tipFor = btn;
+    tipPinned = pin;
+    tip.textContent = $(`#def-${btn.dataset.tip}`)?.textContent ?? "";
+    tip.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    placeTip();
+  }
+  function hideTip() {
+    if (!tipFor) return;
+    tipFor.setAttribute("aria-expanded", "false");
+    tipFor = null;
+    tipPinned = false;
+    tip.hidden = true;
+  }
+  function placeTip() {
+    if (!tipFor) return;
+    const r = tipFor.getBoundingClientRect();
+    const w = tip.offsetWidth, h = tip.offsetHeight, pad = 8;
+    const left = Math.max(pad, Math.min(innerWidth - w - pad, r.left + r.width / 2 - w / 2));
+    const below = r.bottom + pad + h <= innerHeight;
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(below ? r.bottom + pad : r.top - pad - h)}px`;
+  }
+  const termOf = (e) => e.target.closest?.(".term");
+  document.addEventListener("pointerover", (e) => { const t = termOf(e); if (t && e.pointerType === "mouse" && !tipPinned) showTip(t); });
+  document.addEventListener("pointerout", (e) => { const t = termOf(e); if (t && t === tipFor && e.pointerType === "mouse" && !tipPinned) hideTip(); });
+  document.addEventListener("focusin", (e) => { const t = termOf(e); if (t && t.matches(":focus-visible")) showTip(t); });
+  document.addEventListener("focusout", (e) => { if (termOf(e) === tipFor) hideTip(); });
+  document.addEventListener("click", (e) => {
+    const t = termOf(e);
+    if (t) return t === tipFor && tipPinned ? hideTip() : showTip(t, true);
+    if (tipPinned && !tip.contains(e.target)) hideTip();
+  });
+  document.addEventListener("keydown", (e) => e.key === "Escape" && tipFor && hideTip());
+  addEventListener("scroll", placeTip, { passive: true });
 
   // ---------- compile ----------
   async function compile() {
@@ -264,12 +310,10 @@
     setMode("edit");
     ta.value = examples[name] ?? ta.value;
     fit();
-    $$("[data-example]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.example === name)));
     pick.value = name;
     resetSiege();
     compile();
   }
-  $$("[data-example]").forEach((b) => b.addEventListener("click", () => loadExample(b.dataset.example)));
   pick.addEventListener("change", () => pick.value && loadExample(pick.value));
 
   // ---------- document modes ----------
@@ -323,6 +367,7 @@
     lastBudget = null;
     $("#siege-verdict").hidden = true;
     $("#means").hidden = true;
+    $("#means-more").hidden = true;
     $("#play").hidden = true;
     $("#play-lines").replaceChildren();
     $("#play-totals").textContent = "";
@@ -503,10 +548,9 @@
       const b = lastBudget;
       g.root.dataset.outcome = "budget";
       g.phase.textContent = "Held to its allowance";
-      g.compare.textContent = `All of it went to new payees, inside the ${near(b.cap)} NEAR ${hours(b.hours)} the mandate allows them.`;
-      g.compare.hidden = false;
+      g.compare.hidden = true;
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).textContent = `${near(g.loss)} of ${near(b.cap)} NEAR new-payee allowance used ${hours(b.hours)}`;
+      $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of ${near(b.cap)} NEAR`, el("span", { class: "budget__of" }, term("new-payee allowance", "allowance"), ` used ${hours(b.hours)}`));
       g.budget.hidden = false;
       return;
     }
@@ -559,70 +603,86 @@
     if (!rows.length) ol.append(el("li", { class: "step step--stopped" }, el("span", { class: "step__ctx", text: "The search kept no attack steps for this guard." })));
   }
 
-  // The short line is the fix's last sentence: in the diagnoser's strings that is the instruction, the earlier ones are the reason.
-  const shortFix = (f) => f.split(/(?<=[.!?])\s+(?=[A-Z"])/).filter(Boolean).at(-1) ?? f;
+  // A fix is "the action: the reason", and the action may offer alternatives ("Name your payees, or ...").
+  // The margin shows only the first action; the full fix and the attack story wait in Details.
+  const shortFix = (f) => sentence(f.split(/:\s/)[0].split(/,\s+or\s+/)[0]);
   function noteFor(findings) {
     const note = el("div", { class: "note" });
-    for (const g of ["outlayer", "mandate"]) {
+    const per = ["outlayer", "mandate"].map((g) => {
       const fs = findings.filter((f) => f.guard === g).sort((a, b) => b.loss - a.loss);
-      if (!fs.length) {
-        if (findings.length) note.append(el("div", { class: "note__guard note__guard--held" }, el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: "held" }))));
-        continue;
-      }
-      const sum = fs.reduce((a, f) => a + f.loss, 0);
       const fixes = [...new Set(fs.map((f) => f.fix).filter(Boolean))];
-      const inBudget = g === "mandate" && lastBudget?.withinBudget && fs.every((f) => f.kind === "theft");
+      return { g, fs, fixes, short: fixes.length ? shortFix(fixes[0]) : null };
+    });
+    const shorts = [...new Set(per.map((x) => x.short).filter(Boolean))];
+    const shared = shorts.length === 1;
+    const fixLine = (t) => el("p", { class: "note__fix" }, el("b", { text: "Fix: " }), t);
+    for (const { g, fs, short } of per) {
+      const line = el("p", { class: "note__guard" }, el("span", { class: "note__who", text: SHORT[g] }), " ");
+      if (!fs.length) line.classList.add("note__guard--held"), line.append(el("span", { class: "note__loss", text: "held" }));
+      else {
+        const sum = fs.reduce((a, f) => a + f.loss, 0);
+        const inBudget = g === "mandate" && lastBudget?.withinBudget && fs.every((f) => f.kind === "theft");
+        line.classList.add(`note__guard--${inBudget ? "budget" : "breach"}`);
+        line.append(el("span", { class: "note__loss", text: inBudget ? `${near(sum)} NEAR in allowance` : `lost ${near(sum)} NEAR` }));
+        if (!shared && short) line.append(el("span", { class: "note__fix note__fix--inline", text: short }));
+      }
+      note.append(line);
+    }
+    if (shared) note.append(fixLine(shorts[0]));
+    const story = per.filter((x) => x.fs.length && (x.fixes.length || x.fs[0].how));
+    if (story.length)
       note.append(
         el(
-          "div",
-          { class: `note__guard note__guard--${inBudget ? "budget" : "breach"}` },
-          el("span", { class: "note__who" }, `${SHORT[g]}: `, el("span", { class: "note__loss", text: `lost ${near(sum)} NEAR` })),
-          inBudget && el("span", { class: "note__why", text: `Inside the guard’s ${near(lastBudget.cap)} NEAR ${hours(lastBudget.hours)} allowance for new payees.` }),
-          fixes.length && el("span", { class: "note__fix" }, el("b", { text: "Fix: " }), shortFix(fixes[0])),
-          (fixes.length || fs[0].how) &&
-            el(
-              "details",
-              { class: "note__story" },
-              el("summary", { text: "Details" }),
-              ...fixes.map((f) => el("p", { class: "note__fix note__fix--full" }, el("b", { text: "Fix: " }), f)),
-              fs[0].how && el("p", { class: "note__how" }, el("b", { text: "How it was attacked: " }), fs[0].how),
-            ),
+          "details",
+          { class: "note__story" },
+          el("summary", { text: "Details" }),
+          ...story.flatMap(({ g, fs, fixes }) => [
+            el("p", { class: "note__how" }, el("b", { text: `${GUARD[g]}. ` }), fs[0].how ?? ""),
+            ...fixes.map((f) => el("p", { class: "note__fix note__fix--full" }, el("b", { text: "Fix: " }), f)),
+          ]),
         ),
       );
-    }
     return note;
   }
 
+  // The verdict: one sentence about what the guard changed. The cards above already carry both figures.
   function verdictLine(d) {
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
-    const first = o > 0 ? `Without SIEGE, the attacker took ${near(o)} NEAR.` : "Without SIEGE, the attacker took nothing.";
-    const second =
-      m <= 0 ? "With the Mandate guard: 0.00 NEAR." : b?.withinBudget ? `With the Mandate guard: ${near(m)} NEAR, within its new-payee allowance.` : `With the Mandate guard: ${near(m)} NEAR.`;
+    let text;
+    if (o > 0 && m <= 0) text = `The guard stopped every attack. Without it, the attacker took ${near(o)} NEAR.`;
+    else if (o > 0 && m < o) text = `The guard cut the loss from ${near(o)} to ${near(m)} NEAR${b?.withinBudget ? ", all of it inside its new-payee allowance" : ""}.`;
+    else if (o > 0) text = `The guard lost ${near(m)} NEAR; plain policy lost ${near(o)}.`;
+    else if (m > 0) text = `Plain policy held, but the guard lost ${near(m)} NEAR.`;
+    else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
-    v.replaceChildren(el("span", { class: "siege__verdict-a", text: first }), " ", el("span", { class: "siege__verdict-b", text: second }));
+    v.textContent = text;
     v.hidden = false;
-    return `${first} ${second}`;
+    return text;
   }
 
-  // What the verdict means for the person reading it, from the best attack on each guard and the limit they wrote.
+  // What the verdict means for the person reading it: one short line from the best attack and the limit they wrote,
+  // and the long version, with the terms spelled out, behind a disclosure.
   function meansLine(d) {
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
     const lostSteps = (attacks.outlayer?.steps ?? []).filter((s) => s.verdict === "allow" && !legit.has(s.routedTo || s.to) && !(s.kind === "call" && !s.routedTo));
     const caps = (compiled?.constraints?.windows ?? []).filter((w) => w.token === "NEAR" || w.token === "*");
     const cap = caps.length ? caps.reduce((a, w) => (w.cap < a.cap ? w : a)) : null;
-    const box = $("#means");
-    const parts = [el("b", { text: "What this means: " })];
-    if (o > 0) {
-      parts.push(`on plain policy, one attack SIEGE found would have cost you ${near(o)} NEAR`);
-      if (lostSteps.length > 1) parts.push(` in ${lostSteps.length} payments`);
-      if (cap && o > cap.cap * 1.05) parts.push(`, ${Math.floor(o / cap.cap) >= 2 ? `${Math.floor(o / cap.cap)} times` : "more than"} the ${near(cap.cap)} NEAR ${hours(cap.hours)} limit you wrote (payments sent at the same moment raced past it)`);
-      parts.push(". ");
-    } else parts.push("plain policy held against every attack SIEGE found this time. ");
-    if (m <= 0) parts.push("With the guard in front, no attack got any money out.");
-    else parts.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR new-payee allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
-    box.replaceChildren(...parts);
-    box.hidden = false;
-    return box.textContent;
+    const over = cap && o > cap.cap * 1.05;
+    const times = over ? (Math.floor(o / cap.cap) >= 2 ? `${Math.floor(o / cap.cap)} times` : "more than") : "";
+    const paid = lostSteps.length > 1 ? ` in ${lostSteps.length} payments` : "";
+    let short;
+    if (o > 0) short = `Without the guard, one attack took ${near(o)} NEAR${paid}${over ? `, ${times} your ${near(cap.cap)} NEAR ${hours(cap.hours)} limit` : ""}.`;
+    else short = "Plain policy held against every attack SIEGE found this time.";
+    const full = [];
+    if (o > 0) full.push(`On plain policy, one attack SIEGE found would have cost you ${near(o)} NEAR${paid}${over ? `, ${times} the ${near(cap.cap)} NEAR ${hours(cap.hours)} limit you wrote (payments sent at the same moment raced past it)` : ""}.`);
+    else full.push("Plain policy held against every attack SIEGE found this time.");
+    if (m <= 0) full.push("With the guard in front, no attack got any money out.");
+    else full.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR new-payee allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
+    $("#means").textContent = short;
+    $("#means").hidden = false;
+    $("#means-full").textContent = full.join(" ");
+    $("#means-more").hidden = false;
+    return full.join(" ");
   }
 
   function onDone(d) {
@@ -816,13 +876,15 @@
     // The weak point is the clause the guard itself lost on; failing that, the one that lost the most without SIEGE.
     const weak = [...scored].sort((a, b) => b.guardLoss - a.guardLoss || b.loss - a.loss)[0];
     const weakEl = $("#next-weak");
-    if (!weak || weak.loss <= 0) weakEl.textContent = "No clause let money out. Use the guard as it is.";
-    else if (weak.guardLoss > 0) weakEl.textContent = `Weak point: clause ${weak.s.index + 1}, “${weak.s.text}” It let ${near(weak.guardLoss)} NEAR past the guard, and ${near(weak.loss - weak.guardLoss)} without it.`;
-    else weakEl.textContent = `The guard held every clause. Clause ${weak.s.index + 1} lost the most without it, ${near(weak.loss)} NEAR, so put the guard in front of your wallet.`;
+    if (!weak || weak.loss <= 0) weakEl.textContent = "No clause let money out.";
+    else if (weak.guardLoss > 0) weakEl.textContent = `It let ${near(weak.guardLoss)} NEAR past the guard.`;
+    else weakEl.textContent = `The guard held every clause. Without it, clause ${weak.s.index + 1} lost the most: ${near(weak.loss)} NEAR.`;
     const fix = weak?.guardLoss > 0 ? suggestFor(weak.s) : null;
+    // The panel's title is the action itself, from this run's weakest clause.
+    $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the guard as it is" : weak.guardLoss > 0 ? `Fix clause ${weak.s.index + 1}` : "Put the guard in front of your wallet";
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
-    if (fix) $("#next-fix-text").textContent = `Suggested: name the payees. “${fix}”`;
+    if (fix) $("#next-fix-text").textContent = `Name the payees: “${fix}”`;
     $("#next").hidden = false;
   }
   $("#next-fix-btn").addEventListener("click", async () => {
