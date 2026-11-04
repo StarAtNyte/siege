@@ -128,6 +128,7 @@
     status.textContent = msg;
     siegeBtn.setAttribute("aria-disabled", "true");
     $(".reading").removeAttribute("aria-busy");
+    $("#reading").replaceChildren(el("div", { class: "reading__row reading__row--empty" }, el("dd", { text: "Nothing to read yet. Fix the mandate above." })));
     staleExport();
   }
   // Characters left, shown only near the limit; a paste that would overflow says it was cut.
