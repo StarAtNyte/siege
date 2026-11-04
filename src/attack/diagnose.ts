@@ -74,30 +74,43 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
   const novelDaily = Math.min(...(c.windows.NEAR ?? c.windows["*"] ?? []).map((w) => w.cap)) / 10;
 
   for (const run of runs) {
-    // Keep the three largest breaches per guard so the page stays readable.
-    for (const b of [...run.breaches].sort((x, y) => y.loss - x.loss).slice(0, 3)) {
+    // Every breach is attributed; findings are aggregated per sentence, guard and kind so the
+    // per-sentence losses add up to the guard's total. The largest breach is the worked example.
+    const groups = new Map<string, { target?: Annotated; f: Finding; count: number }>();
+    for (const b of [...run.breaches].sort((x, y) => y.loss - x.loss)) {
       const t = b.tx;
       const over = b.kind === "overspend";
-      const f: Finding = { guard: run.guard, kind: b.kind, loss: b.loss, to: over ? "" : routedTo(t), amount: over ? b.loss : fromMicro(t.amount), how: how(t, b), fix: "" };
       let target: Annotated | undefined;
-      if (b.kind === "overspend") {
+      let fix: string;
+      if (over) {
         target = find("window-cap", "cap");
-        f.fix =
+        fix =
           run.guard === "outlayer"
             ? "Plain policy counts spend best-effort, so concurrent requests overshoot. Mandate's ledger reserves atomically and holds this cap."
             : "Lower this cap, or split it per payee.";
       } else if (t.kind === "call") {
         target = find("calls");
-        f.fix = `Name who may receive funds from ${t.recipient}, or drop ${t.method} from the mandate.`;
+        fix = `Name who may receive funds from ${t.recipient}, or drop ${t.method} from the mandate.`;
       } else {
         target = find("open-recipients", "recipients");
-        f.fix =
-          target?.roles.includes("open-recipients")
-            ? run.guard === "mandate"
-              ? `An invoice naming a new payee cannot be told apart from a real one. Name your payees, or accept the novel-payee budget of ${Number.isFinite(novelDaily) ? fromMicro(novelDaily).toFixed(2) : "10% of each cap"} NEAR.`
-              : "An open mandate gives plain policy no whitelist to enforce. Name the payees, or put Mandate in front of the wallet."
-            : `${f.to} is not one of the named payees; this should not pass. Report it.`;
+        fix = target?.roles.includes("open-recipients")
+          ? run.guard === "mandate"
+            ? `An invoice naming a new payee cannot be told apart from a real one. Name your payees, or accept the novel-payee budget of ${Number.isFinite(novelDaily) ? fromMicro(novelDaily).toFixed(2) : "10% of each cap"} NEAR.`
+            : "An open mandate gives plain policy no whitelist to enforce. Name the payees, or put Mandate in front of the wallet."
+          : `${routedTo(t)} is not one of the named payees; this should not pass. Report it.`;
       }
+      const key = `${target?.index ?? "general"}|${b.kind}|${t.kind}`;
+      const g = groups.get(key);
+      if (g) {
+        g.f.loss += b.loss;
+        g.count++;
+      } else {
+        groups.set(key, { target, count: 1, f: { guard: run.guard, kind: b.kind, loss: b.loss, to: over ? "" : routedTo(t), amount: over ? b.loss : fromMicro(t.amount), how: how(t, b), fix } });
+      }
+    }
+    for (const { target, f, count } of groups.values()) {
+      if (count > 1) f.how += ` ${count - 1} more like it in the same attack.`;
+      f.loss = Math.round(f.loss * 100) / 100;
       (target ?? { findings: general }).findings.push(f);
     }
   }
