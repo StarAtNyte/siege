@@ -81,7 +81,7 @@ export function table(results: Record<string, CaseResult[]>) {
   lines.push(`| total value extracted (NEAR) | ${names.map((n) => fromMicro(atk(n).reduce((a, r) => a + r.lossMicro, 0)).toFixed(1)).join(" | ")} |`);
   lines.push(`| false-positive rate (benign denied) | ${names.map((n) => pct(ben(n).filter((r) => r.falsePositive).length / ben(n).length)).join(" | ")} |`);
   // The baseline's latency is a modelled gateway round trip, so only the guard's own overhead is reported.
-  lines.push(`| added decision latency p50 / p99 (ms, local stages) | ${names.map((n) => { if (n !== "Mandate") return "baseline"; const l = results[n].flatMap((r) => r.latencies); return `${median(l).toFixed(2)} / ${p99(l).toFixed(2)}`; }).join(" | ")} |`);
+  lines.push(`| added decision latency p50 / p99 (ms${llmEnabled() ? ", incl. LLM escalations" : ", local stages"}) | ${names.map((n) => { if (n !== "Mandate") return "baseline"; const l = results[n].flatMap((r) => r.latencies); return `${median(l).toFixed(2)} / ${p99(l).toFixed(2)}`; }).join(" | ")} |`);
   return lines.join("\n");
 }
 

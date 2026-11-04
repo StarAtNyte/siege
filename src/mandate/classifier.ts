@@ -79,7 +79,7 @@ export function lookalike(candidate: string, trusted: Iterable<string>): string 
 }
 
 const STOP = new Set(["the", "a", "an", "for", "to", "of", "and", "or", "our", "my", "this", "that", "on", "in", "with", "pay", "payment", "send"]);
-const stem = (w: string) => w.replace(/(ing|es|s|ed)$/, "");
+const stem = (w: string) => w.replace(/(ing|ed|s)$/, "").replace(/e$/, ""); // invoices, invoice -> invoic
 const words = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)).map(stem));
 
 function accountsIn(text: string): string[] {
