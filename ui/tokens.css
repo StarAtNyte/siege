@@ -4,21 +4,31 @@
   --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
-  --color-error: oklch(52% 0.19 27); --color-success: oklch(50% 0.12 150);
+  --color-error: #ff7966; --color-success: #00ec97;
   --container: 1440px; --gutter: 40px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
   --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
-  --color-paper: oklch(97.6% 0.006 255); --color-paper-2: oklch(95.2% 0.009 255); --color-paper-3: oklch(92.4% 0.012 256);
-  --color-ink: oklch(21% 0.026 262); --color-ink-2: oklch(37% 0.022 260); --color-muted: oklch(49% 0.02 258);
-  --color-rule: oklch(87.5% 0.013 258); --color-rule-strong: oklch(62% 0.018 258);
-  /* the red pen: breaches, losses, the attack */
-  --color-breach: oklch(54% 0.205 31); --color-breach-ink: oklch(48% 0.19 30); --color-breach-2: oklch(47% 0.19 30);
-  /* the guard's mark: what held */
-  --color-hold: oklch(40% 0.19 266); --color-hold-2: oklch(34% 0.17 266);
-  --color-accent: var(--color-breach); --color-accent-ink: oklch(98.5% 0.006 255); --color-focus: oklch(40% 0.19 266);
-  --color-on-field: oklch(98.5% 0.006 255);
-  --font-display: "Clash Grotesk", ui-sans-serif, system-ui, sans-serif; --font-body: "Clash Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-doc: "Newsreader", Georgia, serif; --font-mono: "JetBrains Mono", ui-monospace, monospace; --font-outlier: var(--font-mono);
+  /* NEAR brand (spec 2026-11-04, .hallmark/brand-spec.md): every value below is the spec's or mixed from it */
+  --near-black: #000000; --near-white: #ffffff; --near-white-subtle: #f2f1e9; --near-white-weak: #f9f9fa;
+  --near-green: #00ec97; --near-blue: #17d9d4; --near-purple: #9797ff; --near-red: #ff7966; --near-amber: #fcbb00;
+  --near-black-weak: #757575; --near-black-subtle: #acaba6; --near-grey-2: #595959; --near-grey-3: #333333;
+  --color-paper: var(--near-white); --color-paper-2: var(--near-white-weak); --color-paper-3: var(--near-white-subtle);
+  --color-ink: var(--near-black); --color-ink-2: var(--near-grey-2); --color-muted: var(--near-black-weak);
+  --color-rule: color-mix(in oklab, var(--near-black-subtle) 45%, var(--near-white)); --color-rule-strong: var(--near-black-weak);
+  /* the red pen: coral fills and thick marks, always under black text, never coral text on white */
+  --color-breach: var(--near-red); --color-breach-ink: var(--near-black); --color-breach-2: color-mix(in oklab, var(--near-red) 88%, var(--near-black));
+  --color-breach-wash: color-mix(in oklab, var(--near-red) 55%, var(--near-white));
+  /* the guard's mark: NEAR green fills under black text */
+  --color-hold: var(--near-green); --color-hold-ink: var(--near-black); --color-hold-2: color-mix(in oklab, var(--near-green) 88%, var(--near-black));
+  --color-hold-wash: color-mix(in oklab, var(--near-green) 45%, var(--near-white));
+  /* the bar is a near.org black band; the primary action is NEAR green with black text, everywhere */
+  --color-band: var(--near-black); --color-on-band: var(--near-white); --color-on-band-2: var(--near-black-subtle); --color-band-rule: var(--near-grey-2); --color-band-hover: var(--near-grey-3);
+  --color-action: var(--near-green); --color-action-2: var(--color-hold-2); --color-action-ink: var(--near-black);
+  --color-accent: var(--near-green); --color-accent-ink: var(--near-black); --color-focus: var(--near-black); --color-focus-on-band: var(--near-green);
+  --color-on-field: var(--near-black);
+  --font-display: "Mona Sans", ui-sans-serif, system-ui, sans-serif; --font-body: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-doc: "Newsreader", Georgia, serif; --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; --font-outlier: var(--font-mono);
+  --stretch-figure: 75%; --stretch-display: 112%;
   --text-doc: 1.3125rem; --text-figure: 3.583rem;
-  --radius-card: 6px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: 0 1px 2px oklch(20% 0.02 260 / 0.05);
+  --radius-card: 6px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
   --tracking-display: -0.02em;
 }
