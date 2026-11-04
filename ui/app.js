@@ -114,8 +114,16 @@
     siegeBtn.setAttribute("aria-disabled", "true");
     $(".reading").removeAttribute("aria-busy");
   }
+  // Grow the mandate to fit its text (where field-sizing: content is missing, as on Safari and Firefox).
+  const sizesItself = CSS.supports("field-sizing", "content");
+  function fit() {
+    if (sizesItself || ta.hidden) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }
   let debounce;
   ta.addEventListener("input", () => {
+    fit();
     clearTimeout(debounce);
     debounce = setTimeout(compile, 400);
   });
@@ -171,6 +179,7 @@
       }
       setMode("edit");
       ta.value = examples[b.dataset.example] ?? ta.value;
+      fit();
       $$("[data-example]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       resetSiege();
       compile();
@@ -184,6 +193,7 @@
     clausesEl.hidden = !annotated;
     generalEl.hidden = !annotated || !generalEl.childElementCount;
     editBtn.hidden = !annotated;
+    fit();
   }
   editBtn.addEventListener("click", () => {
     setMode("edit");
@@ -196,7 +206,6 @@
     const root = $(`#g-${g}`);
     guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), path: $(".spark__line", root), hist: [], loss: 0 };
   }
-  let maxLoss = 1;
 
   function resetSiege() {
     if (es) es.close(), (es = null);
@@ -215,7 +224,6 @@
       g.num.textContent = near(0);
       g.path.setAttribute("d", "");
     }
-    maxLoss = 1;
     $("#honest").hidden = true;
     $("#ledgers").hidden = true;
     $("#siege-error").hidden = true;
@@ -226,7 +234,9 @@
     const h = g.hist;
     if (!h.length) return g.path.setAttribute("d", "");
     const n = Math.max(GENERATIONS, h.length);
-    const y = (v) => 38 - (v / maxLoss) * 36;
+    // Each line is scaled to its own peak, so a 1 NEAR loss is as visible as a 100 NEAR one; the figure above gives the size.
+    const peak = Math.max(0, ...h.filter((v) => v != null));
+    const y = (v) => (peak > 0 ? 38 - ((v ?? 0) / peak) * 36 : 38);
     let d = `M0 ${y(h[0]).toFixed(2)}`;
     h.forEach((v, i) => {
       const x0 = (i / n) * 100, x1 = ((i + 1) / n) * 100;
@@ -241,7 +251,6 @@
     for (const [k, o] of Object.entries(guards)) if (k !== p.guard && o.root.dataset.phase === "running") finishGuard(k);
     g.root.dataset.phase = "running";
     g.hist[p.generation] = p.bestLoss;
-    maxLoss = Math.max(maxLoss, p.bestLoss);
     g.num.textContent = near(p.bestLoss);
     g.phase.textContent = `Generation ${p.generation + 1} of ${p.generations}`;
     stateEl.textContent = `Attacking ${SHORT[p.guard].toLowerCase()}, ${p.evaluations.toLocaleString("en")} attacks tried`;
@@ -390,6 +399,8 @@
     }
     resetSiege();
     setMode("edit");
+    // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
+    if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     siegeEl.dataset.state = "running";
     stateEl.textContent = "Starting the attacker…";
     siegeBtn.setAttribute("aria-busy", "true");
@@ -488,7 +499,20 @@
     box.hidden = false;
   }
 
+  // ---------- columns ----------
+  // On wide screens both columns are sticky. A column taller than the window sticks by its bottom edge, so all of it can be read.
+  const cols = [$(".doc"), siegeEl];
+  const wide = matchMedia("(min-width: 70.0625rem)");
+  const GAP = 24;
+  function stick() {
+    for (const c of cols) c.style.setProperty("--stick-top", wide.matches ? `${Math.min(GAP, innerHeight - c.offsetHeight - GAP)}px` : "");
+  }
+  new ResizeObserver(stick).observe(cols[0]);
+  new ResizeObserver(stick).observe(cols[1]);
+  addEventListener("resize", () => (stick(), fit()));
+
   // ---------- start ----------
+  fit();
   compile().then(() => {
     if (new URLSearchParams(location.search).get("autosiege") === "1" && compileOk) laySiege();
   });
