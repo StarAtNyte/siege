@@ -736,14 +736,14 @@
     }
     setMode("annotated");
     const honest = $("#honest");
-    honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` attacks tried. This is a bounded search, not a proof.`);
+    honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` attacks tried across both guards. This is a bounded search, not a proof.`);
     honest.hidden = false;
     $("#ledgers").hidden = false;
     siegeEl.dataset.state = "done";
     hasResult = true;
     // After the first finished siege the stakes strip starts folded on later visits, behind "What is this?".
     if (!store.get("siege.stakes")) store.set("siege.stakes", "seen");
-    stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} attacks tried`;
+    stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} attacks tried across both guards`;
     renderNext(d);
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
