@@ -112,20 +112,19 @@ export function classify(tx: Tx, c: Constraints, st: ClassifierState): Classifie
   const user = ctx.userInstruction.toLowerCase();
   const recipient = tx.recipient.toLowerCase();
 
-  const inUserEarly = user.includes(recipient);
+  const inUser = user.includes(recipient);
   // 1. Injection markers in untrusted content, and in the agent's own reasoning (laundered injection).
   for (const [re, w, why] of INJECTION_PATTERNS) {
     // A "payment details changed" notice is the attack only when the new account comes from the
     // document. When the user's own instruction names that exact account, the user has confirmed
     // the change (finding 005).
-    if (why === "payment address change" && inUserEarly) continue;
+    if (why === "payment address change" && inUser) continue;
     if (re.test(retrieved)) add("INJECTION_SUSPECTED", w, `retrieved content: ${why}`);
     if (re.test(ctx.reasoning)) add("INJECTION_IN_REASONING", w * 0.8, `agent reasoning: ${why}`);
   }
 
   // 2. Grounding: did the principal name this recipient? Is it trusted by the mandate?
   const inAllow = c.allowedRecipients.includes(recipient) || c.allowedRecipientSuffixes.some((s) => recipient.endsWith(s));
-  const inUser = user.includes(recipient);
   const inRetrieved = retrieved.toLowerCase().includes(recipient);
   const known = st.knownPayees.has(recipient);
   if (!inAllow && !inUser && !known) {
