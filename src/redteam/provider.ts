@@ -47,6 +47,25 @@ export function extractJson(text: string): unknown {
   }
 }
 
+/** Reply text from a chat completion, streamed (server-sent events) or plain JSON. */
+export async function readContent(res: Response): Promise<string> {
+  if (!(res.headers.get("content-type") ?? "").includes("text/event-stream")) {
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return body.choices?.[0]?.message?.content ?? "";
+  }
+  let out = "";
+  for (const line of (await res.text()).split("\n")) {
+    const data = line.startsWith("data:") ? line.slice(5).trim() : "";
+    if (!data || data === "[DONE]") continue;
+    try {
+      out += (JSON.parse(data) as { choices?: { delta?: { content?: string | null } }[] }).choices?.[0]?.delta?.content ?? "";
+    } catch {
+      /* keep-alive or partial line */
+    }
+  }
+  return out;
+}
+
 export function openAICompatProvider(opts: {
   baseUrl: string;
   apiKey: string;
@@ -73,6 +92,9 @@ export function openAICompatProvider(opts: {
           body: JSON.stringify({
             model: opts.model,
             max_tokens: maxTokens,
+            // Streamed so headers arrive at once: reasoning models on free endpoints can take longer
+            // than fetch's 300 s header timeout to finish a large batch.
+            stream: true,
             messages: [
               { role: "system", content: `${system}\n\nReply with one JSON object only, matching this JSON schema:\n${JSON.stringify(schema)}` },
               { role: "user", content: prompt },
@@ -96,8 +118,7 @@ export function openAICompatProvider(opts: {
         await sleep(Number.isFinite(ra) && ra > 0 ? ra * 1000 : backoff * 2 ** attempt);
       }
       if (!res!.ok) throw new Error(`generator endpoint returned ${res!.status}`);
-      const body = (await res!.json()) as { choices?: { message?: { content?: string } }[] };
-      return { json: extractJson(body.choices?.[0]?.message?.content ?? ""), usd: 0 };
+      return { json: extractJson(await readContent(res!)), usd: 0 };
     },
   };
 }

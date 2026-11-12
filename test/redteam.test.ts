@@ -201,3 +201,10 @@ test("generator retries drip with a simpler prompt and drops wording seen in ear
   assert.equal(g2.scenarios.length, 0);
   assert.ok(g2.dropped.some((d) => d.reason.startsWith("reuses earlier split wording")));
 });
+
+test("OpenAI-compatible provider reads a streamed reply", async () => {
+  const sse = ['data: {"choices":[{"delta":{"content":"{\\"scen"}}]}', 'data: {"choices":[{"delta":{"content":"arios\\": []}"}}]}', "data: [DONE]", ""].join("\n");
+  const fetchImpl = (async () => new Response(sse, { headers: { "content-type": "text/event-stream" } })) as typeof fetch;
+  const p = openAICompatProvider({ baseUrl: "http://x/v1", apiKey: "k", model: "m", fetchImpl });
+  assert.deepEqual((await p.complete("s", "u", {}, 10)).json, { scenarios: [] });
+});
