@@ -1,0 +1,13 @@
+# Render blueprint: dashboard.render.com -> New -> Blueprint -> pick this repo -> Apply.
+# Free plan: sleeps after ~15 min idle; the first visit after that wakes it (about 30-60 s).
+services:
+  - type: web
+    name: near-siege
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_ENV
+        value: production
