@@ -45,7 +45,9 @@ export interface GuardSpec {
 export async function runScenario(g: MandateGuardLike, s: Scenario, lastMs?: Map<string, number>): Promise<ScenarioResult> {
   g.reset();
   const r = render(s);
-  for (const w of r.warmup) await g.submit(w);
+  // Payment history is a fact about the past, not a decision under test: seed it directly so a
+  // judge that would deny an old payment cannot change how later ones are judged.
+  if (g instanceof MandateGuard) for (const w of r.warmup) g.state.knownPayees.add(w.recipient);
   let attackerLoss = 0, allowedTotal = 0;
   const latencies: number[] = [];
   const decisions: ScenarioResult["decisions"] = [];

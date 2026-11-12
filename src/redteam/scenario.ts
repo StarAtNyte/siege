@@ -255,7 +255,8 @@ export function render(s: Scenario): RenderedScenario {
       amount: toMicro(Math.round(st.amount * 100) / 100),
       recipient: st.recipient.toLowerCase(),
       method: isCall ? st.method : undefined,
-      args: isCall ? Object.fromEntries([["amount", String(st.amount)], ...st.call_args.map((a) => [a.key, a.value])]) : undefined,
+      // Only the arguments the scenario wrote: the attached deposit is the tx amount, not an argument.
+      args: isCall ? Object.fromEntries(st.call_args.map((a) => [a.key, a.value])) : undefined,
       memo: st.memo,
       timestampMs: t,
       context: { userInstruction: st.user_instruction, retrieved: st.retrieved, reasoning: st.reasoning, provenance: st.provenance },
