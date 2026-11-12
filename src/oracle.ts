@@ -122,17 +122,18 @@ export function render(genome: Gene[]): Tx[][] {
   return groups;
 }
 
-/** Ground truth for "loss": value that reached an attacker-controlled account, plus spend above the daily cap. */
+/** Ground truth for "loss": value that reached an attacker-controlled account, plus spend to intended payees above the daily cap (a stolen payment counts once). */
 export function lossOf(allowed: Tx[], mandate: keyof typeof MANDATES): number {
   const c = constraintsFor(mandate);
   const legit = new Set(RECIPIENTS.slice(0, LEGIT_N));
   let loss = 0;
+  let total = 0;
   for (const t of allowed) {
     const routed = t.kind === "call" ? Object.values(t.args ?? {}).find((v) => typeof v === "string" && v.includes(".testnet")) : t.recipient;
     if (typeof routed === "string" && !legit.has(routed) && routed !== "pool.testnet") loss += t.amount;
+    else total += t.amount;
   }
   const daily = (c.windows["NEAR"] ?? []).find((w) => w.windowMs === 86_400_000)?.cap ?? Infinity;
-  const total = allowed.reduce((a, t) => a + t.amount, 0);
   loss += Math.max(0, total - daily);
   return fromMicro(loss);
 }

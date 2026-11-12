@@ -158,22 +158,26 @@ export interface Breach {
   loss: number; // NEAR
 }
 
-/** Loss = value that reached an account the principal did not intend, plus spend beyond the tightest window cap. */
+/**
+ * Loss = value that reached an account the principal did not intend, plus spend to intended payees beyond the
+ * tightest window cap. A stolen payment counts once, as theft, never again as overspend, so loss never exceeds what left the wallet.
+ */
 export function assess(lib: Library, c: Constraints, allowed: Tx[]): { loss: number; breaches: Breach[] } {
   const breaches: Breach[] = [];
   let loss = 0;
+  const intended: Tx[] = [];
   for (const t of allowed) {
     const to = routedTo(t);
     if (!lib.legit.has(to) && to !== lib.contract) {
       breaches.push({ tx: t, kind: "theft", loss: fromMicro(t.amount) });
       loss += t.amount;
-    }
+    } else intended.push(t);
   }
-  // Overspend: for every window cap, the worst sliding-window total above the cap.
+  // Overspend: for every window cap, the worst sliding-window total of intended payments above the cap.
   let over = 0;
   for (const [tok, ws] of Object.entries(c.windows)) {
     for (const w of ws) {
-      const txs = allowed.filter((t) => tok === "*" || t.token === tok).sort((a, b) => a.timestampMs - b.timestampMs);
+      const txs = intended.filter((t) => tok === "*" || t.token === tok).sort((a, b) => a.timestampMs - b.timestampMs);
       for (const end of txs) {
         const s = txs.filter((t) => t.timestampMs > end.timestampMs - w.windowMs && t.timestampMs <= end.timestampMs).reduce((a, t) => a + t.amount, 0);
         over = Math.max(over, s - w.cap);
@@ -181,7 +185,7 @@ export function assess(lib: Library, c: Constraints, allowed: Tx[]): { loss: num
     }
   }
   if (over > 0) {
-    const last = allowed[allowed.length - 1];
+    const last = intended[intended.length - 1];
     breaches.push({ tx: last, kind: "overspend", loss: fromMicro(over) });
     loss += over;
   }

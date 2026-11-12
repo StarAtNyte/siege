@@ -3,27 +3,27 @@
     "guard": "outlayer",
     "mandate": "whitelist",
     "restarts": [
-      76.99,
-      66.59,
-      84.98
+      58.7,
+      54.15,
+      56.37
     ],
     "search_budget_evals": 11520,
     "llm_mutation_calls": 0,
     "llm_children": 0,
-    "loss": 84.98
+    "loss": 58.7
   },
   {
     "guard": "outlayer",
     "mandate": "open",
     "restarts": [
-      225.4,
-      201.86,
-      227.72
+      134.6,
+      109.92,
+      121.98
     ],
     "search_budget_evals": 11520,
     "llm_mutation_calls": 0,
     "llm_children": 0,
-    "loss": 227.72
+    "loss": 134.6
   },
   {
     "guard": "mandate",

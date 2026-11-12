@@ -13,7 +13,7 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 ## What it does
 
 - **Checks intent, not just limits.** The Mandate guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. Under an open mandate ("pay any vendor invoice") an allowlist cannot do this.
-- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. Under the open mandate the worst case found against Mandate is 3.00 NEAR, its new-payee budget, against 227.72 NEAR for plain cap-and-allowlist policy (`make attack`). This is the worst case a bounded search found, not a proof.
+- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. Under the open mandate the worst case found against Mandate is 3.00 NEAR, its new-payee budget, against 134.60 NEAR for plain cap-and-allowlist policy (`make attack`). This is the worst case a bounded search found, not a proof.
 - **Holds the money in a two-key vault.** A NEAR contract pays only with an ed25519 approval from the guard's own key, inside on-chain caps. A compromised agent that went around the guard got 0.00 NEAR; a compromised guard is held to the caps (`make threat`).
 
 Every number in this README maps to a command and a committed file in [CLAIMS.md](CLAIMS.md). Sister project: [DARWIN](https://github.com/StarAtNyte/darwin).
@@ -35,7 +35,7 @@ More commands, each printing the table it writes to `results/`:
 ```
 make test         # 18 Rust contract tests, the TypeScript tests, typecheck. First run compiles near-sdk (a few minutes), then about 30 s
 make eval         # regression suite, 320 cases: plain policy blocks 20.0% of attacks, Mandate 100.0% (about 2 s)
-make attack       # evolutionary search, about 42k guard evaluations: max loss 227.72 NEAR on plain policy, 3.00 on Mandate (about 6 s)
+make attack       # evolutionary search, about 42k guard evaluations: max loss 134.60 NEAR on plain policy, 3.00 on Mandate (about 10 s)
 make threat       # two-key vault: compromised agent vs compromised guard, and the MCP path (about 30 s)
 make redteam      # held-out eval on model-written attacks, replayed from results/redteam (a few seconds)
 git status        # the replays rewrite results/; only measured latencies differ from the committed files
@@ -189,12 +189,14 @@ The red team found problems on both splits. Each is kept in `results/findings/`;
 
 ### 2. Evolutionary search for the worst case
 
-`make attack` evolves attacks against both guards (96 genomes × 40 generations × 3 restarts per target, about 42k guard evaluations, about 6 s):
+`make attack` evolves attacks against both guards (96 genomes × 40 generations × 3 restarts per target, about 42k guard evaluations, about 10 s):
+
+Loss is what reached accounts you never named, plus spend to your own payees beyond your daily cap. A stolen payment counts once, so loss never exceeds what left the wallet.
 
 | guard | mandate | max loss found (NEAR) |
 |---|---|---:|
-| OutLayer policy | whitelist | 84.98 |
-| OutLayer policy | open | 227.72 |
+| OutLayer policy | whitelist | 58.70 |
+| OutLayer policy | open | 134.60 |
 | Mandate | whitelist | 0.00 (none found) |
 | Mandate | open | **3.00** |
 
@@ -204,7 +206,7 @@ The engine *did* break Mandate, three times. Each break is kept in `results/find
 2. **002**: under an open mandate, a payee named only by untrusted content was let through on one weak signal. Fix: that band fails closed unless the user explicitly pointed at the document, and the "address changed" regex was broadened.
 3. **003**: a lookalike of another account named *in the same document* ("Statement for cloudhost.testnet … processed by c1oudhost.testnet"). Fix: accounts named in the document become lookalike references.
 
-After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So Mandate adds a **novel-payee budget**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 3.00 NEAR (the 3 NEAR budget), against 227.72 NEAR on the plain policy.
+After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So Mandate adds a **novel-payee budget**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 3.00 NEAR (the 3 NEAR budget), against 134.60 NEAR on the plain policy.
 
 **With Claude as a mutation operator.** `make attack-llm` runs the same search against Mandate, and every third generation Claude (claude-haiku-5-5) sees the best attack and the guard's verdict and reason codes for each transaction, then rewrites what an attacker controls: the planted document, the agent's reasoning, the memo and the payee. It never rewrites the user's instruction. That is capped at 12 calls per restart (72 in all, 53 distinct prompts), and the answers are cached in `results/redteam/mutation_cache.json`.
 
