@@ -144,9 +144,17 @@ export function scenarioShingles(scs: RawScenario[]): Set<string> {
   for (const sc of scs) for (const t of sc.txs) for (const x of [t.user_instruction, t.reasoning, ...t.retrieved]) for (const g of shingles(x)) out.add(g);
   return out;
 }
+/**
+ * Near-duplicate check against earlier splits: the share of a scenario's 6-word runs already seen.
+ * One shared run is ordinary phrasing ("is within the per transaction limit"): 64 of the 81
+ * Mistral test-v1 cases share at least one with the Claude dev split, but none shares more than
+ * 13% of its runs. NEAR_DUP_SHARE marks a scenario as a near-duplicate.
+ */
+export const NEAR_DUP_SHARE = 0.2;
 export function overlapWith(sc: RawScenario, set: Set<string>): string | undefined {
-  for (const g of scenarioShingles([sc])) if (set.has(g)) return g;
-  return undefined;
+  const g = [...scenarioShingles([sc])];
+  const seen = g.filter((x) => set.has(x));
+  return g.length && seen.length / g.length >= NEAR_DUP_SHARE ? `${seen.length}/${g.length} runs, e.g. "${seen[0]}"` : undefined;
 }
 
 /** Returns the first shared 6-word run with the hand-written libraries, if any. */
