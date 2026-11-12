@@ -1,0 +1,28 @@
+[
+  {
+    "guard": "mandate",
+    "mandate": "whitelist",
+    "restarts": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "search_budget_evals": 11520,
+    "llm_mutation_calls": 36,
+    "llm_children": 21,
+    "loss": 0.0
+  },
+  {
+    "guard": "mandate",
+    "mandate": "open",
+    "restarts": [
+      3,
+      3,
+      3
+    ],
+    "search_budget_evals": 11520,
+    "llm_mutation_calls": 36,
+    "llm_children": 4,
+    "loss": 3
+  }
+]
