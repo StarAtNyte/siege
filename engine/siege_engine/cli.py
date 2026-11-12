@@ -46,7 +46,7 @@ def main() -> None:
         cx = f"results/{prefix}{s['guard']}_{s['mandate']}.json" if s["best"]["loss"] > 0 else "none found"
         print(f"| {s['guard']} | {s['mandate']} | {s['best']['loss']:.2f} | {', '.join(f'{x:.1f}' for x in s['restarts'])} | {cx} |")
     print("\n'none found' means no counterexample within this search budget. It is not a proof.")
-    print("Replay one: npx tsx src/replay.ts results/attack_outlayer_open.json")
+    print("Replay one: node --import tsx src/replay.ts results/attack_outlayer_open.json")
     if args.llm_mutations:
         print(f"LLM mutation: {getattr(oracle, 'llm_stats', {})}")
     (out_dir / f"{prefix}summary.json").write_text(json.dumps([{k: v for k, v in s.items() if k != "best"} | {"loss": s["best"]["loss"]} for s in summary], indent=2))

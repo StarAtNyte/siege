@@ -3,22 +3,17 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AddressInfo } from "node:net";
 import { createProxy } from "../src/proxy.ts";
 import { server as app } from "../src/server.ts";
 import { compileMandate } from "../src/mandate/compiler.ts";
 import { Arena } from "../src/attack/arena.ts";
 import { Search } from "../src/attack/ga.ts";
 import { diagnose } from "../src/attack/diagnose.ts";
+import { serve } from "./net.ts";
 
 const M = "Pay up to 5 NEAR per transaction to alice.testnet and bob.testnet for invoices. Never spend more than 8 NEAR per day.";
 const ctx = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64");
 const yocto = (near: number) => (BigInt(Math.round(near * 1e6)) * 10n ** 18n).toString();
-
-async function listen(s: import("node:http").Server) {
-  await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
-  return `http://127.0.0.1:${(s.address() as AddressInfo).port}`;
-}
 
 const TOKEN = "siege-agent-token-0123456789";
 const OUTLAYER_KEY = "wk_upstreamSecretKey0123456789";
@@ -33,7 +28,7 @@ test("proxy forwards allowed spends, denies injections, refuses custody endpoint
   }) as typeof fetch;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "siege-"));
   const { server } = createProxy({ mandate: M, agentToken: TOKEN, upstreamKey: OUTLAYER_KEY, upstream: "https://up.example", stateDir: dir, fetchImpl: fake });
-  const base = await listen(server);
+  const { base, fetch, close } = await serve(server);
   const post = (p: string, body: object, c?: object) =>
     fetch(base + p, { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json", ...(c ? { "x-siege-context": ctx(c) } : {}) }, body: JSON.stringify(body) });
 
@@ -46,15 +41,15 @@ test("proxy forwards allowed spends, denies injections, refuses custody endpoint
   assert.equal(noCtx.status, 403);
   assert.equal((await post("/wallet/v1/delete", { beneficiary: "x.testnet" })).status, 403);
   assert.equal((await fetch(base + "/wallet/v1/transfer", { method: "POST", body: "{}" })).status, 401);
-  server.close();
+  await close();
 
   // Restart: 4 NEAR already spent today; another 4 + 1 would exceed the 8 NEAR cap.
   const again = createProxy({ mandate: M, agentToken: TOKEN, upstreamKey: OUTLAYER_KEY, upstream: "https://up.example", stateDir: dir, fetchImpl: fake });
-  const base2 = await listen(again.server);
-  const r = await fetch(base2 + "/wallet/v1/transfer", { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "x-siege-context": ctx({ userInstruction: "Pay 5 NEAR to bob.testnet for the invoice.", provenance: "user" }) }, body: JSON.stringify({ to: "bob.testnet", amount: yocto(5) }) });
+  const s2 = await serve(again.server);
+  const r = await s2.fetch(s2.base + "/wallet/v1/transfer", { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "x-siege-context": ctx({ userInstruction: "Pay 5 NEAR to bob.testnet for the invoice.", provenance: "user" }) }, body: JSON.stringify({ to: "bob.testnet", amount: yocto(5) }) });
   assert.equal(r.status, 403);
   assert.match(JSON.stringify(await r.json()), /WINDOW_CAP/);
-  again.server.close();
+  await s2.close();
   assert.equal(forwarded.length, 1);
   assert.deepEqual(upstreamAuth, [`Bearer ${OUTLAYER_KEY}`], "the proxy, not the agent, supplies the OutLayer key");
   const audit = fs.readFileSync(path.join(dir, "audit.jsonl"), "utf8").trim().split("\n");
@@ -77,7 +72,7 @@ test("search finds the plain-policy race and diagnosis pins it to the cap senten
 });
 
 test("web API validates input", async () => {
-  const base = await listen(app);
+  const { base, fetch, close } = await serve(app);
   const bad = await fetch(base + "/api/compile", { method: "POST", body: JSON.stringify({ mandate: "be nice" }) });
   assert.equal(bad.status, 422);
   const big = await fetch(base + "/api/compile", { method: "POST", body: JSON.stringify({ mandate: "x".repeat(3000) }) });
@@ -85,7 +80,7 @@ test("web API validates input", async () => {
   const check = await fetch(base + "/api/check", { method: "POST", body: JSON.stringify({ mandate: M, tx: { to: "../etc", amount: 1 } }) });
   assert.equal(check.status, 400);
   assert.equal((await fetch(base + "/../package.json")).status, 404);
-  app.close();
+  await close();
 });
 
 test("key custody: the agent's token works only here, and any request carrying an OutLayer key is rejected", async () => {
@@ -98,7 +93,7 @@ test("key custody: the agent's token works only here, and any request carrying a
   assert.throws(() => createProxy({ mandate: M, agentToken: TOKEN }), /OutLayer API key/);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "siege-"));
   const { server } = createProxy({ mandate: M, agentToken: TOKEN, upstreamKey: OUTLAYER_KEY, upstream: "https://up.example", stateDir: dir, fetchImpl: fake });
-  const base = await listen(server);
+  const { base, fetch, close } = await serve(server);
   const c = ctx({ userInstruction: "Pay 1 NEAR to alice.testnet for the invoice.", provenance: "user" });
   const send = (headers: Record<string, string>, body: object = { to: "alice.testnet", amount: yocto(1) }, p = "/wallet/v1/transfer") =>
     fetch(base + p, { method: "POST", headers: { "content-type": "application/json", "x-siege-context": c, ...headers }, body: JSON.stringify(body) });
@@ -122,5 +117,5 @@ test("key custody: the agent's token works only here, and any request carrying a
   assert.deepEqual(seen, [`Bearer ${OUTLAYER_KEY}`, `Bearer ${OUTLAYER_KEY}`]);
   const audit = fs.readFileSync(path.join(dir, "audit.jsonl"), "utf8");
   assert.ok(!audit.includes(OUTLAYER_KEY), "the key never reaches the audit log");
-  server.close();
+  await close();
 });

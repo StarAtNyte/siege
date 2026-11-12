@@ -1,6 +1,6 @@
 // SIEGE MCP server: guarded payment tools for any MCP agent (Claude Code, Codex, Cursor), over stdio.
 //
-//   claude mcp add siege -e MANDATE="Pay any vendor invoice up to 1 NEAR per transaction. At most 3 NEAR per day." -- npx -y tsx /path/to/siege/src/mcp/server.ts
+//   claude mcp add siege -e MANDATE="Pay any vendor invoice up to 1 NEAR per transaction. At most 3 NEAR per day." -- node /path/to/siege/bin/siege-mcp.mjs
 //
 // Tools: siege_pay, siege_check, siege_budget, siege_rules. The server holds every key (the guard's signing key and the
 // agent's function-call key on the vault); the MCP client only ever sees verdicts and transaction hashes. Spending

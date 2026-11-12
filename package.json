@@ -8,24 +8,25 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "eval": "tsx src/eval/run.ts",
-    "oracle": "tsx src/oracle.ts",
+    "eval": "node --import tsx src/eval/run.ts",
+    "oracle": "node --import tsx src/oracle.ts",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "start": "tsx src/server.ts",
-    "proxy": "tsx src/proxy.ts",
-    "mcp": "tsx src/mcp/server.ts"
+    "start": "node --import tsx src/server.ts",
+    "proxy": "node --import tsx src/proxy.ts",
+    "mcp": "node --import tsx src/mcp/server.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "binaryen": "123.0.0",
     "typescript": "^7.0.2"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "near-api-js": "^7.4.0",
-    "zod": "^4.6.7",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
   },
   "bin": {
     "siege-mcp": "bin/siege-mcp.mjs"

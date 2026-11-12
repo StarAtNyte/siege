@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { AddressInfo } from "node:net";
+import { serve } from "./net.ts";
 import { GuardSigner, approvalMessage, verifyApproval, base58, unbase58 } from "../src/vault/approval.ts";
 import { VaultModel, vaultPolicyFromMandate, YOCTO_PER_NEAR } from "../src/vault/model.ts";
 import { VECTORS, generate, replay, type Step } from "../src/vault/vectors.ts";
@@ -35,7 +35,7 @@ test("approval encoding matches the Rust golden vector", () => {
 test("the TS vault model reproduces the differential vectors the Rust contract is tested against", () => {
   const doc = JSON.parse(fs.readFileSync(VECTORS, "utf8")) as { steps: Step[] };
   assert.deepEqual(replay(doc.steps), doc.steps.map((s) => s.expect));
-  assert.deepEqual(generate(), doc.steps, "vectors are stale: run npx tsx src/vault/vectors.ts");
+  assert.deepEqual(generate(), doc.steps, "vectors are stale: run node --import tsx src/vault/vectors.ts");
   const reasons = new Set(doc.steps.map((s) => s.expect ?? "PAID"));
   for (const r of ["PAID", "BAD_SIGNATURE", "NONCE_REUSED", "APPROVAL_EXPIRED", "EXPIRY_TOO_FAR", "PER_TX_CAP", "DAILY_CAP", "NOVEL_PAYEE_BUDGET", "NOT_AGENT", "BAD_RECEIVER"]) assert.ok(reasons.has(r), r);
 });
@@ -98,18 +98,13 @@ test("threat model: bypassing the guard yields nothing; a compromised guard is h
   }
 });
 
-async function listen(s: import("node:http").Server) {
-  await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
-  return `http://127.0.0.1:${(s.address() as AddressInfo).port}`;
-}
-
 test("proxy in vault mode: relays allowed spends, hands back approvals, and never signs a denied spend", async () => {
   const { model, wallet, guard } = vaultFor(M);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "siege-vault-"));
   const TOKEN = "siege-agent-token-0123456789";
   const { server } = createProxy({ mandate: M, agentToken: TOKEN, vault: wallet, stateDir: dir });
-  const base = await listen(server);
-  test.after(() => server.close());
+  const { base, fetch, close } = await serve(server);
+  test.after(close);
   const ctx = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64");
   const yocto = (near: number) => (BigInt(Math.round(near * 1e6)) * 10n ** 18n).toString();
   const post = (p: string, body: object, c: object) =>
@@ -134,5 +129,4 @@ test("proxy in vault mode: relays allowed spends, hands back approvals, and neve
   assert.equal(wallet.signed.length, 2);
   assert.equal((await post("/wallet/v1/call", { receiver_id: "pool.testnet", method_name: "x", deposit: "0" }, {})).status, 403);
   assert.equal((await fetch(base + "/wallet/v1/balance", { headers: { authorization: `Bearer ${TOKEN}` } })).status, 404);
-  server.close();
 });

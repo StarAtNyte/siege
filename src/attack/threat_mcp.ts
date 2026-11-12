@@ -12,7 +12,7 @@
 // then replayed through the real MCP server over the SDK's in-memory transport, with an SDK Client whose
 // elicitation handler plays the user, and the replayed loss is reported next to the searched one.
 //
-//   npx tsx src/attack/threat_mcp.ts       writes results/mcp_threat.json and results/mcp_threat.md
+//   node --import tsx src/attack/threat_mcp.ts       writes results/mcp_threat.json and results/mcp_threat.md
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";

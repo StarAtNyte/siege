@@ -11,7 +11,7 @@
 // Every spend goes through VaultModel (src/vault/model.ts), which contract/vectors/differential.json pins to the
 // Rust contract. Loss is measured as in the arena: NEAR that reached an account the principal did not intend.
 //
-//   npx tsx src/attack/threat.ts            writes results/vault_threat.json and results/vault_threat.md
+//   node --import tsx src/attack/threat.ts            writes results/vault_threat.json and results/vault_threat.md
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";

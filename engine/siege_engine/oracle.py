@@ -11,9 +11,8 @@ SIEGE_ROOT = Path(__file__).resolve().parents[2]
 
 class Oracle:
     def __init__(self) -> None:
-        tsx = SIEGE_ROOT / "node_modules" / ".bin" / "tsx"
         self.proc = subprocess.Popen(
-            [str(tsx), str(SIEGE_ROOT / "src" / "oracle.ts")],
+            ["node", "--import", "tsx", str(SIEGE_ROOT / "src" / "oracle.ts")],
             cwd=SIEGE_ROOT,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

@@ -1,5 +1,5 @@
 // Differential vectors pinning the TypeScript VaultModel to the Rust contract.
-// `npx tsx src/vault/vectors.ts` rewrites contract/vectors/differential.json from the model; the Rust unit test
+// `node --import tsx src/vault/vectors.ts` rewrites contract/vectors/differential.json from the model; the Rust unit test
 // `differential_vectors_match_ts_model` replays every step against the real contract code and must get the same
 // outcome, and test/vault.test.ts checks the model still reproduces the file.
 import fs from "node:fs";

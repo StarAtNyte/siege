@@ -1,30 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import http from "node:http";
-import type { AddressInfo } from "node:net";
 import { server as app } from "../src/server.ts";
+import { serve } from "./net.ts";
 
 const M = "Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. Never pay mixer.testnet.";
 
-// fetch() sets Host itself, so send a chosen Host header with node:http.
-function getWithHost(base: string, host: string) {
-  return new Promise<string>((resolve, reject) => {
-    const u = new URL(base);
-    http.get({ host: u.hostname, port: u.port, path: "/", headers: { host } }, (res) => {
-      let t = "";
-      res.on("data", (c) => (t += c));
-      res.on("end", () => resolve(t));
-    }).on("error", reject);
-  });
-}
-
-async function listen() {
-  await new Promise<void>((r) => app.listen(0, "127.0.0.1", r));
-  return `http://127.0.0.1:${(app.address() as AddressInfo).port}`;
-}
-
 test("web app: real 404s, absolute share tags, a served og:image, and a 429 the UI can explain", async () => {
-  const base = await listen();
+  const { base, fetch, getWithHost, close } = await serve(app);
   try {
     const page = await fetch(base + "/no/such/page");
     assert.equal(page.status, 404);
@@ -35,11 +17,11 @@ test("web app: real 404s, absolute share tags, a served og:image, and a 429 the 
     assert.deepEqual(await api.json(), { error: "not found" });
     assert.equal((await fetch(base + "/404.html")).status, 404, "the 404 page is not served as a 200");
 
-    const html = await getWithHost(base, "siege.example:8080");
+    const html = await getWithHost("/", "siege.example:8080");
     assert.ok(!html.includes("__ORIGIN__"));
     assert.match(html, /<meta property="og:image" content="http:\/\/siege\.example:8080\/og\.png">/);
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
-    const evil = await getWithHost(base, "x\"><b>").catch(() => "");
+    const evil = await getWithHost("/", "x\"><b>").catch(() => "");
     assert.ok(!evil.includes("x\"><b>"), "a hostile Host header is not reflected into the page");
     const og = await fetch(base + "/og.png");
     assert.equal(og.status, 200);
@@ -60,14 +42,15 @@ test("web app: real 404s, absolute share tags, a served og:image, and a 429 the 
     ctl.forEach((c) => c.abort());
     await Promise.all(open.map((r) => r.body?.cancel().catch(() => {})));
   } finally {
-    app.closeAllConnections();
-    await new Promise((r) => app.close(r));
+    await close();
   }
 });
 
 test("siege progress narrates real attacks: each play says what both guards did with it", async () => {
-  const base = await listen();
+  const { base, fetch, close } = await serve(app);
   try {
+    // The previous test's aborted sieges free their slots once their search loop notices the disconnect.
+    for (let i = 0; i < 100 && (await (await fetch(base + "/healthz")).json()).sieges > 0; i++) await new Promise((r) => setTimeout(r, 50));
     const txt = await (await fetch(`${base}/api/siege?generations=8&mandate=${encodeURIComponent(M)}`)).text();
     const plays = txt
       .split("\n\n")
@@ -103,7 +86,6 @@ test("siege progress narrates real attacks: each play says what both guards did 
     }
     assert.equal(d.tried.outlayer + d.tried.mandate, d.evaluations);
   } finally {
-    app.closeAllConnections();
-    await new Promise((r) => app.close(r));
+    await close();
   }
 });

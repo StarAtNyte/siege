@@ -1,5 +1,5 @@
 // Replay a counterexample found by the attack engine against both guards, with full decisions.
-// usage: npx tsx src/replay.ts results/attack_outlayer_open.json
+// usage: node --import tsx src/replay.ts results/attack_outlayer_open.json
 import fs from "node:fs";
 import { evaluate } from "./oracle.ts";
 const file = process.argv[2];

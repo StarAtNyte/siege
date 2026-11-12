@@ -1,7 +1,7 @@
 FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=optional && npm cache clean --force
+RUN npm ci --omit=dev --omit=optional && npm cache clean --force
 COPY tsconfig.json ./
 COPY src ./src
 COPY ui ./ui
