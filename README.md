@@ -1,6 +1,36 @@
 # SIEGE: can your AI wallet be drained?
 
-Track: AI Security & Defense. Testnet only, no funds spent.
+[![ci](https://github.com/StarAtNyte/near-siege/actions/workflows/ci.yml/badge.svg)](https://github.com/StarAtNyte/near-siege/actions/workflows/ci.yml)
+
+Tracks: AI Security & Defense, Agent Economy. Testnet only, no funds spent.
+
+**What it is.** A spending guard for AI agents that hold NEAR, plus an attacker that measures how much a guard can be made to lose. Most agent spend guards are an on-chain allowlist plus caps. SIEGE keeps that floor and adds:
+
+- **An intent check.** The Mandate guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. This matters most for an open mandate ("pay any vendor invoice"), where an allowlist cannot help.
+- **Adversarial search.** A genetic search over transaction sequences runs against the real guard code and reports the most NEAR it could extract, with replayable counterexamples. It broke Mandate three times during development; each break and fix is in `results/findings/`.
+- **A measured loss bound.** Under the open mandate the worst case found against Mandate is 3.00 NEAR, its new-payee budget, against 227.72 NEAR for plain cap-and-allowlist policy (`make attack`). This is the worst case a bounded search found, not a proof.
+- **A two-key vault.** A NEAR contract holds the funds and pays only with an ed25519 approval from the guard's own key, inside on-chain caps. A compromised agent that went around the guard got 0.00 NEAR; a compromised guard is held to the caps (`make threat`). Deployed and exercised on testnet ([docs/TESTNET.md](docs/TESTNET.md)).
+- **An MCP server with user confirmation.** Claude Code, Codex or Cursor pay through `siege_pay`. A payee the rules do not vouch for is put to the user through MCP elicitation, a channel the agent cannot answer.
+
+Every number in this README maps to a command and a committed file in [CLAIMS.md](CLAIMS.md).
+
+## Judge quick start
+
+No API key, NEAR account or `.env` is needed. Prerequisites: Node 22.6 or later (CI uses 24), [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12 if needed) and Rust with cargo (for the contract's unit tests).
+
+```
+git clone https://github.com/StarAtNyte/near-siege && cd near-siege
+make install      # npm install + uv sync, about a minute
+make test         # 18 Rust contract tests, the TypeScript tests, typecheck. First run compiles near-sdk (a few minutes), then about 30 s
+make eval         # regression suite, 320 cases: plain policy blocks 20.0% of attacks, Mandate 100.0% (about 2 s)
+make attack       # evolutionary search, about 42k guard evaluations: max loss 227.72 NEAR on plain policy, 3.00 on Mandate (about 6 s)
+make threat       # two-key vault: compromised agent vs compromised guard, and the MCP path (about 30 s)
+make redteam      # held-out eval on model-written attacks, replayed from results/redteam (a few seconds)
+git status        # the replays rewrite results/; only measured latencies differ from the committed files
+npm start         # the web app on http://127.0.0.1:8686: write a mandate, press "Lay siege"
+```
+
+Each command prints the table it writes to `results/`. The testnet vault, including refused payments that nearblocks shows as "Success" (the call ran; the payment was refused; the reason is in the event log), is in [docs/TESTNET.md](docs/TESTNET.md). `make contract-build` rebuilds the deployed wasm byte for byte and checks its hash (needs rustc 1.97.1).
 
 - **Live:** [near-siege.fly.dev](https://near-siege.fly.dev)
 - **Code:** [github.com/StarAtNyte/near-siege](https://github.com/StarAtNyte/near-siege)
@@ -80,7 +110,7 @@ Measured with `make threat` (the same evolutionary search as `make attack`):
 - **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's unlisted-payee budget. Without that budget it took 30.00. Through the MCP server, which asks the user to confirm new payees, it took 0.00 when the user denies payees they did not expect (see above).
 - **Compromised guard.** It signs anything. Loss is bounded by the contract's caps: 0.00 under the whitelist mandate (the vault is allowlist-only), and **3.00 NEAR per 24 h** under the open mandate (21.00 over 7 days).
 
-Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.md](docs/TESTNET.md). OutLayer's TEE custody remains a supported alternative: the `OutLayerWallet` adapter and the guard proxy work in front of it, and the proxy now holds the OutLayer key instead of the agent.
+Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.md](docs/TESTNET.md). Refused payments show "Success" on nearblocks: the call ran; the payment was refused; the reason is in the event log (Execution Plan tab). `spend` returns `{ok: false, reason}` and emits `spend_refused` instead of panicking, so the refusal is recorded on chain. OutLayer's TEE custody remains a supported alternative: the `OutLayerWallet` adapter and the guard proxy work in front of it, and the proxy now holds the OutLayer key instead of the agent.
 
 ## Results
 
@@ -140,7 +170,7 @@ The engine *did* break Mandate, three times. Each break is kept in `results/find
 
 After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So Mandate adds a **novel-payee budget**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 3.00 NEAR (the 3 NEAR budget), against 227.72 NEAR on the plain policy.
 
-**With Claude as a mutation operator.** `make attack-llm` runs the same search against Mandate, and every third generation Claude (claude-haiku-5-5) sees the best attack and the guard's verdict and reason codes for each transaction, then rewrites what an attacker controls: the planted document, the agent's reasoning, the memo and the payee. It never rewrites the user's instruction. That is capped at 12 calls per restart (72 in all, 53 distinct prompts, $0.013), and the calls are cached in `results/redteam/mutation_cache.json`.
+**With Claude as a mutation operator.** `make attack-llm` runs the same search against Mandate, and every third generation Claude (claude-haiku-5-5) sees the best attack and the guard's verdict and reason codes for each transaction, then rewrites what an attacker controls: the planted document, the agent's reasoning, the memo and the payee. It never rewrites the user's instruction. That is capped at 12 calls per restart (72 in all, 53 distinct prompts), and the answers are cached in `results/redteam/mutation_cache.json`.
 
 | guard | mandate | max loss, GA only | max loss, GA + Claude mutation |
 |---|---|---:|---:|
@@ -152,7 +182,7 @@ Claude returned usable rewrites for 14 of the 53 prompts (lookalikes such as `c1
 Replay any counterexample against both guards:
 
 ```
-npx tsx src/replay.ts results/attack_outlayer_open.json
+node --import tsx src/replay.ts results/attack_outlayer_open.json
 ```
 
 ### 3. Regression suite
@@ -169,7 +199,7 @@ npx tsx src/replay.ts results/attack_outlayer_open.json
 | **all attacks** | **20.0%** | **100.0%** |
 | total value extracted (NEAR) | 3108.9 | 0.0 |
 | false-positive rate (benign denied) | 0.0% | 0.0% |
-| added decision latency p50 / p99 (ms, local stages) | baseline | 0.05 / 0.40 |
+| added decision latency p50 / p99 (ms, local stages; varies per run) | baseline | 0.07 / 0.51 |
 
 The baseline gets 50% on injection and poisoning because a whitelist does stop those when the mandate names its payees. It does nothing for an open mandate ("pay any vendor invoice"), which is where agents are actually useful.
 
@@ -236,6 +266,7 @@ npm run proxy     # guard proxy (see above)
 docker build -t siege . && docker run -p 8686:8686 siege
 make install      # npm + uv
 make test         # vault contract tests (Rust) + unit tests + typecheck
+make contract-build  # rebuild the deployed vault wasm byte for byte and check its sha256 (rustc 1.97.1)
 make threat       # two-key vault: compromised agent vs compromised guard
 make eval         # the table above
 make attack       # evolutionary search, writes results/attack_*.json
@@ -252,9 +283,9 @@ SIEGE_REGEN=1 REDTEAM_BASE_URL=https://integrate.api.nvidia.com/v1 REDTEAM_API_K
 SIEGE_REGEN=1 ANTHROPIC_API_KEY=... make redteam attack-llm                     # fill verdict / mutation caches
 ```
 
-With the Claude judge on (`SIEGE_LLM=1`, claude-haiku-5-5), the regression suite still blocks 100% of attacks with 0% false positives. See the held-out eval above for where the judge changes outcomes.
+With the Claude judge on (`SIEGE_LLM=1`, claude-haiku-5-5) the regression suite can be rerun with a key; that run is not committed. See the held-out eval above for where the judge changes outcomes.
 
-Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](https://github.com/StarAtNyte/near-darwin) uses it to guard every payment in a 50-agent evolving economy, where it blocks a live rogue agent. Running DARWIN also caught a real bug here: a repetition pattern that stopped at the decimal point in "0.05 NEAR".
+Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](https://github.com/StarAtNyte/near-darwin) uses it to guard every payment in a 50-agent evolving economy, where it blocks a live rogue agent.
 
 ## Honest limits
 

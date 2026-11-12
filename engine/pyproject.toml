@@ -5,9 +5,6 @@ description = "Evolutionary attack engine: evolves transaction sequences against
 requires-python = ">=3.12"
 dependencies = []
 
-[project.optional-dependencies]
-gpu = ["torch"]
-
 [project.scripts]
 siege-attack = "siege_engine.cli:main"
 
