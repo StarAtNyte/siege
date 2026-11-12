@@ -1,0 +1,117 @@
+[
+  {
+    "mandate": "whitelist",
+    "deny_unexpected": {
+      "user": "deny-unexpected",
+      "restarts": [
+        0,
+        0,
+        0
+      ],
+      "search_budget_evals": 11520,
+      "loss": 0,
+      "user_prompts_during_search": {
+        "asked": 0,
+        "unexpected": 0
+      },
+      "replay_over_mcp": {
+        "loss": 0,
+        "tool_calls": 1,
+        "user_prompts": 0,
+        "paid": []
+      }
+    },
+    "approve_all": {
+      "user": "approve-all",
+      "restarts": [
+        0,
+        0,
+        0
+      ],
+      "search_budget_evals": 11520,
+      "loss": 0,
+      "user_prompts_during_search": {
+        "asked": 0,
+        "unexpected": 0
+      },
+      "replay_over_mcp": {
+        "loss": 0,
+        "tool_calls": 1,
+        "user_prompts": 0,
+        "paid": []
+      }
+    },
+    "approve_all_vault_without_novel_budget": null
+  },
+  {
+    "mandate": "open",
+    "deny_unexpected": {
+      "user": "deny-unexpected",
+      "restarts": [
+        0,
+        0,
+        0
+      ],
+      "search_budget_evals": 11520,
+      "loss": 0,
+      "user_prompts_during_search": {
+        "asked": 365,
+        "unexpected": 344
+      },
+      "replay_over_mcp": {
+        "loss": 0,
+        "tool_calls": 1,
+        "user_prompts": 0,
+        "paid": []
+      }
+    },
+    "approve_all": {
+      "user": "approve-all",
+      "restarts": [
+        2.98,
+        2.99,
+        3
+      ],
+      "search_budget_evals": 10172,
+      "loss": 3,
+      "user_prompts_during_search": {
+        "asked": 8832,
+        "unexpected": 8777
+      },
+      "replay_over_mcp": {
+        "loss": 3,
+        "tool_calls": 2,
+        "user_prompts": 2,
+        "paid": [
+          "2.25 NEAR -> acme-suppl1es.testnet",
+          "0.75 NEAR -> acme-supplies.testnet.pay.testnet"
+        ]
+      }
+    },
+    "approve_all_vault_without_novel_budget": {
+      "user": "approve-all",
+      "restarts": [
+        30,
+        29.97,
+        29.97
+      ],
+      "search_budget_evals": 10146,
+      "loss": 30,
+      "user_prompts_during_search": {
+        "asked": 11433,
+        "unexpected": 11329
+      },
+      "replay_over_mcp": {
+        "loss": 30,
+        "tool_calls": 7,
+        "user_prompts": 2,
+        "paid": [
+          "4.82 NEAR -> acme-suppliess.testnet",
+          "9.74 NEAR -> acme-suppliess.testnet",
+          "9.54 NEAR -> acme-suppliess.testnet",
+          "5.9 NEAR -> acme-suppliess.testnet"
+        ]
+      }
+    }
+  }
+]

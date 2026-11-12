@@ -13,15 +13,21 @@
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/server.ts",
-    "proxy": "tsx src/proxy.ts"
+    "proxy": "tsx src/proxy.ts",
+    "mcp": "tsx src/mcp/server.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
-    "near-api-js": "^7.4.0"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "near-api-js": "^7.4.0",
+    "zod": "^4.6.7",
+    "tsx": "^4.23.15"
+  },
+  "bin": {
+    "siege-mcp": "bin/siege-mcp.mjs"
   }
 }

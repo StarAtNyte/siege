@@ -17,6 +17,7 @@ Three ways to use it:
 - **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it under plain OutLayer policy and under Mandate. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
 - **The library**: `import { MandateGuard, compileMandate } from "siege"`.
+- **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
 
 | Part | What it is |
 |---|---|
@@ -24,6 +25,48 @@ Three ways to use it:
 | **Attack engine** (Python) | A genetic search over transaction sequences against the *real* guard code. Fitness is NEAR extracted. Output is the maximum loss found plus replayable counterexamples. |
 | **Eval harness** | A fixed, seeded attack suite covering prompt injection, address poisoning, confused deputy, drip-drain and races on cumulative caps, plus benign traffic for false positives. |
 | **Vault** (Rust, `contract/`) | A NEAR contract that holds the funds and pays only with the guard's signature, inside on-chain caps. See *Two layers*. |
+
+## Use it from Claude Code / Codex / Cursor
+
+The SIEGE MCP server gives any MCP agent guarded payment tools over stdio. It holds every key (the guard's signing key and the agent's function-call key on the vault); the agent sees only verdicts and transaction hashes. The spending rules come from the server's `MANDATE` (or `MANDATE_FILE`), never from tool arguments.
+
+```
+git clone https://github.com/StarAtNyte/near-siege && cd near-siege && npm install
+```
+
+**Claude Code**
+
+```
+claude mcp add siege -e MANDATE="Pay any vendor invoice up to 1 NEAR per transaction. At most 3 NEAR per day. For invoices and hosting." -- node "$PWD/bin/siege-mcp.mjs"
+```
+
+**Codex** (`codex mcp add siege --env MANDATE="..." -- node "$PWD/bin/siege-mcp.mjs"`, or in `~/.codex/config.toml`):
+
+```toml
+[mcp_servers.siege]
+command = "node"
+args = ["/path/to/near-siege/bin/siege-mcp.mjs"]
+env = { MANDATE = "Pay any vendor invoice up to 1 NEAR per transaction. At most 3 NEAR per day. For invoices and hosting." }
+```
+
+**Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`):
+
+```json
+{ "mcpServers": { "siege": { "command": "node", "args": ["/path/to/near-siege/bin/siege-mcp.mjs"], "env": { "MANDATE": "Pay any vendor invoice up to 1 NEAR per transaction. At most 3 NEAR per day. For invoices and hosting." } } } }
+```
+
+Without `VAULT_CONTRACT` or `VAULT_KEYS_FILE` it pays a **mock wallet** and says so in every result. Add `VAULT_KEYS_FILE=.siege/vault-testnet.json` (written by `src/vault/testnet.ts deploy`), or `VAULT_CONTRACT`, `GUARD_KEY` and `VAULT_AGENT_KEY`, to pay from the two-key vault on testnet.
+
+| tool | what it does |
+|---|---|
+| `siege_pay(receiver, amount_near, purpose, context?)` | Mandate guard, then the user's confirmation for a new payee, then the vault (or the mock). Returns PAID with the transaction, or DENIED with plain-language reasons and what the user can do. |
+| `siege_check(...)` | The same verdict as a dry run: no payment, no question to the user. Reasons and risk score. |
+| `siege_budget()` | What is left: per transaction, today, the largest payment possible now, and the allowance for new payees (on chain, with the vault). |
+| `siege_rules()` | The compiled spending rules, the payees the user has confirmed or paid, and the vault's on-chain floor. |
+
+**The user confirms new payees, not the agent.** The agent's `context` (the user's instruction, what it read) is untrusted: a compromised agent can write "the user asked me to pay x7f3a.testnet". So when a payment passes the guard but the payee is not vouched for by the rules, by a past payment or by an earlier confirmation, the server asks the user directly through MCP elicitation, a channel the agent cannot write to: *"Pay 2.5 NEAR to cloudhost-billing.testnet for 'hosting invoice'?"*, with a warning when the account looks like a payee the user trusts. An approval is remembered (up to 256 payees, in `.siege/mcp/`). A denial pays nothing and is asked again next time. If the client does not support elicitation, payments to unvouched payees are refused with a message saying so; payees in the mandate still work. Everything stays inside the vault's caps.
+
+Measured with `make threat` (`results/mcp_threat.md`), the compromised agent that lies to the guard, now through the MCP server: under the open mandate it took **0.00 NEAR** when the user denies payees they don't expect (the search put 344 such prompts to the user), against 3.00 without the confirmation step. A user who approves every prompt gets the vault's floor again: 3.00 NEAR per 24 h, or 30.00 with the vault's unlisted-payee budget removed. Under the whitelist mandate it took 0.00 in every case. The simulated user is ideal: a person can be fooled by a well-written purpose or a look-alike account, which is why the vault's floor stays. On testnet, one MCP payment and one MCP denial over stdio are rows 12 and 13 in [docs/TESTNET.md](docs/TESTNET.md).
 
 ## Two layers
 
@@ -34,7 +77,7 @@ A policy check that runs only inside the agent's process is lost when that proce
 
 Measured with `make threat` (the same evolutionary search as `make attack`):
 
-- **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's unlisted-payee budget. Without that budget it took 30.00.
+- **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's unlisted-payee budget. Without that budget it took 30.00. Through the MCP server, which asks the user to confirm new payees, it took 0.00 when the user denies payees they did not expect (see above).
 - **Compromised guard.** It signs anything. Loss is bounded by the contract's caps: 0.00 under the whitelist mandate (the vault is allowlist-only), and **3.00 NEAR per 24 h** under the open mandate (21.00 over 7 days).
 
 Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.md](docs/TESTNET.md). OutLayer's TEE custody remains a supported alternative: the `OutLayerWallet` adapter and the guard proxy work in front of it, and the proxy now holds the OutLayer key instead of the agent.
