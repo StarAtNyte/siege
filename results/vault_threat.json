@@ -1,0 +1,122 @@
+[
+  {
+    "mandate": "whitelist",
+    "vault": {
+      "per_tx_cap_near": 5,
+      "daily_cap_near": 20,
+      "novel_daily_cap_near": 0,
+      "payees": [
+        "alice.testnet",
+        "bob.testnet",
+        "cloudhost.testnet"
+      ],
+      "allowlist_only": true
+    },
+    "compromised_agent": {
+      "bypass": {
+        "attempts": 96,
+        "lossNear": 0,
+        "paidOutsideHonestTrafficNear": 0,
+        "outcomes": {
+          "no signature: BAD_SIGNATURE": 9,
+          "agent signs its own approval: BAD_SIGNATURE": 9,
+          "random signature bytes: BAD_SIGNATURE": 9,
+          "guard signature for another vault: BAD_SIGNATURE": 9,
+          "guard signature for mainnet: BAD_SIGNATURE": 9,
+          "replay a captured approval: APPROVAL_EXPIRED": 3,
+          "retarget a captured approval: BAD_SIGNATURE": 18,
+          "raise the amount of a captured approval: BAD_SIGNATURE": 6,
+          "extend the expiry of a captured approval: BAD_SIGNATURE": 6,
+          "replay a captured approval: NONCE_REUSED": 15,
+          "submit a withheld approval after expiry: APPROVAL_EXPIRED": 3
+        }
+      },
+      "lying_to_the_guard": {
+        "restarts": [
+          0,
+          0,
+          0
+        ],
+        "search_budget_evals": 11520,
+        "loss": 0
+      }
+    },
+    "compromised_guard": {
+      "search": {
+        "restarts": [
+          0,
+          0,
+          0
+        ],
+        "search_budget_evals": 11520,
+        "loss": 0
+      },
+      "greedy_7_days": {
+        "days": 7,
+        "lossNear": 0,
+        "perDayNear": 0
+      },
+      "bound_per_24h_near": 0
+    }
+  },
+  {
+    "mandate": "open",
+    "vault": {
+      "per_tx_cap_near": 10,
+      "daily_cap_near": 30,
+      "novel_daily_cap_near": 3,
+      "payees": [
+        "acme-supplies.testnet",
+        "cloudhost.testnet",
+        "printshop.testnet"
+      ],
+      "allowlist_only": false
+    },
+    "compromised_agent": {
+      "bypass": {
+        "attempts": 96,
+        "lossNear": 0,
+        "paidOutsideHonestTrafficNear": 0,
+        "outcomes": {
+          "no signature: BAD_SIGNATURE": 9,
+          "agent signs its own approval: BAD_SIGNATURE": 9,
+          "random signature bytes: BAD_SIGNATURE": 9,
+          "guard signature for another vault: BAD_SIGNATURE": 9,
+          "guard signature for mainnet: BAD_SIGNATURE": 9,
+          "replay a captured approval: APPROVAL_EXPIRED": 3,
+          "retarget a captured approval: BAD_SIGNATURE": 18,
+          "raise the amount of a captured approval: BAD_SIGNATURE": 6,
+          "extend the expiry of a captured approval: BAD_SIGNATURE": 6,
+          "replay a captured approval: NONCE_REUSED": 15,
+          "submit a withheld approval after expiry: APPROVAL_EXPIRED": 3
+        }
+      },
+      "lying_to_the_guard": {
+        "restarts": [
+          2.98,
+          3,
+          3
+        ],
+        "search_budget_evals": 10172,
+        "loss": 3
+      }
+    },
+    "compromised_guard": {
+      "search": {
+        "restarts": [
+          3,
+          3,
+          3
+        ],
+        "search_budget_evals": 10116,
+        "loss": 3
+      },
+      "greedy_7_days": {
+        "days": 7,
+        "lossNear": 21,
+        "perDayNear": 3
+      },
+      "bound_per_24h_near": 3
+    }
+  }
+]

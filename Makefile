@@ -1,4 +1,4 @@
-.PHONY: install eval eval-heldout attack attack-llm redteam redteam-gen demo test replay
+.PHONY: install eval eval-heldout attack attack-llm redteam redteam-gen demo test replay threat contract-test contract-build vault-vectors
 install:
 	npm install
 	cd engine && uv sync
@@ -17,6 +17,14 @@ redteam-gen:     ## regenerate cases: SIEGE_REGEN=1 plus ANTHROPIC_API_KEY (dev)
 	npx tsx src/redteam/generate.ts --split $(SPLIT)
 demo: eval attack
 	npx tsx src/replay.ts results/attack_outlayer_open.json
-test:
+threat:          ## two-key vault threat model: compromised agent vs compromised guard (writes results/vault_threat.*)
+	npx tsx src/attack/threat.ts
+vault-vectors:   ## regenerate contract/vectors/differential.json from the TS vault model
+	npx tsx src/vault/vectors.ts
+contract-test:   ## vault contract unit tests (Rust)
+	$(MAKE) -C contract test
+contract-build:  ## vault contract wasm -> contract/res/siege_vault.wasm
+	$(MAKE) -C contract build
+test: contract-test
 	node --import tsx --test test/*.test.ts
 	npx tsc --noEmit

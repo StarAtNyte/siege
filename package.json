@@ -21,6 +21,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.4.0"
+    "@anthropic-ai/sdk": "^1.4.0",
+    "near-api-js": "^7.4.0"
   }
 }
