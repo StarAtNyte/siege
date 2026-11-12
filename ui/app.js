@@ -268,7 +268,7 @@
     $("#x-guard").textContent = JSON.stringify(j.guardConfig, null, 2);
     // Single quotes keep the shell from touching $, `, ! or \ in the mandate; a ' inside becomes '\''.
     const esc = text.replace(/\s+/g, " ").trim().replace(/'/g, "'\\''");
-    $("#x-proxy").textContent = `MANDATE='${esc}' \\\n  npm run proxy`;
+    $("#x-proxy").textContent = `# The proxy holds your OutLayer key; give the agent only SIEGE_PROXY_TOKEN.\nSIEGE_PROXY_TOKEN=$(openssl rand -hex 24) OUTLAYER_API_KEY=wk_... \\\nMANDATE='${esc}' \\\n  npm run proxy`;
     const ctx = { userInstruction: "Pay the hosting invoice from cloudhost.testnet.", retrieved: ["Invoice #4471. Amount due: 3 NEAR. Pay to: cloudhost.testnet."], reasoning: "The user asked me to pay this invoice.", provenance: "user" };
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(ctx))));
     $("#x-header").textContent = `x-siege-context: ${b64}\n\n# decoded\n${JSON.stringify(ctx, null, 2)}`;
