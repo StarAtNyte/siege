@@ -88,51 +88,80 @@ export function loadCases(split: Split): GenFile | undefined {
   }
 }
 
-export async function generate(split: Split, provider: GenProvider, opts: { attackPerCall?: number; benignPerCall?: number; log?: (s: string) => void } = {}): Promise<GenFile> {
+export async function generate(
+  split: Split,
+  provider: GenProvider,
+  opts: { attackPerCall?: number; benignPerCall?: number; concurrency?: number; log?: (s: string) => void } = {},
+): Promise<GenFile> {
   const log = opts.log ?? (() => {});
   const r = rng(split === "dev" ? 101 : 202);
   const out: GenFile = { split, generator: provider.id, created: new Date().toISOString(), calls: 0, usd: 0, dropped: [], scenarios: [] };
-  const jobs: [Label, string, string, MandateKey][] = [];
-  for (const [f, d] of Object.entries(ATTACK_FAMILIES)) for (const m of ["whitelist", "open"] as const) jobs.push(["attack", f, d, m]);
-  for (const [f, d] of Object.entries(BENIGN_FAMILIES)) for (const m of ["whitelist", "open"] as const) jobs.push(["benign", f, d, m]);
-  for (const [label, family, desc, mandate] of jobs) {
-    const setting = SETTINGS[Math.floor(r() * SETTINGS.length)];
+  const jobs: { label: Label; family: string; desc: string; mandate: MandateKey; setting: string }[] = [];
+  const add = (label: Label, fams: Record<string, string>) => {
+    for (const [family, desc] of Object.entries(fams))
+      for (const mandate of ["whitelist", "open"] as const) jobs.push({ label, family, desc, mandate, setting: SETTINGS[Math.floor(r() * SETTINGS.length)] });
+  };
+  add("attack", ATTACK_FAMILIES);
+  add("benign", BENIGN_FAMILIES);
+
+  type JobOut = { called: boolean; usd: number; dropped: GenFile["dropped"]; scenarios: Scenario[] };
+  const results: JobOut[] = new Array(jobs.length);
+  let stop = false;
+  const runJob = async (i: number): Promise<JobOut> => {
+    const { label, family, desc, mandate, setting } = jobs[i];
+    const o: JobOut = { called: false, usd: 0, dropped: [], scenarios: [] };
+    if (stop) return o;
     const k = label === "attack" ? (opts.attackPerCall ?? 5) : (opts.benignPerCall ?? 4);
     let res;
     try {
       res = await provider.complete(SYSTEM, prompt(mandate, label, family, desc, setting, k), SCENARIO_SCHEMA, 12_000);
     } catch (e) {
-      out.dropped.push({ family, mandate, reason: `call failed: ${(e as Error).message}` });
+      o.dropped.push({ family, mandate, reason: `call failed: ${(e as Error).message}`, generator: provider.id });
       log(`  ${family}/${mandate}: call failed (${(e as Error).message})`);
-      if ((e as Error).name === "BudgetExceeded" || (e as Error).name === "CallCapExceeded") break;
-      continue;
+      if ((e as Error).name === "BudgetExceeded" || (e as Error).name === "CallCapExceeded") stop = true;
+      return o;
     }
-    out.calls++;
-    out.usd += res.usd;
+    o.called = true;
+    o.usd = res.usd;
     const list = (res.json as { scenarios?: unknown[] } | undefined)?.scenarios;
     if (!Array.isArray(list)) {
-      out.dropped.push({ family, mandate, reason: "no scenarios array in output" });
-      continue;
+      o.dropped.push({ family, mandate, reason: "no scenarios array in output", generator: provider.id });
+      log(`  ${family}/${mandate}: no scenarios array in output`);
+      return o;
     }
-    let kept = 0;
-    list.forEach((raw) => {
+    for (const raw of list) {
       const why = validate(raw, label, mandate);
       if (why) {
-        out.dropped.push({ family, mandate, reason: why, generator: provider.id });
-        return;
+        o.dropped.push({ family, mandate, reason: why, generator: provider.id });
+        continue;
       }
-      const s = raw as RawScenario;
-      out.scenarios.push({
-        id: `${split}-${family}-${mandate}-${kept}`,
+      const sc = raw as RawScenario;
+      o.scenarios.push({
+        id: `${split}-${family}-${mandate}-${o.scenarios.length}`,
         split, family, label, mandate, generator: provider.id,
-        title: s.title,
-        attacker_accounts: s.attacker_accounts.map((a) => a.toLowerCase()),
-        history: s.history,
-        txs: s.txs,
+        title: sc.title,
+        attacker_accounts: sc.attacker_accounts.map((a) => a.toLowerCase()),
+        history: sc.history,
+        txs: sc.txs,
       });
-      kept++;
-    });
-    log(`  ${family}/${mandate}: kept ${kept}/${list.length}   spend so far $${budget.spent().toFixed(4)}`);
+    }
+    log(`  ${family}/${mandate}: kept ${o.scenarios.length}/${list.length}   Claude spend so far $${budget.spent().toFixed(4)}`);
+    return o;
+  };
+  // Bounded concurrency; results are merged in job order so the file is the same whatever finishes first.
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const i = next++;
+      results[i] = await runJob(i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, opts.concurrency ?? 1) }, worker));
+  for (const o of results) {
+    if (o.called) out.calls++;
+    out.usd += o.usd;
+    out.dropped.push(...o.dropped);
+    out.scenarios.push(...o.scenarios);
   }
   return out;
 }
@@ -149,7 +178,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const provider = providerFromEnv();
   if (!provider) throw new Error("no generator: set ANTHROPIC_API_KEY, or REDTEAM_BASE_URL/REDTEAM_API_KEY/REDTEAM_MODEL");
   console.log(`generating ${split} with ${provider.id}`);
-  const fresh = await generate(split, provider, { log: console.log });
+  const fresh = await generate(split, provider, { log: console.log, concurrency: Number(process.env.REDTEAM_CONCURRENCY ?? 1) });
   let g = fresh;
   if (append && existing) {
     // A second model family on the same split: prefix ids with the model's short name.
