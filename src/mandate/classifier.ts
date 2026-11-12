@@ -112,8 +112,13 @@ export function classify(tx: Tx, c: Constraints, st: ClassifierState): Classifie
   const user = ctx.userInstruction.toLowerCase();
   const recipient = tx.recipient.toLowerCase();
 
+  const inUserEarly = user.includes(recipient);
   // 1. Injection markers in untrusted content, and in the agent's own reasoning (laundered injection).
   for (const [re, w, why] of INJECTION_PATTERNS) {
+    // A "payment details changed" notice is the attack only when the new account comes from the
+    // document. When the user's own instruction names that exact account, the user has confirmed
+    // the change (finding 005).
+    if (why === "payment address change" && inUserEarly) continue;
     if (re.test(retrieved)) add("INJECTION_SUSPECTED", w, `retrieved content: ${why}`);
     if (re.test(ctx.reasoning)) add("INJECTION_IN_REASONING", w * 0.8, `agent reasoning: ${why}`);
   }
@@ -166,7 +171,8 @@ export function classify(tx: Tx, c: Constraints, st: ClassifierState): Classifie
   }
 
   // 7. User explicitly asked for nothing financial.
-  if (!/\b(pay|send|transfer|swap|tip|refund|settle|deposit|withdraw|stake|buy|invoice|bill|fund|top up|renew|subscription|purchase|order|reimburse)/.test(user)) {
+  // An explicit amount ("5 NEAR") is financial intent too (finding 005: "Add 5 NEAR to our staking position").
+  if (!/\b(pay|send|transfer|swap|tip|refund|settle|deposit|withdraw|stak(e|ing)|buy|invoice|bill|fund|top up|renew|subscription|purchase|order|reimburse)/.test(user) && !/\d\s*(near|usdc)\b/.test(user)) {
     add("NO_FINANCIAL_INTENT", 0.5, "user request contains no payment intent");
   }
 
