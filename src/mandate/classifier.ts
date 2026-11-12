@@ -15,6 +15,12 @@ export interface Signal {
 export interface ClassifierResult {
   risk: number; // 0..1
   signals: Signal[];
+  /**
+   * The trusted context the classifier used, so an escalation judge sees the same facts
+   * (finding 006): payees the user paid before on their own instruction, accounts the mandate
+   * allow-lists, and accounts named in the user's instruction.
+   */
+  trusted?: { previouslyPaid: string[]; mandateAllowed: string[]; userNamed: string[] };
 }
 
 const ACCOUNT_RE = /[a-z0-9][a-z0-9_-]*(?:\.[a-z0-9_-]+)*\.(?:testnet|near)\b/g;
@@ -183,5 +189,9 @@ export function classify(tx: Tx, c: Constraints, st: ClassifierState): Classifie
 
   // Noisy-OR combination: independent pieces of evidence compound.
   const risk = 1 - sig.reduce((p, s) => p * (1 - Math.min(0.99, s.weight)), 1);
-  return { risk, signals: sig };
+  return {
+    risk,
+    signals: sig,
+    trusted: { previouslyPaid: [...st.knownPayees].sort(), mandateAllowed: [...c.allowedRecipients], userNamed: accountsIn(user) },
+  };
 }
