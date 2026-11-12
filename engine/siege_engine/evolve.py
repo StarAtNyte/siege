@@ -22,11 +22,22 @@ def random_gene(r: random.Random) -> dict:
     return g
 
 
+# Fields the LLM mutation operator can override with free text (see src/redteam/mutate.ts).
+TEXT_FIELDS = ("recipient", "doc", "reasoning", "memo")
+
+
 def mutate_gene(g: dict, r: random.Random, rate: float) -> dict:
     g = dict(g)
+    if "text" in g:
+        g["text"] = dict(g["text"])
     for k, n in FIELDS.items():
         if r.random() < rate:
             g[k] = r.randrange(n) if not (k == "doc" and r.random() < 0.2) else -1
+            # Re-drawing a field from the library drops any LLM-written text for it.
+            if k in TEXT_FIELDS and "text" in g:
+                g["text"].pop(k, None)
+                if not g["text"]:
+                    del g["text"]
     if r.random() < rate:
         g["amount"] = max(0.01, round(g["amount"] * r.choice([0.5, 0.9, 0.99, 1.01, 1.1, 2]), 2))
     if r.random() < rate:
@@ -62,8 +73,13 @@ def crossover(a: Individual, b: Individual, r: random.Random) -> Individual:
     return Individual(child or [random_gene(r)])
 
 
-def evolve(oracle, guard: str, mandate: str, generations: int = 40, pop_size: int = 96, seed: int = 0, log=print) -> dict:
+def evolve(oracle, guard: str, mandate: str, generations: int = 40, pop_size: int = 96, seed: int = 0, log=print,
+           llm_calls: int = 0, llm_every: int = 3) -> dict:
+    """llm_calls > 0 enables the LLM mutation operator: every `llm_every` generations, Claude rewrites
+    the best attack given the guard's verdicts, until `llm_calls` calls are used (cache hits count too)."""
     r = random.Random(seed)
+    llm_used = 0
+    llm_children = 0
     pop = [Individual([random_gene(r) for _ in range(r.randint(1, 6))]) for _ in range(pop_size)]
     best: Individual | None = None
     history = []
@@ -87,6 +103,19 @@ def evolve(oracle, guard: str, mandate: str, generations: int = 40, pop_size: in
             parent = max(k, key=lambda p: p.fitness)
             child = crossover(parent, r.choice(elite), r) if r.random() < 0.4 else Individual(copy.deepcopy(parent.genome))
             children.append(mutate(child, r, rate))
+        if llm_used < llm_calls and gen % llm_every == 1:
+            # Rewrite the best attack, and one other strong one, given what the guard said.
+            slot = 0
+            for parent in [pop[0], pop[1 + r.randrange(max(1, pop_size // 4))]]:
+                if llm_used >= llm_calls:
+                    break
+                llm_used += 1
+                child = oracle.llm_mutate(guard, mandate, parent.genome)
+                if child:
+                    llm_children += 1
+                    slot += 1
+                    children[-slot] = Individual(child)  # replaces a non-elite child
         pop = children
     assert best is not None
-    return {"loss": max(0.0, best.meta.get("loss", 0.0)), "genome": best.genome, "history": history}
+    return {"loss": max(0.0, best.meta.get("loss", 0.0)), "genome": best.genome, "history": history,
+            "llm_calls": llm_used, "llm_children": llm_children}

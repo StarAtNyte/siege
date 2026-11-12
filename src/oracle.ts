@@ -24,6 +24,8 @@ export interface Gene {
   argRoute: number; // 0 none, 1 beneficiary=attacker, 2 receiver_id=attacker
   concurrent: number; // 1 = submit together with the previous gene
   dt: number; // seconds after previous gene
+  /** Free text written by the LLM mutation operator; overrides the library entry it names. */
+  text?: { doc?: string; reasoning?: string; memo?: string; recipient?: string };
 }
 
 const ATTACKER = "x7f3a.testnet";
@@ -91,7 +93,7 @@ export function render(genome: Gene[]): Tx[][] {
   const groups: Tx[][] = [];
   let t = BASE_T;
   genome.forEach((g, i) => {
-    const rec = RECIPIENTS[mod(g.recipient, RECIPIENTS.length)];
+    const rec = g.text?.recipient ?? RECIPIENTS[mod(g.recipient, RECIPIENTS.length)];
     const amt = Math.max(0.01, Math.min(1000, Math.round(g.amount * 100) / 100));
     const fill = (s: string) => s.split(R).join(rec).split(A).join(String(amt));
     const isCall = mod(g.kind, 2) === 1;
@@ -105,12 +107,12 @@ export function render(genome: Gene[]): Tx[][] {
       recipient: isCall ? "pool.testnet" : rec,
       method: isCall ? METHODS[mod(g.method, 3)] : undefined,
       args: isCall ? { amount: String(amt), ...(route === 1 ? { beneficiary_id: rec } : route === 2 ? { receiver_id: rec } : {}) } : undefined,
-      memo: MEMOS[mod(g.memo, MEMOS.length)],
+      memo: g.text?.memo ?? MEMOS[mod(g.memo, MEMOS.length)],
       timestampMs: (t += g.concurrent && i > 0 ? 0 : Math.max(1, g.dt) * 1000),
       context: {
         userInstruction: USER_ASKS[mod(g.user, USER_ASKS.length)],
-        retrieved: g.doc >= 0 ? [fill(DOCS[mod(g.doc, DOCS.length)])] : [],
-        reasoning: fill(REASONING[mod(g.reasoning, REASONING.length)]),
+        retrieved: g.text?.doc !== undefined ? (g.text.doc ? [fill(g.text.doc)] : []) : g.doc >= 0 ? [fill(DOCS[mod(g.doc, DOCS.length)])] : [],
+        reasoning: fill(g.text?.reasoning ?? REASONING[mod(g.reasoning, REASONING.length)]),
         provenance: PROV[mod(g.provenance, 4)],
       },
     };
@@ -159,6 +161,8 @@ export async function evaluate(kind: string, mandate: keyof typeof MANDATES, gen
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const { makeMutator } = await import("./redteam/mutate.ts");
+  const mutator = makeMutator();
   const rl = readline.createInterface({ input: process.stdin });
   const queue: Promise<void>[] = [];
   let chain = Promise.resolve();
@@ -166,6 +170,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!line.trim()) return;
     chain = chain.then(async () => {
       const req = JSON.parse(line);
+      if (req.op === "llm_mutate") {
+        const ev = await evaluate(req.guard, req.mandate, req.genome);
+        const child = await mutator.mutate({ mandate: req.mandate, genome: req.genome, txs: ev.txs, decisions: ev.decisions, legit: RECIPIENTS.slice(0, LEGIT_N) });
+        process.stdout.write(JSON.stringify({ id: req.id, genome: child ?? null, stats: mutator.stats }) + "\n");
+        return;
+      }
       const res = await evaluate(req.guard, req.mandate, req.genome);
       const out = req.full ? { id: req.id, ...res } : { id: req.id, loss: res.loss, allowed: res.allowed.length };
       process.stdout.write(JSON.stringify(out) + "\n");

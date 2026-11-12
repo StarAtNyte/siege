@@ -39,6 +39,16 @@ class Oracle:
         self.calls += len(ids)
         return [out[i] for i in ids]
 
+    def llm_mutate(self, guard: str, mandate: str, genome: list[dict]) -> list[dict] | None:
+        """Ask the oracle's LLM mutation operator to rewrite one attack. None when unavailable."""
+        assert self.proc.stdin and self.proc.stdout
+        self._id += 1
+        self.proc.stdin.write(json.dumps({"id": self._id, "op": "llm_mutate", "guard": guard, "mandate": mandate, "genome": genome}) + "\n")
+        self.proc.stdin.flush()
+        r = json.loads(self.proc.stdout.readline())
+        self.llm_stats = r.get("stats", {})
+        return r.get("genome")
+
     def close(self) -> None:
         if self.proc.stdin:
             self.proc.stdin.close()
