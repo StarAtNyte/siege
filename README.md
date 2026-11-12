@@ -23,6 +23,21 @@ Three ways to use it:
 | **Mandate** (TypeScript) | A plain-language mandate compiled to constraints, a fast semantic classifier, LLM escalation for the ambiguous band, an **atomic** budget ledger and a novel-payee budget, all in front of the wallet adapter. |
 | **Attack engine** (Python) | A genetic search over transaction sequences against the *real* guard code. Fitness is NEAR extracted. Output is the maximum loss found plus replayable counterexamples. |
 | **Eval harness** | A fixed, seeded attack suite covering prompt injection, address poisoning, confused deputy, drip-drain and races on cumulative caps, plus benign traffic for false positives. |
+| **Vault** (Rust, `contract/`) | A NEAR contract that holds the funds and pays only with the guard's signature, inside on-chain caps. See *Two layers*. |
+
+## Two layers
+
+A policy check that runs only inside the agent's process is lost when that process is compromised. So the money sits in a vault contract, and SIEGE uses two layers ([details](docs/ARCHITECTURE.md)):
+
+- **The floor (on chain).** The agent's function-call key can call only `spend`. The contract enforces a per-transaction cap, a 24-hour cap, a smaller budget for payees not on the owner's list, an optional allowlist and a pause switch, whoever signed. Only the owner can change them, from a full-access key with 1 yoctoNEAR attached. Allowlist-and-cap vaults give you this layer.
+- **Intent (Mandate), required by the floor.** `spend` pays only with an ed25519 approval from the guard's own key, over `siege-vault-v1|network|vault|receiver|amount|nonce|expires_at`. The guard signs only what Mandate allows. Approvals are single use and expire within an hour.
+
+Measured with `make threat` (the same evolutionary search as `make attack`):
+
+- **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's unlisted-payee budget. Without that budget it took 30.00.
+- **Compromised guard.** It signs anything. Loss is bounded by the contract's caps: 0.00 under the whitelist mandate (the vault is allowlist-only), and **3.00 NEAR per 24 h** under the open mandate (21.00 over 7 days).
+
+Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.md](docs/TESTNET.md). OutLayer's TEE custody remains a supported alternative: the `OutLayerWallet` adapter and the guard proxy work in front of it, and the proxy now holds the OutLayer key instead of the agent.
 
 ## Results
 
@@ -142,11 +157,12 @@ The compiler fails closed. A mandate that grants nothing, or grants transfers wi
 ## The guard proxy
 
 ```
+SIEGE_PROXY_TOKEN=$(openssl rand -hex 24) OUTLAYER_API_KEY=wk_... \
 MANDATE="Pay up to 5 NEAR per transaction to alice.testnet and bob.testnet for invoices. Never spend more than 20 NEAR per day." \
   npm run proxy          # http://127.0.0.1:8687 -> https://testnet-api.outlayer.ai
 ```
 
-Your agent keeps its OutLayer API key and paths (`POST /wallet/v1/transfer`, `/wallet/v1/call`, every `GET`). It adds one header describing why it is spending:
+**The proxy holds the OutLayer API key; the agent never sees it.** The agent authenticates with the proxy-issued token (`Authorization: Bearer $SIEGE_PROXY_TOKEN`), which is useless anywhere else. Any request that carries an OutLayer key, in a header, the query or the body, is refused with `403 outlayer_key_rejected`, which tells you to rotate that key. The paths are OutLayer's (`POST /wallet/v1/transfer`, `/wallet/v1/call`, `GET /wallet/v1/...`). The agent adds one header describing why it is spending:
 
 ```
 x-siege-context: base64({"userInstruction": "...", "retrieved": ["..."], "reasoning": "...", "provenance": "user|retrieved|tool_output|agent"})
@@ -157,8 +173,9 @@ x-siege-context: base64({"userInstruction": "...", "retrieved": ["..."], "reason
 - **No context, no money:** a spend without the header is judged as the agent acting on its own.
 - **Custody endpoints are refused** (delete, api-key, intents, EVM/Solana signing, sign-message), because the guard cannot judge them.
 - **Spend survives restarts:** spend is persisted in `.siege/ledger.json`, so caps hold across restarts. Every decision goes to `.siege/audit.jsonl`.
+- **Vault mode** (`VAULT_CONTRACT=vault.you.testnet GUARD_KEY=... VAULT_AGENT_KEY=...` instead of `OUTLAYER_API_KEY`): allowed transfers are signed by the guard and relayed to the vault's `spend` with the agent's function-call key. `POST /siege/v1/approve {receiver, amount}` returns the signed approval instead, for an agent that submits `spend` itself. Denied spends are never signed.
 
-**Run against live OutLayer testnet (2026-11-04).** A registered OutLayer wallet, funded with 1 testnet NEAR, sat behind the proxy:
+**Run against live OutLayer testnet (2026-11-04, before key custody moved into the proxy).** A registered OutLayer wallet, funded with 1 testnet NEAR, sat behind the proxy:
 
 | request | proxy answer |
 |---|---|
@@ -175,7 +192,8 @@ npm start         # web app on http://127.0.0.1:8686
 npm run proxy     # guard proxy (see above)
 docker build -t siege . && docker run -p 8686:8686 siege
 make install      # npm + uv
-make test         # unit tests + typecheck
+make test         # vault contract tests (Rust) + unit tests + typecheck
+make threat       # two-key vault: compromised agent vs compromised guard
 make eval         # the table above
 make attack       # evolutionary search, writes results/attack_*.json
 make demo         # eval + attack + replay of a plain-policy drain
