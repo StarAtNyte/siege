@@ -3,6 +3,7 @@
 //   Mandate, scripted judge             classifier + deterministic judge for the ambiguous band
 //   Mandate, Claude judge               classifier + claude-haiku-5-5 for the ambiguous band
 //   Claude judges every tx (ablation)   constraints + ledger, and Claude decides every tx that passes them
+// plus, when its cache or a NIM key is present, an off-the-shelf safety model in front of the policy.
 // Claude verdicts come from results/redteam/judge_cache.json; with SIEGE_REGEN=1 and a key, misses are filled live.
 //
 //   npx tsx src/redteam/run.ts --split dev|test
@@ -16,6 +17,7 @@ import type { Decision, MandateGuardLike, Tx } from "../mandate/types.ts";
 import { fromMicro } from "../mandate/types.ts";
 import { cachedClaudeJudge, JsonCache, type CachedVerdict, type JudgeStats } from "./cache.ts";
 import { BENIGN_FAMILIES, loadCases, REDTEAM_DIR, type Split } from "./generate.ts";
+import { safetyClient, SafetyModelGuard, type SafetyVerdict } from "./safetyGuard.ts";
 import { attackerValue, render, type MandateKey, type Scenario } from "./scenario.ts";
 
 export interface ScenarioResult {
@@ -68,7 +70,10 @@ export async function runScenario(g: MandateGuardLike, s: Scenario, lastMs?: Map
   };
 }
 
-export function guardSpecs(cache: JsonCache<CachedVerdict>, opts: { live?: Judge; canCall?: () => boolean } = {}) {
+export function guardSpecs(
+  cache: JsonCache<CachedVerdict>,
+  opts: { live?: Judge; canCall?: () => boolean; safety?: ReturnType<typeof safetyClient> } = {},
+) {
   const band = cachedClaudeJudge(cache, scriptedJudge, opts.live as never, opts.canCall);
   const all = cachedClaudeJudge(cache, scriptedJudge, opts.live as never, opts.canCall);
   // Track where Claude and the scripted judge disagree in the ambiguous band.
@@ -90,6 +95,16 @@ export function guardSpecs(cache: JsonCache<CachedVerdict>, opts: { live?: Judge
       stats: all.stats,
     },
   ];
+  if (opts.safety) {
+    const lastMs = new Map<string, number>();
+    const client = opts.safety;
+    specs.splice(1, 0, {
+      name: "Safety model + OutLayer policy",
+      make: (m) => new SafetyModelGuard(constraintsFor(m), client, lastMs),
+      lastMs,
+      stats: client.stats as JudgeStats,
+    });
+  }
   return { specs, disagreements };
 }
 
@@ -168,10 +183,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const file = loadCases(split);
   if (!file) throw new Error(`no cached cases for ${split}; generate with SIEGE_REGEN=1 npx tsx src/redteam/generate.ts --split ${split}`);
   const cache = new JsonCache<CachedVerdict>(path.join(REDTEAM_DIR, "judge_cache.json"));
-  const { specs, disagreements } = guardSpecs(cache);
+  // Optional baseline: an off-the-shelf safety model. Used when its cache exists or a NIM key is set.
+  const safetyCache = new JsonCache<SafetyVerdict>(path.join(REDTEAM_DIR, "safety_cache.json"));
+  const nimKey = process.env.SAFETY_API_KEY ?? (process.env.REDTEAM_BASE_URL?.includes("nvidia.com") ? process.env.REDTEAM_API_KEY : undefined);
+  const safetyLive = process.env.SIEGE_REGEN === "1" && nimKey ? nimKey : undefined;
+  const safety = safetyCache.size || safetyLive ? safetyClient({ cache: safetyCache, apiKey: safetyLive }) : undefined;
+  const { specs, disagreements } = guardSpecs(cache, { safety });
   const t0 = performance.now();
   const results = await runSplit(file.scenarios, specs);
   cache.save();
+  safetyCache.save();
   const sum = summarise(results);
   const md = table(sum);
   const atk = file.scenarios.filter((s) => s.label === "attack").length;

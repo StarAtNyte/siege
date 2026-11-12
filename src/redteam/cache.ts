@@ -60,8 +60,8 @@ export interface JudgeStats {
 }
 
 /**
- * The Claude judge behind a cache keyed on the exact prompt. `lastMs` maps a tx id to the
- * recorded API latency, so replayed runs report the latency the live run measured.
+ * The Claude judge behind a cache keyed on the exact prompt. On a cache hit, `lastMs` maps the tx id
+ * to the recorded API latency, so replayed runs report the latency the live run measured.
  */
 export function cachedClaudeJudge(
   cache: JsonCache<CachedVerdict>,
@@ -94,8 +94,8 @@ export function cachedClaudeJudge(
     }
     const ms = performance.now() - t0;
     stats.live++;
+    // Live latency is already inside the guard's measured latency; lastMs is only for replays.
     cache.set(key, { allow: v.allow, reason: v.reason, ms: Math.round(ms) });
-    lastMs.set(tx.id, ms);
     return v;
   };
   return { judge, stats, lastMs };

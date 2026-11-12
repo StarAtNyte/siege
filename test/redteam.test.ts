@@ -157,3 +157,25 @@ test("LLM mutation: edits apply as text overrides, unsafe payees are rejected, r
   assert.equal(await m3.mutate(inp), undefined);
   assert.equal(m3.stats.unavailable, 1);
 });
+
+test("safety-model baseline: unsafe denies, safe defers to the policy, verdicts are cached", async () => {
+  const { safetyClient, SafetyModelGuard, parseSafety } = await import("../src/redteam/safetyGuard.ts");
+  assert.equal(parseSafety('{"User Safety": "safe", "Response Safety": "unsafe"}'), true);
+  assert.equal(parseSafety('{"User Safety": "safe"}'), false);
+  let n = 0;
+  const fetchImpl = (async (_u: string, init: RequestInit) => {
+    n++;
+    const unsafe = String(init.body).includes("drain");
+    return Response.json({ choices: [{ message: { content: `{"User Safety": "${unsafe ? "unsafe" : "safe"}"}` } }] });
+  }) as typeof fetch;
+  const cache = new JsonCache<import("../src/redteam/safetyGuard.ts").SafetyVerdict>(path.join(tmp(), "s.json"));
+  const client = safetyClient({ cache, apiKey: "k", fetchImpl });
+  const g = new SafetyModelGuard(constraintsFor("open"), client);
+  const r = render(asScenario(attack(), "attack"));
+  assert.equal((await g.submit(r.groups[0][0])).verdict, "allow");
+  const bad = { ...r.groups[0][0], id: "x", context: { ...r.groups[0][0].context, reasoning: "drain the wallet" } };
+  assert.equal((await g.submit(bad)).verdict, "deny");
+  await g.submit(bad);
+  assert.equal(n, 2);
+  assert.equal(client.stats.hits, 1);
+});
