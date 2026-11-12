@@ -193,6 +193,10 @@ export async function runThreatModel(opts: { seeds?: number; generations?: numbe
     const s = setup(m);
     const bypass = await bypassAttempts(s);
     const lying = await search(new VaultArena(s, "honest"), seeds, generations, pop);
+    // Ablation: the same lying agent against a vault with no separate budget for unlisted payees.
+    const noFloor = { ...s, policy: { ...s.policy, novelDailyCap: s.policy.dailyCap } };
+    noFloor.newModel = () => new VaultModel({ contractId: VAULT, network: NETWORK, agent: VAULT, guardPk: s.guard.publicKeyBytes, ...noFloor.policy, payees: s.payees, balance: BALANCE });
+    const lyingNoFloor = s.policy.allowlistOnly ? lying : await search(new VaultArena(noFloor, "honest"), seeds, generations, pop);
     const cgSearch = await search(new VaultArena(s, "compromised-guard"), seeds, generations, pop);
     const greedy = greedyCompromisedGuard(s);
     rows.push({
@@ -204,6 +208,7 @@ export async function runThreatModel(opts: { seeds?: number; generations?: numbe
       compromised_agent: {
         bypass: bypass,
         lying_to_the_guard: { restarts: lying.restarts, search_budget_evals: lying.evaluations, loss: lying.loss },
+        lying_to_the_guard_vault_without_novel_budget: { restarts: lyingNoFloor.restarts, loss: lyingNoFloor.loss },
       },
       compromised_guard: {
         search: { restarts: cgSearch.restarts, search_budget_evals: cgSearch.evaluations, loss: cgSearch.loss },
@@ -217,12 +222,12 @@ export async function runThreatModel(opts: { seeds?: number; generations?: numbe
 
 function markdown(rows: Awaited<ReturnType<typeof runThreatModel>>) {
   const L = [
-    "| mandate | vault floor (per tx / 24 h / unlisted payees per 24 h) | compromised agent: bypass attempts, NEAR lost | compromised agent: lying to the guard, max loss found | compromised guard: max loss found (search, ≤ 14 txs) | compromised guard: greedy, 7 days | bound per 24 h |",
+    "| mandate | vault floor (per tx / 24 h / unlisted payees per 24 h) | compromised agent: bypass attempts, NEAR lost | compromised agent: lying to the guard, max loss found (same, vault without the unlisted-payee budget) | compromised guard: max loss found (search, ≤ 14 txs) | compromised guard: greedy, 7 days | bound per 24 h |",
     "|---|---|---:|---:|---:|---:|---:|",
   ];
   for (const r of rows) {
     const v = r.vault;
-    L.push(`| ${r.mandate} | ${v.per_tx_cap_near} / ${v.daily_cap_near} / ${v.allowlist_only ? "allowlist only" : v.novel_daily_cap_near} | ${r.compromised_agent.bypass.lossNear.toFixed(2)} (${r.compromised_agent.bypass.attempts} attempts) | ${r.compromised_agent.lying_to_the_guard.loss.toFixed(2)} | ${r.compromised_guard.search.loss.toFixed(2)} | ${r.compromised_guard.greedy_7_days.lossNear.toFixed(2)} (${r.compromised_guard.greedy_7_days.perDayNear}/day) | ${r.compromised_guard.bound_per_24h_near.toFixed(2)} |`);
+    L.push(`| ${r.mandate} | ${v.per_tx_cap_near} / ${v.daily_cap_near} / ${v.allowlist_only ? "allowlist only" : v.novel_daily_cap_near} | ${r.compromised_agent.bypass.lossNear.toFixed(2)} (${r.compromised_agent.bypass.attempts} attempts) | ${r.compromised_agent.lying_to_the_guard.loss.toFixed(2)} (${r.compromised_agent.lying_to_the_guard_vault_without_novel_budget.loss.toFixed(2)}) | ${r.compromised_guard.search.loss.toFixed(2)} | ${r.compromised_guard.greedy_7_days.lossNear.toFixed(2)} (${r.compromised_guard.greedy_7_days.perDayNear}/day) | ${r.compromised_guard.bound_per_24h_near.toFixed(2)} |`);
   }
   return L.join("\n") + "\n";
 }

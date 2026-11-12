@@ -39,6 +39,14 @@
         ],
         "search_budget_evals": 11520,
         "loss": 0
+      },
+      "lying_to_the_guard_vault_without_novel_budget": {
+        "restarts": [
+          0,
+          0,
+          0
+        ],
+        "loss": 0
       }
     },
     "compromised_guard": {
@@ -99,6 +107,14 @@
         ],
         "search_budget_evals": 10172,
         "loss": 3
+      },
+      "lying_to_the_guard_vault_without_novel_budget": {
+        "restarts": [
+          30,
+          29.97,
+          29.98
+        ],
+        "loss": 30
       }
     },
     "compromised_guard": {
