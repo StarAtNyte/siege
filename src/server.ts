@@ -11,7 +11,7 @@ import { classify } from "./mandate/classifier.ts";
 import type { Tx, Provenance } from "./mandate/types.ts";
 import { toMicro, fromMicro } from "./mandate/types.ts";
 import { Arena, render, routedTo } from "./attack/arena.ts";
-import { Search, type Progress } from "./attack/ga.ts";
+import { Search, type Progress, type SearchResult } from "./attack/ga.ts";
 import { diagnose, rolesOf, sentences } from "./attack/diagnose.ts";
 import { narrate, type Play } from "./attack/narrate.ts";
 import { MANDATES } from "./eval/suite.ts";
@@ -113,11 +113,11 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
   try {
     const arena = new Arena(c);
     emit("start", { generations, recipients: arena.lib.recipients, legit: [...arena.lib.legit] });
-    const results = [];
-    // A second arena re-runs a few of the real attacks against both guards, for the plain-English play-by-play.
-    const judge = new Arena(c);
-    for (const guard of ["outlayer", "mandate"] as const) {
-      const s = new Search(arena, guard, 1);
+    // Both guards are attacked in lockstep, one generation each per round, so the two sides fill in together.
+    // Each guard gets its own narration arena: guards keep state while an attack is replayed.
+    const sides = (["outlayer", "mandate"] as const).map((guard) => {
+      const it = new Search(arena, guard, 1).rounds(generations, 64, () => closed);
+      const judge = new Arena(c);
       // Pin the best attack's breaches to clauses whenever the best attack improves, so the UI can red-line live.
       let lastLoss = -1;
       let marks: { index: number; loss: number }[] = [];
@@ -141,8 +141,17 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
         }
         emit("progress", { ...p, marks, general, play });
       };
-      results.push(await s.run(generations, 64, onProgress, () => closed));
+      return { it, onProgress, result: null as SearchResult | null };
+    });
+    while (sides.some((x) => !x.result)) {
+      for (const side of sides) {
+        if (side.result) continue;
+        const n = await side.it.next();
+        if (n.done) side.result = n.value;
+        else await side.onProgress(n.value);
+      }
     }
+    const results = sides.map((x) => x.result!);
     if (closed) return;
     const runs = [];
     let budget: { cap: number; hours: number; viaBudget: number; withinBudget: boolean } | null = null;

@@ -91,6 +91,15 @@ export class Search {
   }
 
   async run(generations = 30, popSize = 64, onProgress?: (p: Progress) => void | Promise<void>, shouldStop?: () => boolean): Promise<SearchResult> {
+    const it = this.rounds(generations, popSize, shouldStop);
+    for (let n = await it.next(); ; n = await it.next()) {
+      if (n.done) return n.value;
+      await onProgress?.(n.value);
+    }
+  }
+
+  /** The search one generation at a time, so a caller can run several searches in lockstep. Returns the result when done. */
+  async *rounds(generations = 30, popSize = 64, shouldStop?: () => boolean): AsyncGenerator<Progress, SearchResult> {
     const r = rng(this.seed * 7919 + (this.guard === "mandate" ? 1 : 2));
     let pop: Ind[] = Array.from({ length: popSize }, () => ({ genome: Array.from({ length: 1 + ri(r, 6) }, () => this.gene(r)), fitness: -1, loss: 0 }));
     let best: Ind | undefined;
@@ -112,7 +121,7 @@ export class Search {
       if (!best || pop[0].fitness > best.fitness) best = { ...pop[0], genome: pop[0].genome.map((x) => ({ ...x })) };
       history.push(Math.max(0, best.loss));
       const sample = pop[1 + ((gen * 5) % Math.max(1, (popSize >> 1) - 1))]?.genome;
-      await onProgress?.({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations, breaches: best.breaches ?? [], genome: best.genome, sample });
+      yield ({ guard: this.guard, generation: gen, generations, bestLoss: Math.max(0, best.loss), evaluations, breaches: best.breaches ?? [], genome: best.genome, sample });
       const elite = pop.slice(0, Math.max(2, popSize >> 3));
       const next: Ind[] = elite.map((e) => ({ ...e }));
       const rate = gen < generations / 2 ? 0.25 : 0.1;

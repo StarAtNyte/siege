@@ -87,7 +87,7 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
         target = find("window-cap", "cap");
         fix =
           run.guard === "outlayer"
-            ? "Put the Mandate guard in front of the wallet: plain policy counts spend best-effort, so concurrent requests overshoot this cap."
+            ? "Put the SIEGE guard in front of the wallet: typical limits count spend best-effort, so concurrent requests overshoot this cap."
             : "Lower this cap, or split it per payee.";
       } else if (t.kind === "call") {
         target = find("calls");
@@ -97,7 +97,7 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
         fix = target?.roles.includes("open-recipients")
           ? run.guard === "mandate"
             ? `Name your payees, or accept that the guard lets new payees receive up to ${Number.isFinite(novelDaily) ? `${fromMicro(novelDaily).toFixed(2)} NEAR a day` : "10% of each cap"}: an invoice naming a new payee can't be told apart from a real one.`
-            : "Name your payees, or put the Mandate guard in front of the wallet: an open mandate gives plain policy no list of payees to enforce."
+            : "Name your payees, or put the SIEGE guard in front of the wallet: an open mandate gives typical limits no list of payees to enforce."
           : `Report this to the SIEGE maintainers: ${routedTo(t)} is not one of the named payees, so it should not have passed.`;
       }
       const key = `${target?.index ?? "general"}|${b.kind}|${t.kind}`;
