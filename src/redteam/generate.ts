@@ -99,8 +99,10 @@ export async function generate(
     benignPerCall?: number;
     concurrency?: number;
     log?: (s: string) => void;
-    /** 6-word runs from earlier splits; a scenario sharing one is dropped. */
+    /** 6-word runs from earlier splits; a near-duplicate of them is dropped. */
     avoid?: Set<string>;
+    /** Run only these jobs ("family/mandate"), e.g. the ones a slow endpoint failed. */
+    only?: Set<string>;
   } = {},
 ): Promise<GenFile> {
   const log = opts.log ?? (() => {});
@@ -113,6 +115,7 @@ export async function generate(
   };
   add("attack", ATTACK_FAMILIES);
   add("benign", BENIGN_FAMILIES);
+  if (opts.only) for (let i = jobs.length - 1; i >= 0; i--) if (!opts.only.has(`${jobs[i].family}/${jobs[i].mandate}`)) jobs.splice(i, 1);
 
   type JobOut = { called: boolean; calls: number; usd: number; dropped: GenFile["dropped"]; scenarios: Scenario[] };
   const results: JobOut[] = new Array(jobs.length);
@@ -195,8 +198,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const split = (process.argv[process.argv.indexOf("--split") + 1] ?? "dev") as Split;
   if (split !== "dev" && split !== "test" && split !== "test2") throw new Error("--split dev|test|test2");
   const append = process.argv.includes("--append");
+  // --top-up: re-run only the jobs of this split that produced no scenarios (same generator), and merge.
+  const topUp = process.argv.includes("--top-up");
   const existing = loadCases(split);
-  if (existing && process.env.SIEGE_REGEN !== "1") {
+  if (existing && process.env.SIEGE_REGEN !== "1" && !topUp) {
     console.log(`${casesPath(split)} exists (${existing.scenarios.length} scenarios by ${existing.generator}); set SIEGE_REGEN=1 to regenerate.`);
     process.exit(0);
   }
@@ -206,8 +211,25 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // Keep a new split's wording disjoint from every other split already on disk.
   const others = (["dev", "test", "test2"] as Split[]).filter((x) => x !== split).flatMap((x) => loadCases(x)?.scenarios ?? []);
   const avoid = others.length ? scenarioShingles(others) : undefined;
-  const fresh = await generate(split, provider, { log: console.log, concurrency: Number(process.env.REDTEAM_CONCURRENCY ?? 1), avoid });
+  let only: Set<string> | undefined;
+  if (topUp && existing) {
+    const all = [...Object.keys(ATTACK_FAMILIES), ...Object.keys(BENIGN_FAMILIES)].flatMap((f) => [`${f}/whitelist`, `${f}/open`]);
+    const have = new Set(existing.scenarios.map((x) => `${x.family}/${x.mandate}`));
+    only = new Set(all.filter((j) => !have.has(j)));
+    console.log(`top-up: ${only.size} empty jobs: ${[...only].join(", ")}`);
+  }
+  const small = topUp ? { attackPerCall: 3, benignPerCall: 3 } : {};
+  const fresh = await generate(split, provider, { log: console.log, concurrency: Number(process.env.REDTEAM_CONCURRENCY ?? 1), avoid, only, ...small });
   let g = fresh;
+  if (topUp && existing) {
+    g = {
+      ...existing,
+      calls: existing.calls + fresh.calls,
+      usd: existing.usd + fresh.usd,
+      dropped: [...existing.dropped, ...fresh.dropped],
+      scenarios: [...existing.scenarios, ...fresh.scenarios],
+    };
+  }
   if (append && existing) {
     // A second model family on the same split: prefix ids with the model's short name.
     const tag = provider.id.split(/[:/]/).pop()!.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
