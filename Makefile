@@ -1,13 +1,16 @@
 .PHONY: install eval eval-heldout attack attack-llm redteam redteam-gen demo test replay threat contract-test contract-build vault-vectors mcp
+# The engine has no dependencies; once `make install` has made engine/.venv, run it directly. `uv run` needs a
+# writable uv cache, which read-only sandboxes (e.g. Codex workspace-write) do not give it.
+SIEGE_ATTACK = $(if $(wildcard engine/.venv/bin/siege-attack),.venv/bin/siege-attack,uv run siege-attack)
 install:
 	npm install
 	cd engine && uv sync
 eval:            ## reproduce the eval table (no API key needed)
 	node --import tsx src/eval/run.ts
 attack:          ## evolutionary search for max extractable loss, plain policy vs Mandate
-	cd engine && uv run siege-attack --generations 40 --pop 96 --seeds 3
+	cd engine && $(SIEGE_ATTACK) --generations 40 --pop 96 --seeds 3
 attack-llm:      ## same search vs Mandate, plus the Claude mutation operator (replays results/redteam/mutation_cache.json)
-	cd engine && uv run siege-attack --guards mandate --llm-mutations 12 --tag llm
+	cd engine && $(SIEGE_ATTACK) --guards mandate --llm-mutations 12 --tag llm
 redteam:         ## held-out eval on model-written attacks, replayed from results/redteam (no API key needed)
 	node --import tsx src/redteam/run.ts --split dev
 	node --import tsx src/redteam/run.ts --split test
