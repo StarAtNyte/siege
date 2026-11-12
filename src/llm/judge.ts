@@ -77,9 +77,10 @@ const VERDICT_SCHEMA = {
 };
 
 export interface ClaudeJsonResult {
-  /** Parsed JSON, or undefined when the model refused or returned something unparseable. */
+  /** Parsed JSON, or undefined when the model refused, ran out of tokens or returned something unparseable. */
   json: unknown;
   refused: boolean;
+  truncated: boolean;
   usd: number;
   ms: number;
 }
@@ -103,18 +104,28 @@ export async function claudeJson(system: string, prompt: string, schema: object,
   budget.record(res.usage);
   const usd = budget.spent() - before;
   const ms = performance.now() - t0;
-  if (res.stop_reason === "refusal") return { json: undefined, refused: true, usd, ms };
+  if (res.stop_reason === "refusal") return { json: undefined, refused: true, truncated: false, usd, ms };
+  if (res.stop_reason === "max_tokens") return { json: undefined, refused: false, truncated: true, usd, ms };
   const text = res.content.find((b) => b.type === "text");
   try {
-    return { json: JSON.parse(text && text.type === "text" ? text.text : ""), refused: false, usd, ms };
+    return { json: JSON.parse(text && text.type === "text" ? text.text : ""), refused: false, truncated: false, usd, ms };
   } catch {
-    return { json: undefined, refused: false, usd, ms };
+    return { json: undefined, refused: false, truncated: false, usd, ms };
   }
 }
 
+/**
+ * Output room for the verdict. Haiku 5.5 thinks before answering even at low effort, and the
+ * thinking counts against max_tokens: at 256, 10% of verdicts were cut off mid-JSON and failed
+ * closed on legitimate payments (finding 004). Part of the verdict cache key.
+ */
+export const JUDGE_MAX_TOKENS = 2048;
+export const JUDGE_CONFIG = `max_tokens=${JUDGE_MAX_TOKENS};effort=low`;
+
 export async function llmJudge(tx: Tx, c: Constraints, cls: ClassifierResult): Promise<JudgeVerdict> {
-  const r = await claudeJson(JUDGE_SYSTEM, judgePrompt(tx, c, cls), VERDICT_SCHEMA);
+  const r = await claudeJson(JUDGE_SYSTEM, judgePrompt(tx, c, cls), VERDICT_SCHEMA, JUDGE_MAX_TOKENS);
   if (r.refused) return { allow: false, reason: "judge refused; failing closed", source: "llm" };
+  if (r.truncated) return { allow: false, reason: "judge ran out of tokens; failing closed", source: "llm" };
   const parsed = r.json as { allow?: unknown; reason?: unknown } | undefined;
   if (!parsed || typeof parsed !== "object") return { allow: false, reason: "unparseable judge output; failing closed", source: "llm" };
   return { allow: parsed.allow === true, reason: String(parsed.reason ?? ""), source: "llm" };

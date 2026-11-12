@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Constraints, Tx } from "../mandate/types.ts";
 import type { ClassifierResult } from "../mandate/classifier.ts";
-import { JUDGE_MODEL, JUDGE_SYSTEM, judgePrompt, llmJudge, type JudgeVerdict } from "../llm/judge.ts";
+import { JUDGE_CONFIG, JUDGE_MODEL, JUDGE_SYSTEM, judgePrompt, llmJudge, type JudgeVerdict } from "../llm/judge.ts";
 
 export const hashKey = (...parts: string[]) => crypto.createHash("sha256").update(parts.join("\u0000")).digest("hex").slice(0, 32);
 
@@ -73,7 +73,7 @@ export function cachedClaudeJudge(
   const lastMs = new Map<string, number>();
   const judge = async (tx: Tx, c: Constraints, cls: ClassifierResult): Promise<JudgeVerdict> => {
     stats.calls++;
-    const key = hashKey(JUDGE_MODEL, JUDGE_SYSTEM, judgePrompt(tx, c, cls));
+    const key = hashKey(JUDGE_MODEL, JUDGE_CONFIG, JUDGE_SYSTEM, judgePrompt(tx, c, cls));
     const hit = cache.get(key);
     if (hit) {
       stats.hits++;

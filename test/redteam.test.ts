@@ -146,7 +146,7 @@ test("LLM mutation: edits apply as text overrides, unsafe payees are rejected, r
 
   const file = path.join(tmp(), "m.json");
   let calls = 0;
-  const call = async () => (calls++, { json: { edits: [{ index: 0, doc: "x", reasoning: "y", memo: "z", recipient: "lease-office.testnet" }] }, refused: false, usd: 0, ms: 1 });
+  const call = async () => (calls++, { json: { edits: [{ index: 0, doc: "x", reasoning: "y", memo: "z", recipient: "lease-office.testnet" }] }, refused: false, truncated: false, usd: 0, ms: 1 });
   const m1 = makeMutator({ cacheFile: file, call, canCall: () => true });
   assert.ok(await m1.mutate(inp));
   const m2 = makeMutator({ cacheFile: file, call, canCall: () => false });
