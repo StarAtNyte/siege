@@ -242,12 +242,16 @@
       218.09,
       218.09,
       227.58
-    ]
+    ],
+    "llm_calls": 0,
+    "llm_children": 0
   },
   "restarts": [
     225.4,
     201.86,
     227.72
   ],
-  "search_budget_evals": 11520
+  "search_budget_evals": 11520,
+  "llm_mutation_calls": 0,
+  "llm_children": 0
 }

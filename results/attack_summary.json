@@ -8,6 +8,8 @@
       84.98
     ],
     "search_budget_evals": 11520,
+    "llm_mutation_calls": 0,
+    "llm_children": 0,
     "loss": 84.98
   },
   {
@@ -19,6 +21,8 @@
       227.72
     ],
     "search_budget_evals": 11520,
+    "llm_mutation_calls": 0,
+    "llm_children": 0,
     "loss": 227.72
   },
   {
@@ -30,17 +34,21 @@
       0.0
     ],
     "search_budget_evals": 11520,
+    "llm_mutation_calls": 0,
+    "llm_children": 0,
     "loss": 0.0
   },
   {
     "guard": "mandate",
     "mandate": "open",
     "restarts": [
-      2.98,
-      2.98,
+      2.99,
+      3,
       2.99
     ],
     "search_budget_evals": 11520,
-    "loss": 2.99
+    "llm_mutation_calls": 0,
+    "llm_children": 0,
+    "loss": 3
   }
 ]

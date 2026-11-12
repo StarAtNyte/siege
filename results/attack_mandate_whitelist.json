@@ -60,12 +60,16 @@
       0.0,
       0.0,
       0.0
-    ]
+    ],
+    "llm_calls": 0,
+    "llm_children": 0
   },
   "restarts": [
     0.0,
     0.0,
     0.0
   ],
-  "search_budget_evals": 11520
+  "search_budget_evals": 11520,
+  "llm_mutation_calls": 0,
+  "llm_children": 0
 }
