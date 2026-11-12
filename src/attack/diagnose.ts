@@ -14,6 +14,7 @@ export interface Finding {
   amount: number;
   how: string; // one sentence: what the attack did
   fix: string; // one sentence, an action the user can take first, then the reason after a colon
+  payments?: number; // how many paid transactions this finding adds up (overspend: the payments that overshot)
 }
 
 export interface Annotated {
@@ -110,6 +111,7 @@ export function diagnose(mandate: string, c: Constraints, runs: { guard: GuardKi
     }
     for (const { target, f, count } of groups.values()) {
       if (count > 1) f.how += ` ${count - 1} more like it in the same attack.`;
+      f.payments = count;
       f.loss = Math.round(f.loss * 100) / 100;
       (target ?? { findings: general }).findings.push(f);
     }

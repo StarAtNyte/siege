@@ -187,7 +187,7 @@ function novelBudget(c: ReturnType<typeof compileMandate>, ev: Awaited<ReturnTyp
   return { cap: round(cap), hours: tight.windowMs / 3_600_000, viaBudget: round(viaBudget), withinBudget: lost > 0 && viaBudget >= lost - 1e-9 && lost <= cap + 1e-9 };
 }
 
-const STATIC: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
+const STATIC: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json; charset=utf-8" };
 
 /** The page's absolute origin, for share-card tags that must be absolute. PUBLIC_URL wins; otherwise the request's own host, if it looks like one. */
 function origin(req: http.IncomingMessage) {

@@ -42,14 +42,13 @@
         <option value="open">Open invoices</option>
       </select>
     </div>
-    <button type="button" class="bar__what" id="stakes-open" aria-controls="stakes-more" aria-expanded="true">What is this?</button>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span> <kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
 
-<section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="true">
+<section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="false">
   <div class="container stakes__in">
-    <p class="stakes__why">AI agents now pay bills on their own, in money like <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button>.</span> One poisoned email can send your money to a thief, and blockchain payments can’t be undone. Here every attack runs on test money: nothing real moves.</p>
+    <p class="stakes__why">One poisoned email can make an AI agent pay a thief, and <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button></span> payments can’t be undone. SIEGE attacks your agent’s spending rules first, with test money. <button type="button" class="stakes__toggle" id="stakes-open" aria-controls="stakes-more" aria-expanded="false">How it works</button></p>
     <div class="stakes__more" id="stakes-more">
     <ol class="stakes__beats">
       <li class="beat">
@@ -67,18 +66,14 @@
       <li class="beat">
         <p class="beat__lead">SIEGE attacks your spending rules first.</p>
         <p class="beat__body">With four tricks, to find the rule that leaks:</p>
-        <details class="tricks" id="tricks" open>
-        <summary>The four tricks</summary>
         <ul class="legend" aria-label="The four attack tricks">
           <li><span class="tech tech--hidden">Hidden instruction</span> a buried order</li>
           <li><span class="tech tech--lookalike">Lookalike name</span> one character off</li>
           <li><span class="tech tech--drip">Drip</span> many small payments</li>
           <li><span class="tech tech--race">Race</span> payments fired at once</li>
         </ul>
-        </details>
       </li>
     </ol>
-    <button type="button" class="btn btn--quiet btn--s stakes__close" id="stakes-close" aria-controls="stakes-more">Hide</button>
     </div>
   </div>
 </section>
@@ -187,6 +182,8 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
+    <p class="siege__example" id="siege-example" hidden>Example run on the rules shown, recorded 2026-11-12. Press <b>Lay siege</b> to run your own.</p>
+    <p class="siege__sum num" id="siege-sum" hidden></p>
     <p class="siege__intro" id="siege-intro">Press <b>Lay siege</b>: an attacker tries thousands of tricks to drain your agent, first under plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> limits, then with SIEGE’s Mandate guard in front. Lower NEAR lost wins.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
@@ -237,6 +234,8 @@
       </article>
     </div>
 
+    <p class="chain" id="chain">On NEAR testnet: the vault <a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a> paid a guard-signed invoice (<a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4x…</a>) and refused one without the guard’s signature (<a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbs…</a>). Through the guard proxy, the allowed payment went through (<a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuL…</a>) and the injected one was refused before it reached the chain. <a href="https://github.com/StarAtNyte/near-siege/blob/main/docs/TESTNET.md" rel="noopener">Every transaction</a></p>
+
     <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
     <p class="means" id="means" hidden></p>
     <details class="means-more" id="means-more" hidden>
@@ -274,6 +273,7 @@
       </section>
       <section class="ledger" aria-labelledby="l-mandate-h">
         <h3 id="l-mandate-h">Best attack on the Mandate guard</h3>
+        <p class="ledger__sum" id="l-mandate-sum" hidden></p>
         <ol class="ledger__rows" id="l-mandate"></ol>
       </section>
     </div>
