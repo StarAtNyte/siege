@@ -11,6 +11,7 @@ attack-llm:      ## same search vs Mandate, plus the Claude mutation operator (r
 redteam:         ## held-out eval on model-written attacks, replayed from results/redteam (no API key needed)
 	npx tsx src/redteam/run.ts --split dev
 	npx tsx src/redteam/run.ts --split test
+	npx tsx src/redteam/run.ts --split test2
 eval-heldout: redteam
 redteam-gen:     ## regenerate cases: SIEGE_REGEN=1 plus ANTHROPIC_API_KEY (dev) or REDTEAM_BASE_URL/_API_KEY/_MODEL (test)
 	npx tsx src/redteam/generate.ts --split $(SPLIT)

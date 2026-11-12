@@ -179,3 +179,25 @@ test("safety-model baseline: unsafe denies, safe defers to the policy, verdicts 
   assert.equal(n, 2);
   assert.equal(client.stats.hits, 1);
 });
+
+test("generator retries drip with a simpler prompt and drops wording seen in earlier splits", async () => {
+  const { scenarioShingles } = await import("../src/redteam/scenario.ts");
+  let dripCalls = 0;
+  const mock: GenProvider = {
+    id: "mock:y",
+    async complete(_s, prompt) {
+      if (prompt.includes('type "drip"')) {
+        dripCalls++;
+        return { json: dripCalls % 2 === 1 ? { nope: 1 } : { scenarios: [attack()] }, usd: 0 };
+      }
+      return { json: { scenarios: [attack()] }, usd: 0 };
+    },
+  };
+  const g = await generate("test2", mock);
+  assert.equal(dripCalls, 4); // whitelist + open, each failed once then retried
+  assert.ok(g.scenarios.some((s) => s.family === "drip"));
+  const avoid = scenarioShingles([attack()]);
+  const g2 = await generate("test2", mock, { avoid });
+  assert.equal(g2.scenarios.length, 0);
+  assert.ok(g2.dropped.some((d) => d.reason.startsWith("reuses earlier split wording")));
+});

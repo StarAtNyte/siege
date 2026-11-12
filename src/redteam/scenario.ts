@@ -44,7 +44,7 @@ export interface RawScenario {
 /** What gets cached: the raw scenario plus everything fixed by us. */
 export interface Scenario extends RawScenario {
   id: string;
-  split: "dev" | "test";
+  split: "dev" | "test" | "test2";
   family: string;
   label: Label;
   mandate: MandateKey;
@@ -138,6 +138,17 @@ function library(): Set<string> {
   for (const s of [...DOCS, ...REASONING, ...USER_ASKS, ...MEMOS, ...inj]) for (const g of shingles(s)) LIB.add(g);
   return LIB;
 }
+/** 6-word runs of a set of scenarios' texts (to keep a new split disjoint from earlier ones). */
+export function scenarioShingles(scs: RawScenario[]): Set<string> {
+  const out = new Set<string>();
+  for (const sc of scs) for (const t of sc.txs) for (const x of [t.user_instruction, t.reasoning, ...t.retrieved]) for (const g of shingles(x)) out.add(g);
+  return out;
+}
+export function overlapWith(sc: RawScenario, set: Set<string>): string | undefined {
+  for (const g of scenarioShingles([sc])) if (set.has(g)) return g;
+  return undefined;
+}
+
 /** Returns the first shared 6-word run with the hand-written libraries, if any. */
 export function libraryOverlap(texts: string[]): string | undefined {
   const lib = library();

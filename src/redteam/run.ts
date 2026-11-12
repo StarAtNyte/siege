@@ -181,7 +181,7 @@ const isBenignFamily = (f: string) => f in BENIGN_FAMILIES;
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const arg = process.argv[process.argv.indexOf("--split") + 1];
-  const split = (arg === "test" ? "test" : "dev") as Split;
+  const split = (arg === "test" || arg === "test2" ? arg : "dev") as Split;
   const file = loadCases(split);
   if (!file) throw new Error(`no cached cases for ${split}; generate with SIEGE_REGEN=1 npx tsx src/redteam/generate.ts --split ${split}`);
   const cache = new JsonCache<CachedVerdict>(path.join(REDTEAM_DIR, "judge_cache.json"));
