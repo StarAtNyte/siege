@@ -6,7 +6,7 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 
 **Live: [near-siege.onrender.com](https://near-siege.onrender.com)**. Testnet only, no funds spent.
 
-![SIEGE red-lining an open invoice mandate: plain policy lost 177.20 NEAR, the Mandate guard lost 1.02, inside its 3.00 NEAR new-payee budget](docs/app.png)
+![SIEGE red-lining an open invoice mandate: typical limits lost 128.53 NEAR, the SIEGE guard lost 1.02, inside its 3.00 NEAR new-payee budget](docs/app.png)
 
 [Watch the 15-second demo](docs/demo.mp4): a siege runs, red-lines the mandate clause by clause and lands on the verdict.
 
@@ -109,7 +109,7 @@ AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custod
 
 Three ways to use it:
 
-- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it under plain OutLayer policy and under Mandate. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
+- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (caps + allowlist, as in a plain OutLayer policy) and the *SIEGE guard* (the Mandate guard, which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
 - **The library**: `import { MandateGuard, compileMandate } from "siege"`.
 - **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
