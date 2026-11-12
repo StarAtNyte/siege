@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SIEGE: can your AI agent’s wallet be drained?</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<meta name="description" content="Write your agent’s spending mandate, attack it with an evolutionary search, and see which sentences let money out.">
+<meta name="description" content="Write your AI agent’s spending rules, attack them with an evolutionary search, and see which sentences let money out.">
 <meta name="theme-color" content="#000000">
 <link rel="canonical" href="__ORIGIN__/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="SIEGE">
 <meta property="og:title" content="SIEGE: can your AI agent’s wallet be drained?">
-<meta property="og:description" content="Write your agent’s spending mandate in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
+<meta property="og:description" content="Write your AI agent’s spending rules in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
 <meta property="og:url" content="__ORIGIN__/">
 <meta property="og:image" content="__ORIGIN__/og.png">
 <meta property="og:image:width" content="1440">
 <meta property="og:image:height" content="900">
-<meta property="og:image:alt" content="A spending mandate red-lined clause by clause, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
+<meta property="og:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SIEGE: can your AI agent’s wallet be drained?">
-<meta name="twitter:description" content="Write your agent’s spending mandate in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
+<meta name="twitter:description" content="Write your AI agent’s spending rules in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
 <meta name="twitter:image" content="__ORIGIN__/og.png">
-<meta name="twitter:image:alt" content="A spending mandate red-lined clause by clause, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
+<meta name="twitter:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&amp;display=swap">
@@ -29,13 +29,13 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<a class="skip" href="#mandate">Skip to the mandate</a>
+<a class="skip" href="#mandate">Skip to your spending rules</a>
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
     <p class="bar__line">Can your AI agent’s wallet be drained?</p>
     <div class="bar__pick">
-      <label class="visually-hidden" for="example-select">Load an example mandate</label>
+      <label class="visually-hidden" for="example-select">Load an example set of rules</label>
       <select id="example-select" class="input bar__select">
         <option value="" selected>Examples</option>
         <option value="whitelist">Named payees</option>
@@ -49,7 +49,7 @@
 
 <section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="true">
   <div class="container stakes__in">
-    <p class="stakes__why">AI agents now pay bills on their own, in money like <button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button>. One poisoned email can send your money to a thief, and blockchain payments can’t be undone. Here every attack runs on test money: nothing real moves.</p>
+    <p class="stakes__why">AI agents now pay bills on their own, in money like <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button>.</span> One poisoned email can send your money to a thief, and blockchain payments can’t be undone. Here every attack runs on test money: nothing real moves.</p>
     <div class="stakes__more" id="stakes-more">
     <ol class="stakes__beats">
       <li class="beat">
@@ -86,14 +86,15 @@
 <main class="container main">
   <section class="doc" aria-labelledby="doc-h">
     <div class="doc__head">
-      <h1 id="doc-h">Spending mandate</h1>
-      <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit mandate</button>
+      <h1 id="doc-h">Your spending rules</h1>
+      <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit rules</button>
     </div>
-    <p class="doc__gloss">The rules your AI agent pays by: who, how much, what for. Plain English; edit freely.</p>
+    <p class="doc__gloss">What your AI agent may pay: who, how much, what for. Plain English; edit freely.</p>
 
     <div class="doc__page">
-      <label class="visually-hidden" for="mandate">Your agent’s spending mandate, in plain English</label>
+      <label class="visually-hidden" for="mandate">Your agent’s spending rules, in plain English</label>
       <textarea id="mandate" class="doc__text" spellcheck="false" maxlength="2000" aria-describedby="doc-status doc-count">Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. For invoices, subscriptions and hosting. May call deposit_and_stake and unstake on pool.testnet. Never pay mixer.testnet.</textarea>
+      <p class="key" id="key" hidden></p>
       <ol class="clauses" id="clauses" hidden></ol>
       <div class="general" id="general" hidden></div>
     </div>
@@ -102,11 +103,12 @@
 
     <section class="reading" aria-labelledby="reading-h">
       <h2 id="reading-h">How SIEGE reads it</h2>
-      <dl class="reading__list" id="reading"><div class="reading__row"><dt>Status</dt><dd>Start the server to read this mandate.</dd></div></dl>
+      <dl class="reading__list" id="reading"><div class="reading__row"><dt>Status</dt><dd>Start the server to read these rules.</dd></div></dl>
     </section>
 
     <details class="disclose" id="try">
       <summary>Try a transaction</summary>
+      <p class="try__gloss">Make up one payment, say who asked for it and what the agent read, and see what each guard would do. The example is a lookalike payee from a forged invoice.</p>
       <form class="try" id="try-form" novalidate>
         <div class="field">
           <label for="t-to">Pay to</label>
@@ -163,7 +165,7 @@
         <p class="export__note">OutLayer is a custody wallet for AI agents on NEAR. Load the first file as its policy, or run SIEGE’s guard in front of it.</p>
         <div class="export__item">
           <div class="export__head"><h3>OutLayer policy</h3><span class="export__acts"><button type="button" class="btn btn--quiet btn--s" data-copy="x-policy">Copy</button><button type="button" class="btn btn--quiet btn--s" data-download="x-policy" data-file="outlayer-policy.json">Download</button></span></div>
-          <pre class="code" id="x-policy" tabindex="0" aria-label="OutLayer policy, JSON">Compile a mandate to see its policy.</pre>
+          <pre class="code" id="x-policy" tabindex="0" aria-label="OutLayer policy, JSON">Write your rules to see their OutLayer policy.</pre>
         </div>
         <div class="export__item">
           <div class="export__head"><h3>Guard config</h3><span class="export__acts"><button type="button" class="btn btn--quiet btn--s" data-copy="x-guard">Copy</button><button type="button" class="btn btn--quiet btn--s" data-download="x-guard" data-file="siege-guard.json">Download</button></span></div>
@@ -185,7 +187,7 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__intro" id="siege-intro">Lay siege to attack your agent twice: with plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> limits, then with SIEGE’s guard in front.</p>
+    <p class="siege__intro" id="siege-intro">Press <b>Lay siege</b>: an attacker tries thousands of tricks to drain your agent, first under plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> limits, then with SIEGE’s Mandate guard in front. Lower NEAR lost wins.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
       <p id="siege-error-msg"></p>
@@ -200,6 +202,7 @@
         <p class="guard__placeholder">Basic limits only: who to pay and how much.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__phase"></p>
+        <p class="guard__stops" hidden></p>
         <p class="guard__clauses" hidden></p>
         <p class="guard__compare" hidden></p>
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
@@ -219,6 +222,7 @@
         <p class="guard__placeholder">Checks each payment against your rules, and who asked for it.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__phase"></p>
+        <p class="guard__stops" hidden></p>
         <p class="guard__clauses" hidden></p>
         <p class="guard__compare" hidden></p>
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
@@ -241,7 +245,7 @@
     </details>
 
     <section class="next" id="next" aria-labelledby="next-h" hidden>
-      <h3 id="next-h">Fix the weakest clause</h3>
+      <h3 id="next-h">Fix the weakest rule</h3>
       <p class="next__delta" id="next-delta" hidden></p>
       <p class="next__weak" id="next-weak"></p>
       <div class="next__fix" id="next-fix" hidden>

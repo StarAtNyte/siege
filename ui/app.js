@@ -60,7 +60,7 @@
   };
   // A server message as one plain sentence: capital first, exactly one full stop.
   const sentence = (s) => String(s).trim().replace(/[.\s]+$/, "").replace(/^./, (x) => x.toUpperCase()) + ".";
-  const why422 = (err) => `SIEGE can’t test this mandate yet: ${String(err).trim().replace(/[.\s]+$/, "")}.`;
+  const why422 = (err) => `SIEGE can’t test these rules yet: ${String(err).trim().replace(/[.\s]+$/, "")}.`;
   // Screen-reader announcements for the siege, throttled so a fast run is not read out generation by generation.
   let lastSaid = 0;
   function announce(msg, force = false) {
@@ -171,15 +171,15 @@
   async function compile() {
     const text = ta.value;
     const seq = ++compileSeq;
-    if (!text.trim()) return showCompileError("Write a mandate first. Say who the agent may pay, how much per transaction, and how much per day.");
+    if (!text.trim()) return showCompileError("Write your rules first. Say who the agent may pay, how much per transaction, and how much per day.");
     $(".reading").setAttribute("aria-busy", "true");
     status.dataset.tone = "";
-    status.textContent = "Reading the mandate…";
+    status.textContent = "Reading your rules…";
     try {
       const r = await fetch("/api/compile", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mandate: text }) });
       if (seq !== compileSeq) return;
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) return showCompileError(r.status === 422 ? why422(j.error) : j.error ? sentence(j.error) : `The server answered ${r.status}. Edit the mandate to retry.`);
+      if (!r.ok) return showCompileError(r.status === 422 ? why422(j.error) : j.error ? sentence(j.error) : `The server answered ${r.status}. Edit your rules to retry.`);
       compiled = j;
       compileOk = true;
       ta.removeAttribute("aria-invalid");
@@ -189,7 +189,7 @@
       renderExport(j, text);
     } catch {
       if (seq !== compileSeq) return;
-      showCompileError("Can’t reach the SIEGE server. It retries when you edit the mandate or come back to this tab.");
+      showCompileError("Can’t reach the SIEGE server. It retries when you edit your rules or come back to this tab.");
     } finally {
       if (seq === compileSeq) $(".reading").removeAttribute("aria-busy");
     }
@@ -201,7 +201,7 @@
     status.textContent = msg;
     siegeBtn.setAttribute("aria-disabled", "true");
     $(".reading").removeAttribute("aria-busy");
-    $("#reading").replaceChildren(el("div", { class: "reading__row reading__row--empty" }, el("dd", { text: "Nothing to read yet. Fix the mandate above." })));
+    $("#reading").replaceChildren(el("div", { class: "reading__row reading__row--empty" }, el("dd", { text: "Nothing to read yet. Fix your rules above." })));
     staleExport();
   }
   // Characters left, shown only near the limit; a paste that would overflow says it was cut.
@@ -229,11 +229,11 @@
     fit();
     count();
     // The siege tests the text it started with: an edit stops a running siege and marks a finished one as out of date.
-    if (siegeEl.dataset.state === "running") siegeError("Stopped: the mandate changed. Lay siege again to test the new text.", "Lay siege on the new text");
+    if (siegeEl.dataset.state === "running") siegeError("Stopped: your rules changed. Lay siege again to test the new text.", "Lay siege on the new text");
     else if (siegeEl.dataset.state === "done" && !siegeEl.dataset.stale) {
       siegeEl.dataset.stale = "true";
-      stateEl.textContent = "Out of date: the mandate changed. Lay siege again.";
-      announce("The siege results are out of date: the mandate changed.", true);
+      stateEl.textContent = "Out of date: your rules changed. Lay siege again.";
+      announce("The siege results are out of date: your rules changed.", true);
     }
     clearTimeout(debounce);
     debounce = setTimeout(compile, 400);
@@ -258,7 +258,7 @@
 
   // ---------- export ----------
   function staleExport() {
-    $("#x-policy").textContent = "Fix the mandate above to see its OutLayer policy.";
+    $("#x-policy").textContent = "Fix your rules above to see their OutLayer policy.";
     for (const id of ["x-guard", "x-proxy", "x-header"]) $("#" + id).textContent = "";
     $$("[data-copy], [data-download]").forEach((b) => b.setAttribute("aria-disabled", "true"));
   }
@@ -327,6 +327,7 @@
     const annotated = mode === "annotated";
     ta.hidden = annotated;
     clausesEl.hidden = !annotated;
+    keyEl.hidden = !annotated || !keyEl.childElementCount;
     generalEl.hidden = !annotated || !generalEl.childElementCount;
     editBtn.hidden = !annotated;
     fit();
@@ -340,7 +341,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), unit: $(".guard__unit", root), hist: [], loss: 0 };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), stops: $(".guard__stops", root), unit: $(".guard__unit", root), hist: [], loss: 0 };
   }
 
   function resetSiege(keepStream = false) {
@@ -356,11 +357,13 @@
     hasResult = false;
     stateEl.textContent = "Not started";
     btnLabel.textContent = "Lay siege";
+    $$(".guard__preview").forEach((n) => (n.textContent = "Run a siege to see what gets past"));
     for (const g of Object.values(guards)) {
       g.hist = [];
       g.loss = 0;
       g.compare.hidden = true;
       g.clauses.hidden = true;
+      g.stops.hidden = true;
       g.root.dataset.phase = "waiting";
       delete g.root.dataset.outcome;
       g.phase.textContent = "";
@@ -514,9 +517,27 @@
     if (p.play) onPlay(p.play);
   }
 
+  // ---------- the key ----------
+  // The red underline means the plain policy lost money on that sentence, even where the Mandate guard held it.
+  // The number badge carries the Mandate guard's outcome. The key lists only the marks on screen.
+  const keyEl = $("#key");
+  function showKey(seen) {
+    const sample = (cls, t) => el("span", { class: `key__item` }, el("span", { class: cls, "aria-hidden": "true", text: cls.includes("badge") ? "1" : "Red underline" }), t);
+    keyEl.replaceChildren();
+    if (!seen) keyEl.append(sample("key__line", "the plain policy was breached here"), el("span", { class: "key__item key__wait", text: "Numbers turn green where the Mandate guard holds, once the siege ends." }));
+    else {
+      if (seen.has("plain")) keyEl.append(sample("key__line", "the plain policy was breached here"));
+      if (seen.has("held")) keyEl.append(sample("key__badge key__badge--held", "the Mandate guard held"));
+      if (seen.has("budget")) keyEl.append(sample("key__badge key__badge--budget", "the guard paid only from its new-payee allowance"));
+      if (seen.has("lost")) keyEl.append(sample("key__badge key__badge--lost", "the Mandate guard was breached"));
+    }
+    keyEl.hidden = !keyEl.childElementCount;
+  }
+
   // ---------- live red-lining ----------
   // While the siege runs, the mandate is shown as clauses and each one is marked the moment the attacker first gets through it.
   function liveClauses() {
+    showKey(null);
     clausesEl.replaceChildren();
     generalEl.replaceChildren();
     for (const s of compiled?.sentences ?? []) {
@@ -534,7 +555,7 @@
       if (!mark) {
         mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]} broken in round ${p.generation + 1}, `, el("span", { class: "note__loss" }));
         note.append(mark);
-        if (!li.classList.contains("clause--breach")) li.classList.replace("clause--pending", "clause--breach"), li.classList.add("clause--fresh");
+        if (p.guard === "outlayer" && !li.classList.contains("clause--breach")) li.classList.add("clause--breach", "clause--fresh");
       }
       $(".note__loss", mark).textContent = `lost ${near(m.loss)} NEAR`;
     }
@@ -557,18 +578,11 @@
       g.root.dataset.outcome = "budget";
       g.phase.textContent = "Held to its allowance";
       g.compare.hidden = true;
-      // Lead with what the guard stopped: the attacks in this search that got nothing out. What it let through,
-      // all of it from the allowance, comes second.
-      const tried = lastStops?.tried?.[k], stopped = lastStops?.stopped?.[k];
-      if (tried > 0 && Number.isInteger(stopped)) {
-        g.num.textContent = stopped.toLocaleString("en");
-        g.unit.textContent = `of ${tried.toLocaleString("en")} attacks stopped`;
-      } else {
-        g.num.textContent = "Held";
-        g.unit.textContent = "";
-      }
+      // Both cards lead with NEAR lost, so they compare at a glance; the gauge shows it all came from the allowance.
+      g.num.textContent = near(g.loss);
+      g.unit.textContent = "NEAR lost";
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} NEAR spent of its ${near(b.cap)} allowance`, el("span", { class: "budget__of" }, term("new-payee allowance", "allowance"), ` ${hours(b.hours)}`));
+      $(".budget__text", g.budget).replaceChildren(`All of it from its ${near(b.cap)} NEAR `, term("allowance", "allowance"), ` for new payees, ${hours(b.hours)}.`);
       g.budget.hidden = false;
       return;
     }
@@ -714,25 +728,35 @@
     const total = d.sentences.length;
     for (const [k, g] of Object.entries(guards)) {
       const n = d.sentences.filter((s) => s.findings.some((f) => f.guard === k)).length;
-      const word = total === 1 ? "clause" : "clauses";
-      g.clauses.textContent = n > 0 ? `Breached ${n} of ${total} ${word}` : `Held all ${total} ${word}`;
+      const word = total === 1 ? "rule" : "rules";
+      g.clauses.textContent = n > 0 ? `Got past on ${n} of your ${total} ${word}` : `Held on all ${total} ${word}`;
       g.clauses.hidden = total === 0;
+      const tried = lastStops?.tried?.[k], stopped = lastStops?.stopped?.[k];
+      g.stops.hidden = !(tried > 0 && Number.isInteger(stopped));
+      if (!g.stops.hidden) g.stops.textContent = `${stopped.toLocaleString("en")} of ${tried.toLocaleString("en")} attacks stopped`;
     }
     clausesEl.replaceChildren();
+    const seen = new Set();
     for (const s of d.sentences) {
       const breach = s.findings.length > 0;
+      const plainBroke = s.findings.some((f) => f.guard === "outlayer");
+      const mf = s.findings.filter((f) => f.guard === "mandate");
+      const guardOutcome = !mf.length ? "held" : lastBudget?.withinBudget && mf.every((f) => f.kind === "theft") ? "budget" : "lost";
+      if (plainBroke) seen.add("plain");
+      seen.add(guardOutcome);
       clausesEl.append(
         el(
           "li",
-          { class: `clause clause--${breach ? "breach" : "held"}`, "data-index": s.index },
+          { class: `clause clause--${plainBroke ? "breach" : "held"}`, "data-index": s.index, "data-guard": guardOutcome },
           el("span", { class: "clause__text", text: s.text }),
-          breach ? noteFor(s.findings) : el("div", { class: "note" }, el("span", { class: "note--held", text: "Held against both guards." })),
+          breach ? noteFor(s.findings) : el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
         ),
       );
     }
+    showKey(seen);
     generalEl.replaceChildren();
     if (d.general?.length) {
-      generalEl.append(el("h2", { text: "Not tied to one sentence" }), noteFor(d.general));
+      generalEl.append(el("h2", { text: "Not tied to one rule" }), noteFor(d.general));
     }
     setMode("annotated");
     const honest = $("#honest");
@@ -744,12 +768,13 @@
     // After the first finished siege the stakes strip starts folded on later visits, behind "What is this?".
     if (!store.get("siege.stakes")) store.set("siege.stakes", "seen");
     stateEl.textContent = `Finished, ${d.evaluations.toLocaleString("en")} attacks tried across both guards`;
+    $("#play-totals").textContent = `Final: plain policy lost ${near(d.losses?.outlayer ?? 0)} NEAR, the guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
     renderNext(d);
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
     btnLabel.textContent = "Lay siege again";
-    announce(`Siege finished. ${said} Breached clauses are marked in the mandate.`, true);
+    announce(`Siege finished. ${said} Sentences the plain policy lost on are underlined in red in your rules.`, true);
     // A keyboard user who started the siege lands on the verdict, then tabs on to the clause details and ledgers.
     if (focusAfter()) $("#siege-verdict").focus({ preventScroll: true });
   }
@@ -805,7 +830,7 @@
     if (siegeBtn.getAttribute("aria-busy") === "true") return;
     if (!compileOk) {
       ta.focus();
-      return void (status.textContent ||= "Fix the mandate first.");
+      return void (status.textContent ||= "Fix your rules first.");
     }
     const moveFocus = focusAfter();
     // The stakes did their job once a siege starts: fold them so the play by play is in view. "What is this?" brings them back.
@@ -844,6 +869,7 @@
       legit = new Set(s.legit || []);
       guards.outlayer.root.dataset.phase = "running";
       guards.outlayer.phase.textContent = `Attack round 0 of ${s.generations}`;
+      $(".guard__preview", guards.mandate.root).textContent = "Up next, once the plain policy is done";
     });
     es.addEventListener("progress", (e) => push("progress", JSON.parse(e.data)));
     es.addEventListener("attack", (e) => push("attack", JSON.parse(e.data)));
@@ -859,7 +885,7 @@
       if (started) return siegeError("The siege stopped before it finished. The connection to the server dropped.");
       try {
         const h = await (await fetch("/healthz", { cache: "no-store" })).json();
-        siegeError(h.sieges >= (h.maxSieges ?? 1) ? `The attacker is busy: ${h.sieges} other sieges are running, the most it runs at once. Try again in a few seconds.` : "The server refused this siege. Check the mandate reads cleanly above, then try again.");
+        siegeError(h.sieges >= (h.maxSieges ?? 1) ? `The attacker is busy: ${h.sieges} other sieges are running, the most it runs at once. Try again in a few seconds.` : "The server refused this siege. Check your rules read cleanly above, then try again.");
       } catch {
         siegeError("Can’t reach the SIEGE server. Check your connection, then try again.");
       }
@@ -897,15 +923,16 @@
     // The weak point is the clause the guard itself lost on; failing that, the one that lost the most without SIEGE.
     const weak = [...scored].sort((a, b) => b.guardLoss - a.guardLoss || b.loss - a.loss)[0];
     const weakEl = $("#next-weak");
-    if (!weak || weak.loss <= 0) weakEl.textContent = "No clause let money out.";
-    else if (weak.guardLoss > 0) weakEl.textContent = `It let ${near(weak.guardLoss)} NEAR past the guard.`;
-    else weakEl.textContent = `The guard held every clause. Without it, clause ${weak.s.index + 1} lost the most: ${near(weak.loss)} NEAR.`;
-    const fix = weak?.guardLoss > 0 ? suggestFor(weak.s) : null;
+    const fix0 = weak?.guardLoss > 0 ? suggestFor(weak.s) : null;
+    if (!weak || weak.loss <= 0) weakEl.textContent = "No rule let money out.";
+    else if (weak.guardLoss > 0) weakEl.textContent = `Rule ${weak.s.index + 1} let ${near(weak.guardLoss)} NEAR past the guard${d.budget?.withinBudget ? ", to payees your rules never named" : ""}.${fix0 ? " Naming your payees closes that gap:" : ""}`;
+    else weakEl.textContent = `The guard held every rule. Without it, rule ${weak.s.index + 1} lost the most: ${near(weak.loss)} NEAR.`;
+    const fix = fix0;
     // The panel's title is the action itself, from this run's weakest clause.
-    $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the guard as it is" : weak.guardLoss > 0 ? `Fix clause ${weak.s.index + 1}` : "Put the guard in front of your wallet";
+    $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the guard as it is" : weak.guardLoss > 0 ? `Fix rule ${weak.s.index + 1}` : "Put the guard in front of your wallet";
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
-    if (fix) $("#next-fix-text").textContent = `Name the payees: “${fix}”`;
+    if (fix) $("#next-fix-text").textContent = `“${fix}”`;
     $("#next").hidden = false;
   }
   $("#next-fix-btn").addEventListener("click", async () => {
@@ -952,6 +979,8 @@
       btn.removeAttribute("aria-busy");
     }
   });
+  // A refusal code in plain words where there is one; otherwise the code itself, made readable.
+  const plainWhy = (c) => { const b = because(c, {}); return b === "it breaks your rules" ? human(c).toLowerCase() : b; };
   function renderVerdicts(j) {
     const box = $("#verdicts");
     box.replaceChildren();
@@ -960,7 +989,7 @@
     for (const g of ["outlayer", "mandate"]) {
       const v = j[g];
       const allow = v.verdict === "allow";
-      const why = v.reasons?.length ? v.reasons.map(human).join("; ") : allow ? "Nothing in its policy stops this." : "";
+      const why = v.reasons?.length ? sentence([...new Set(v.reasons.map(plainWhy))].join("; ")) : allow ? "Nothing in its policy stops this." : "";
       box.append(
         el(
           "div",
@@ -971,7 +1000,8 @@
         ),
       );
     }
-    const sig = el("div", { class: "signals" }, el("h3", { text: `What the classifier saw, risk ${Number(j.risk).toFixed(2)}` }));
+    const deny = compiled?.guardConfig?.thresholds?.denyAbove ?? 0.75;
+    const sig = el("div", { class: "signals" }, el("h3", { text: `What the guard noticed: risk ${Number(j.risk).toFixed(2)} of 1 (it refuses from ${deny})` }));
     const ul = el("ul");
     if (!j.signals?.length) ul.append(el("li", {}, el("span", { class: "w", text: "0" }), el("span", { text: "No signals" }), el("span", { class: "d", text: "Nothing about this transaction looked off." })));
     for (const s of j.signals || []) ul.append(el("li", {}, el("span", { class: "w", text: Number(s.weight).toFixed(2) }), el("span", { text: human(s.code) }), el("span", { class: "d", text: s.detail })));

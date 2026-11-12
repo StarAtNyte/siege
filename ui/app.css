@@ -71,7 +71,24 @@ a.btn { text-decoration: none; }
 .clause:first-child { padding-top: 0; border-top: 0; }
 .clause::before { content: counter(clause); justify-self: start; margin-top: 0.35em; min-width: 1.75rem; padding: var(--space-3xs) var(--space-xs); border-radius: var(--radius-input); text-align: center; font: 700 var(--text-sm)/1.4 var(--font-body); font-variant-numeric: tabular-nums; background: var(--color-hold); color: var(--color-hold-ink); }
 .clause__text { font-family: var(--font-doc); font-stretch: var(--stretch-doc); font-size: var(--text-doc); line-height: 1.6; }
-.clause--breach::before { background: var(--color-breach); color: var(--color-breach-ink); }
+/* the number badge carries the Mandate guard's outcome; the red underline alone says the plain policy was breached */
+.clause::before { box-shadow: inset 0 0 0 1px transparent; }
+.clause[data-guard="held"]::before { background: var(--color-hold); color: var(--color-hold-ink); }
+.clause[data-guard="budget"]::before { background: var(--color-budget); color: var(--color-budget-ink); box-shadow: inset 0 0 0 1px var(--color-hold); }
+.clause[data-guard="lost"]::before { background: var(--color-breach); color: var(--color-breach-ink); }
+/* the key above the red-lined rules: only the marks on screen, each drawn as it appears in the text */
+.key { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); margin: 0 0 var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-rule); font-size: var(--text-sm); color: var(--color-ink-2); }
+.key__item { display: inline-flex; align-items: baseline; gap: var(--space-xs); }
+.try__gloss { font-size: var(--text-sm); color: var(--color-ink-2); margin-bottom: var(--space-md); max-width: 62ch; }
+.key__line { color: var(--color-ink); font-weight: 600; text-decoration: underline 3px var(--color-breach); text-underline-offset: 0.2em; text-decoration-skip-ink: none; }
+.key__badge { align-self: center; min-width: 1.5rem; padding: 0 var(--space-2xs); border-radius: var(--radius-input); text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.key__badge--held { background: var(--color-hold); color: var(--color-hold-ink); }
+.key__badge--budget { background: var(--color-budget); color: var(--color-budget-ink); box-shadow: inset 0 0 0 1px var(--color-hold); }
+.key__badge--lost { background: var(--color-breach); color: var(--color-breach-ink); }
+.nowrap { white-space: nowrap; }
+.key__line, .key__badge { flex: none; white-space: nowrap; }
+.budget .term { text-align: left; }
+.guard__stops { font-size: var(--text-sm); }
 .clause--breach .clause__text { text-decoration: underline 4px var(--color-breach); text-underline-offset: 0.18em; text-decoration-skip-ink: none; }
 .clause--held .clause__text { color: var(--color-ink); }
 /* live: clauses wait in grey until the attacker first gets through one, then the red pen marks it */
@@ -142,7 +159,7 @@ a.btn { text-decoration: none; }
 .input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -1px; }
 .input:disabled { opacity: 0.55; cursor: not-allowed; }
 .input[aria-invalid="true"] { border-color: var(--color-breach); }
-.seg { border: 0; margin: 0; padding: 0; grid-column: span 1; }
+.seg { border: 0; margin: 0; padding: 0; grid-column: span 2; min-width: 0; }
 .seg legend { padding: 0; margin-bottom: var(--space-2xs); }
 .seg__row { display: flex; }
 .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -225,7 +242,7 @@ a.btn { text-decoration: none; }
 @media (prefers-reduced-motion: no-preference) { .budget__fill { animation: budget-fill var(--dur-long) var(--ease-out); } }
 @keyframes budget-fill { from { transform: scaleX(0.001); } to { transform: scaleX(var(--used, 0)); } }
 .budget__text { font-size: var(--text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
-.budget__of { display: block; font-weight: 400; }
+.budget__of { font-weight: 400; }
 
 .siege__verdict { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; text-wrap: pretty; }
 .guard[data-outcome] .guard__phase { color: var(--color-on-field); }
@@ -442,3 +459,6 @@ a.btn { text-decoration: none; }
 .tip { position: fixed; z-index: var(--z-tooltip); max-width: min(20rem, calc(100vw - 16px)); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-input); background: var(--color-band); color: var(--color-on-band); font-size: var(--text-sm); line-height: 1.45; pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { .tip:not([hidden]) { animation: tip-in var(--dur-micro) var(--ease-out); } }
 @keyframes tip-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+
+/* phone: the siege state goes under its heading; the key reads as a list */
+@media (max-width: 40rem) { .siege__head { flex-direction: column; align-items: flex-start; gap: var(--space-3xs); } .key { flex-direction: column; } .stakes[data-open="true"] .stakes__why { padding-right: 0; } }
