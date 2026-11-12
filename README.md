@@ -32,7 +32,7 @@ npm start         # the web app on http://127.0.0.1:8686: write a mandate, press
 
 Each command prints the table it writes to `results/`. The testnet vault, including refused payments that nearblocks shows as "Success" (the call ran; the payment was refused; the reason is in the event log), is in [docs/TESTNET.md](docs/TESTNET.md). `make contract-build` rebuilds the deployed wasm byte for byte and checks its hash (needs rustc 1.97.1).
 
-- **Live:** [near-siege.fly.dev](https://near-siege.fly.dev)
+- **Live:** [near-siege.onrender.com](https://near-siege.onrender.com)
 - **Code:** [github.com/StarAtNyte/near-siege](https://github.com/StarAtNyte/near-siege)
 - **Sister project:** [DARWIN](https://github.com/StarAtNyte/near-darwin)
 

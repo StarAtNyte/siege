@@ -6,7 +6,7 @@ Can your AI agent's wallet be drained?
 
 SIEGE: write your agent's spending rules in plain English; an evolutionary attacker tries to drain it live. Plain policy lost 177 NEAR. Our guard: 1.02, inside its budget.
 
-Try it: near-siege.fly.dev
+Try it: near-siege.onrender.com
 On @NEARProtocol #NEARHackathon
 
 Attach: docs/demo.mp4
