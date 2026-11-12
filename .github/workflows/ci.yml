@@ -6,10 +6,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npm test
-      - run: npx tsc --noEmit
-      - run: npx tsx src/eval/run.ts
+        with: { node-version: 24, cache: npm }
       - uses: astral-sh/setup-uv@v5
-      - run: cd engine && uv run siege-attack --generations 8 --pop 32 --seeds 1
+      - name: Rust 1.97.1 with the wasm target (pinned: the contract build must reproduce the deployed bytes)
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal --target wasm32-unknown-unknown
+          echo "RUSTUP_TOOLCHAIN=1.97.1" >> "$GITHUB_ENV"
+      - run: make install
+      - name: make test (Rust contract tests, unit tests, typecheck)
+        run: make test
+      - name: contract build reproduces the deployed wasm (sha256 check)
+        run: make contract-build && git diff --exit-code contract/res/
+      - name: keyless replays reproduce the committed results
+        run: |
+          make eval attack threat redteam
+          # decision latencies are wall-clock measurements and vary run to run; every other line must match
+          git diff --exit-code -I 'latency|p50ms|p99ms' results/
