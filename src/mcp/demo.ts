@@ -1,10 +1,11 @@
 // Drive the SIEGE MCP server the way an agent would: spawn `bin/siege-mcp.mjs` over stdio and call its tools with
 // the official SDK client. The client declares elicitation and plays a user who denies anything it is asked.
 //
-//   npx tsx src/mcp/demo.ts              mock wallet (no money moves)
-//   npx tsx src/mcp/demo.ts --testnet    the testnet vault, keys from .siege/vault-testnet.json (never printed);
+//   node --import tsx src/mcp/demo.ts              mock wallet (no money moves)
+//   node --import tsx src/mcp/demo.ts --testnet    the testnet vault, keys from .siege/vault-testnet.json (never printed);
 //                                        pays 0.01 NEAR to the vault's owner and tries one injected payment.
-//                                        Writes docs/testnet-mcp.json.
+//                                        Writes docs/testnet-mcp.json (rows 12-13 of docs/TESTNET.md),
+//                                        or docs/testnet-mcp.rerun-<time>.json if that record already exists.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -67,4 +68,10 @@ await call("siege_pay", {
 await call("siege_budget");
 await client.close();
 console.log(`\nuser prompts raised: ${prompts.length}`);
-if (testnet) fs.writeFileSync(path.join(root, "docs/testnet-mcp.json"), JSON.stringify({ at: new Date().toISOString(), transport: "stdio (bin/siege-mcp.mjs)", calls: log, user_prompts: prompts }, null, 2) + "\n");
+if (testnet) {
+  const at = new Date().toISOString();
+  const rec = path.join(root, "docs/testnet-mcp.json");
+  const dest = fs.existsSync(rec) ? rec.replace(/\.json$/, `.rerun-${at.replace(/[:.]/g, "-")}.json`) : rec;
+  fs.writeFileSync(dest, JSON.stringify({ at, transport: "stdio (bin/siege-mcp.mjs)", calls: log, user_prompts: prompts }, null, 2) + "\n");
+  console.log(`recorded in ${path.relative(root, dest)}`);
+}

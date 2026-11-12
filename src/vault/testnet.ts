@@ -1,8 +1,12 @@
 // Deploy the two-key vault to NEAR testnet and record the transactions that show each property.
 //
-//   npx tsx src/vault/testnet.ts deploy    creates vault.<NEAR_ACCOUNT>, deploys contract/res/siege_vault.wasm, calls
+//   node --import tsx src/vault/testnet.ts deploy    creates vault.<NEAR_ACCOUNT>, deploys contract/res/siege_vault.wasm, calls
 //                                          new(), adds the agent's function-call key (vault, method: spend only)
-//   npx tsx src/vault/testnet.ts demo      runs the scenarios and writes docs/TESTNET.md + docs/testnet-vault.json
+//   node --import tsx src/vault/testnet.ts demo      runs the scenarios and records them in docs/testnet-vault.json
+//
+// docs/TESTNET.md is written by hand from docs/testnet-vault.json (rows 1-11) and docs/testnet-mcp.json (rows 12-13,
+// from src/mcp/demo.ts). A rerun of `demo` never overwrites the recorded runs that TESTNET.md links to: when
+// docs/testnet-vault.json already has runs, the new ones go to docs/testnet-vault.rerun-<time>.json.
 //
 // Reads NEAR_ACCOUNT / NEAR_PRIVATE_KEY from siege/.env (testnet only). New keys (vault, guard, agent) go to
 // .siege/vault-testnet.json (gitignored, mode 0600) and are never printed.
@@ -23,7 +27,6 @@ const RPC = process.env.NEAR_RPC ?? "https://rpc.testnet.near.org";
 const WASM = path.join(root, "contract/res/siege_vault.wasm");
 const KEYS = path.join(root, ".siege/vault-testnet.json");
 const LOG = path.join(root, "docs/testnet-vault.json");
-const DOC = path.join(root, "docs/TESTNET.md");
 const NEAR = 10n ** 24n;
 const MILLI = 10n ** 21n;
 const FUND = 1000n * MILLI; // 1.0 NEAR: ~0.8 storage stake for the 80 KB wasm, the rest is spendable float
@@ -168,7 +171,9 @@ async function demo() {
     replayedNonceUsed: await viewNonceUsed(provider, k.vaultId, BigInt(lastApproval!.nonce)),
     runs,
   };
-  fs.writeFileSync(LOG, JSON.stringify(out, null, 2) + "\n");
+  const dest = log.runs ? LOG.replace(/\.json$/, `.rerun-${out.demoAt.replace(/[:.]/g, "-")}.json`) : LOG;
+  fs.writeFileSync(dest, JSON.stringify(out, null, 2) + "\n");
+  console.log(`recorded in ${path.relative(root, dest)}`);
   for (const r of runs) console.log(`${r.id.padEnd(24)} ${r.outcome.slice(0, 90).padEnd(92)} ${r.hash ?? ""}`);
   console.log(`stats: ${JSON.stringify(out.stats)}`);
 }
