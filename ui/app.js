@@ -16,8 +16,8 @@
   };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const near = (n) => Number(n).toFixed(2);
-  const GUARD = { outlayer: "Plain OutLayer policy", mandate: "Mandate guard" };
-  const SHORT = { outlayer: "Plain policy", mandate: "Mandate guard" };
+  const GUARD = { outlayer: "Typical limits", mandate: "SIEGE guard" };
+  const SHORT = GUARD;
   const GENERATIONS = 30;
   const MAX = Number($("#mandate").getAttribute("maxlength")) || 2000;
 
@@ -335,7 +335,7 @@
   const guards = {};
   for (const g of ["outlayer", "mandate"]) {
     const root = $(`#g-${g}`);
-    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), dots: $(".spark__dots", root), budget: $(".budget", root), stops: $(".guard__stops", root), unit: $(".guard__unit", root), hist: [], loss: 0 };
+    guards[g] = { root, num: $(".guard__num", root), phase: $(".guard__phase", root), compare: $(".guard__compare", root), clauses: $(".guard__clauses", root), path: $(".spark__line", root), svg: $(".spark__svg", root), v0: $(".spark__val--start", root), v1: $(".spark__val--end", root), budget: $(".budget", root), stops: $(".guard__stops", root), unit: $(".guard__unit", root), hist: [], loss: 0 };
   }
 
   function resetSiege(keepStream = false) {
@@ -350,6 +350,9 @@
     example = false;
     $("#siege-example").hidden = true;
     $("#siege-sum").hidden = true;
+    $("#sum-bound").hidden = true;
+    $("#stage").hidden = true;
+    strikes = new Map();
     evals = {};
     clausesEl.removeAttribute("data-prev");
     $("#siege-prev").hidden = true;
@@ -357,6 +360,7 @@
     stateEl.textContent = "Not started";
     btnLabel.textContent = "Lay siege";
     $$(".guard__preview").forEach((n) => (n.textContent = "Run a siege to see what gets past"));
+    stateEl.hidden = false;
     for (const g of Object.values(guards)) {
       g.hist = [];
       g.loss = 0;
@@ -369,8 +373,7 @@
       g.num.textContent = near(0);
       g.unit.textContent = "NEAR lost";
       g.path.setAttribute("d", "");
-      g.dots.replaceChildren();
-      $(".spark__val", g.root).hidden = true;
+      g.v0.hidden = g.v1.hidden = true;
       g.budget.hidden = true;
     }
     lastBudget = null;
@@ -383,52 +386,40 @@
     $("#play-lines").replaceChildren();
     $("#play-totals").textContent = "";
     attacks = {};
-    $("#honest").hidden = true;
     $("#ledgers").hidden = true;
     $("#next").hidden = true;
     $("#siege-error").hidden = true;
     siegeBtn.removeAttribute("aria-busy");
   }
 
-  // One y-max for both guards, so 1.02 against 177.20 shows the real gap; a loss above 0 still rises at least 2px, gets its break dots and a value label.
+  // One y-max for both guards, so 1.02 against 128.53 shows the real gap; a loss above 0 still rises at least 2px.
+  // A line through each round's best loss, its first and last values printed at its ends.
   function sparkPeak() {
     return Math.max(0, ...Object.values(guards).flatMap((o) => o.hist.filter((v) => v != null)));
   }
   function drawSpark(g) {
-    const h = g.hist;
-    const label = $(".spark__val", g.root);
-    if (!h.length) return g.path.setAttribute("d", ""), label && (label.hidden = true);
+    const h = g.hist.map((v) => v ?? 0);
+    if (!h.length) return g.path.setAttribute("d", ""), (g.v0.hidden = g.v1.hidden = true);
     const n = Math.max(GENERATIONS, h.length);
     const peak = sparkPeak();
     const plotH = g.svg.getBoundingClientRect().height || 48;
     const minRise = (2 * 40) / plotH;
-    const y = (v) => (peak > 0 && (v ?? 0) > 0 ? 38 - Math.max(((v ?? 0) / peak) * 36, minRise) : 38);
-    let d = `M0 ${y(h[0]).toFixed(2)}`;
-    h.forEach((v, i) => {
-      const x0 = (i / n) * 100, x1 = ((i + 1) / n) * 100;
-      d += ` L${x0.toFixed(2)} ${y(v).toFixed(2)} L${x1.toFixed(2)} ${y(v).toFixed(2)}`;
-    });
-    g.path.setAttribute("d", d);
-    // A dot at each generation where the best attack got bigger, so a late jump reads as a find, not a glitch.
-    const breaks = [];
-    h.forEach((v, i) => v > 0 && v > (i ? h[i - 1] ?? 0 : 0) && breaks.push(i));
-    const have = g.dots.childElementCount;
-    if (have > breaks.length) g.dots.replaceChildren();
-    breaks.forEach((i, k) => {
-      const left = `${(((i + 0.5) / n) * 100).toFixed(2)}%`, top = `${((y(h[i]) / 40) * 100).toFixed(2)}%`;
-      const dot = g.dots.children[k] ?? g.dots.appendChild(el("span", { class: "spark__dot" }));
-      dot.style.left = left;
-      dot.style.top = top;
-      dot.title = `Round ${i + 1}: ${near(h[i])} NEAR`;
-    });
-    const last = h.at(-1) ?? 0;
-    const endY = (y(last) / 40) * 100;
-    label.hidden = false;
-    label.textContent = near(last);
-    label.style.left = `${Math.max(0, Math.min(100, (h.length / n) * 100)).toFixed(2)}%`;
-    label.style.top = `${endY.toFixed(2)}%`;
+    const y = (v) => (peak > 0 && v > 0 ? 38 - Math.max((v / peak) * 36, minRise) : 38);
+    const x = (i) => (n > 1 ? (i / (n - 1)) * 100 : 0);
+    g.path.setAttribute("d", h.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(2)} ${y(v).toFixed(2)}`).join(" ") + (h.length === 1 ? ` L${x(0.5).toFixed(2)} ${y(h[0]).toFixed(2)}` : ""));
+    const end = h.length - 1;
+    g.v1.hidden = false;
+    g.v1.textContent = near(h[end]);
+    g.v1.style.left = `${x(end).toFixed(2)}%`;
+    g.v1.style.top = `${((y(h[end]) / 40) * 100).toFixed(2)}%`;
+    g.v1.dataset.side = x(end) < 30 ? "left" : "right";
+    // The start label only once the line has run far enough that the two labels cannot collide.
+    g.v0.hidden = x(end) < 40;
+    g.v0.textContent = near(h[0]);
+    g.v0.style.top = `${((y(h[0]) / 40) * 100).toFixed(2)}%`;
+    const first = h.findIndex((v) => v > 0);
     const name = g.svg.getAttribute("aria-label").split(", ").slice(-1)[0];
-    g.svg.setAttribute("aria-label", `Chart: best loss found by attack round, ${name}. ${breaks.length ? `Bigger breaks found in round ${list(breaks.map((i) => String(i + 1)))}.` : "No break found."}`);
+    g.svg.setAttribute("aria-label", `Chart: best loss found by attack round, ${name}. ${first < 0 ? "No break found." : `First break in round ${first + 1}; ${near(h[end])} NEAR by round ${end + 1}.`}`);
   }
 
   // ---------- play by play ----------
@@ -476,15 +467,15 @@
     else if (p.dripped) what.append(` It split the theft into ${p.payments} small payments.`);
     const o = p.verdicts.outlayer, m = p.verdicts.mandate;
     const plain = o.paid
-      ? `Plain policy paid it${o.lost > p.amount + 0.005 ? `; the whole attack took ${near(o.lost)} NEAR` : ""}.`
-      : `Plain policy refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of the attack still took ${near(o.lost)} NEAR` : ""}.`;
+      ? `Typical limits paid it${o.lost > p.amount + 0.005 ? `; the whole attack took ${near(o.lost)} NEAR` : ""}.`
+      : `Typical limits refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of the attack still took ${near(o.lost)} NEAR` : ""}.`;
     const guard = m.paid
       ? m.novel ? "The guard paid it from its new-payee allowance: the most it lets go to payees your rules never named." : "The guard paid it too."
       : `The guard refused: ${because(m.reason, p)}.`;
     return el(
       "li",
       { class: `line${reduced ? "" : " line--fresh"}` },
-      el("p", { class: "line__meta" }, el("span", { class: "line__round num", text: `Round ${p.round}` }), ` against ${p.guard === "outlayer" ? "plain policy" : "the guard"}`, ...tagsOf(p).map(([k, t]) => el("span", { class: `tech tech--${k}`, text: t }))),
+      el("p", { class: "line__meta" }, el("span", { class: "line__round num", text: `Round ${p.round}` }), ` against ${p.guard === "outlayer" ? "typical limits" : "the SIEGE guard"}`, ...tagsOf(p).map(([k, t]) => el("span", { class: `tech tech--${k}`, text: t }))),
       what,
       el("p", { class: "line__out" }, el("span", { class: `line__v line__v--${o.paid ? "lost" : "held"}`, text: plain }), " ", el("span", { class: `line__v line__v--${m.paid ? (m.novel ? "budget" : "lost") : "held"}`, text: guard })),
     );
@@ -498,7 +489,8 @@
   }
   function playTotals(p) {
     const lost = (k) => near(Math.max(0, ...guards[k].hist.filter((v) => v != null)));
-    $("#play-totals").textContent = `${p.evaluations.toLocaleString("en")} attacks tried on ${SHORT[p.guard].toLowerCase()}. Paid out so far: plain policy ${lost("outlayer")} NEAR, the guard ${lost("mandate")} NEAR.`;
+    const n = Object.values(evals).reduce((a, x) => a + x, 0);
+    $("#play-totals").textContent = `${n.toLocaleString("en")} attacks tried. Paid out so far: typical limits ${lost("outlayer")} NEAR, the SIEGE guard ${lost("mandate")} NEAR.`;
   }
 
   // The outcome in one line above the cards. While the siege runs these are running totals, never the result.
@@ -511,59 +503,109 @@
     if (!d) {
       const n = Object.values(evals).reduce((a, x) => a + x, 0);
       sum.dataset.tone = "running";
-      sum.append("Running totals: plain rules ", fig(`${near(bestOf("outlayer"))} NEAR`), " lost · your guard ", fig(near(bestOf("mandate"))), ` · ${n.toLocaleString("en")} attacks tried so far`);
+      sum.append("So far: typical limits lost ", fig(`${near(bestOf("outlayer"))} NEAR`), " · SIEGE guard lost ", fig(near(bestOf("mandate"))), ` · ${n.toLocaleString("en")} attacks tried`);
     } else {
       const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0;
       sum.dataset.tone = "done";
-      sum.append("Plain rules lost ", fig(`${near(o)} NEAR`), " · Your guard lost ", fig(near(m)), d.budget?.withinBudget ? ", inside its allowance" : "", ` · ${d.evaluations.toLocaleString("en")} attacks tried (bounded search)`);
+      sum.append("Typical limits lost ", fig(`${near(o)} NEAR`), " · SIEGE guard lost ", fig(`${near(m)} NEAR`), d.budget?.withinBudget ? ", inside its allowance" : "");
+      // The headline is the best attack a bounded search found in this run, not a ceiling; the guard's ceiling is its allowance.
+      const bound = $("#sum-bound");
+      bound.textContent = `Best attacks found in ${d.evaluations.toLocaleString("en")} bounded attempts${example ? " in this recorded run" : " in this run"}; not a guarantee.` +
+        (d.budget?.withinBudget ? ` The guard’s ceiling is its ${near(d.budget.cap)} NEAR allowance ${hours(d.budget.hours)}, which longer searches reach.` : "");
+      bound.hidden = false;
     }
     sum.hidden = false;
   }
 
+  // The stage line: which round, and that every round attacks both guards in turn.
+  function stageAt(round, total, guard = null, done = false) {
+    $("#stage").hidden = false;
+    $("#stage-fill").style.setProperty("--done", String(total ? round / total : 0));
+    const st = $("#stage-text");
+    st.replaceChildren();
+    if (done) return st.append(el("b", { text: `${total} rounds done.` }), " Each attacked typical limits, then the SIEGE guard.");
+    const step = (g, t) => el("span", { class: "stage__step", "data-on": String(guard === g) }, t);
+    st.append(el("b", { text: `Round ${round} of ${total}` }), " ", step("outlayer", "1. Attack typical limits"), el("span", { class: "stage__arrow", "aria-hidden": "true", text: " → " }), step("mandate", "2. Attack SIEGE guard"));
+  }
   function onProgress(p) {
     const g = guards[p.guard];
     if (!g) return;
     evals[p.guard] = p.evaluations;
-    for (const [k, o] of Object.entries(guards)) if (k !== p.guard && o.root.dataset.phase === "running") finishGuard(k);
     g.root.dataset.phase = "running";
     g.hist[p.generation] = p.bestLoss;
     g.num.textContent = near(p.bestLoss);
     g.unit.textContent = unitText();
     g.phase.textContent = `Attack round ${p.generation + 1} of ${p.generations}`;
-    stateEl.textContent = `Attacking ${SHORT[p.guard].toLowerCase()}, ${p.evaluations.toLocaleString("en")} attacks tried`;
-    announce(`${GUARD[p.guard]}: attack round ${p.generation + 1} of ${p.generations}, ${near(p.bestLoss)} NEAR lost so far.`);
+    stageAt(p.generation + 1, p.generations, p.guard);
+    stateEl.textContent = `${Object.values(evals).reduce((x, y) => x + y, 0).toLocaleString("en")} attacks tried`;
+    if (p.guard === "mandate") announce(`Attack round ${p.generation + 1} of ${p.generations}: typical limits ${near(bestOf("outlayer"))} NEAR lost, SIEGE guard ${near(p.bestLoss)}.`);
     Object.values(guards).forEach(drawSpark);
     redline(p);
+    strike(p);
     playTotals(p);
     sumLine();
     if (p.play) onPlay(p.play);
   }
 
   // ---------- the key ----------
-  // The red underline means the plain policy lost money on that sentence, even where the Mandate guard held it.
-  // The number badge carries the Mandate guard's outcome. The key lists only the marks on screen.
+  // Two marks only. Coral: the attack got money out through this rule (the underline, the strip bars, a coral number).
+  // Green: the SIEGE guard held this rule.
   const keyEl = $("#key");
-  function showKey(seen) {
-    const sample = (cls, t) => el("span", { class: `key__item` }, el("span", { class: cls, "aria-hidden": "true", text: cls.includes("badge") ? "1" : "Red underline" }), t);
-    keyEl.replaceChildren();
-    if (!seen) keyEl.append(sample("key__line", "the plain policy was breached here"), el("span", { class: "key__item key__wait", text: "Numbers turn green where the Mandate guard holds, once the siege ends." }));
-    else {
-      if (seen.has("plain")) keyEl.append(sample("key__line", "the plain policy was breached here"));
-      if (seen.has("held")) keyEl.append(sample("key__badge key__badge--held", "the Mandate guard held"));
-      if (seen.has("budget")) keyEl.append(sample("key__badge key__badge--budget", "the guard paid only from its new-payee allowance"));
-      if (seen.has("lost")) keyEl.append(sample("key__badge key__badge--lost", "the Mandate guard was breached"));
+  function showKey(done) {
+    keyEl.replaceChildren(
+      el("span", { class: "key__item" }, el("span", { class: "key__swatch key__swatch--hit", "aria-hidden": "true" }), "money got out"),
+      el("span", { class: "key__item" }, el("span", { class: "key__badge key__badge--held", "aria-hidden": "true", text: "1" }), done ? "SIEGE guard held this rule" : "SIEGE guard held, once the siege ends"),
+      el("span", { class: "key__item key__axis" }, "Strips: attack rounds 1 to ", String(GENERATIONS)),
+    );
+    keyEl.hidden = false;
+  }
+
+  // ---------- the assault timeline ----------
+  // Under each rule, one strip per guard with a cell per attack round. A cell rises in coral when that round's best attack
+  // got money out through this rule, scaled to the largest loss on any rule, so the siege is drawn onto the text it broke.
+  let strikes = new Map(); // clause index -> the strip element, kept across the live and the final render
+  let strikePeak = 0;
+  function strikeFor(index) {
+    if (strikes.has(index)) return strikes.get(index);
+    const row = (g) =>
+      el("span", { class: "strike__row", "data-guard": g },
+        el("span", { class: "strike__who", text: g === "outlayer" ? "Typical" : "SIEGE" }),
+        el("span", { class: "strike__cells" }, ...Array.from({ length: GENERATIONS }, () => el("span", { class: "strike__cell" }))));
+    const strip = el("span", { class: "strike", "aria-hidden": "true" }, row("outlayer"), row("mandate"));
+    strikes.set(index, strip);
+    return strip;
+  }
+  function strike(p) {
+    const loss = new Map((p.marks ?? []).map((m) => [m.index, m.loss]));
+    const top = Math.max(0, ...loss.values());
+    if (top > strikePeak) (strikePeak = top), clausesEl.style.setProperty("--peak", String(strikePeak));
+    for (const [index, strip] of strikes) {
+      const cell = strip.querySelector(`[data-guard="${p.guard}"] .strike__cell:nth-child(${p.generation + 1})`);
+      if (!cell) continue;
+      const v = loss.get(index) ?? 0;
+      cell.dataset.r = v > 0 ? "hit" : "held";
+      if (v > 0) cell.style.setProperty("--loss", String(v)), (cell.title = `Round ${p.generation + 1}: ${near(v)} NEAR out`);
     }
-    keyEl.hidden = !keyEl.childElementCount;
+  }
+  // A purpose sentence reads as a rule when it is labelled as one.
+  function clauseText(s) {
+    const t = el("span", { class: "clause__text" });
+    if (s.roles?.length === 1 && s.roles[0] === "purpose" && /^for\s/i.test(s.text)) t.append(el("span", { class: "clause__kind", text: "Purpose: " }), s.text.replace(/^for\s+/i, ""));
+    else t.append(s.text);
+    return t;
   }
 
   // ---------- live red-lining ----------
   // While the siege runs, the mandate is shown as clauses and each one is marked the moment the attacker first gets through it.
   function liveClauses() {
-    showKey(null);
+    showKey(false);
     clausesEl.replaceChildren();
     generalEl.replaceChildren();
+    strikes = new Map();
+    strikePeak = 0;
+    clausesEl.style.setProperty("--peak", "1");
     for (const s of compiled?.sentences ?? []) {
-      clausesEl.append(el("li", { class: "clause clause--pending", "data-index": s.index }, el("span", { class: "clause__text", text: s.text }), el("div", { class: "note note--live" })));
+      clausesEl.append(el("li", { class: "clause clause--pending", "data-index": s.index }, clauseText(s), strikeFor(s.index), el("div", { class: "note note--live" })));
     }
     return clausesEl.childElementCount > 0;
   }
@@ -575,7 +617,7 @@
       let mark = note && $(`[data-guard="${p.guard}"]`, note);
       if (!note) continue;
       if (!mark) {
-        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]} broken in round ${p.generation + 1}, `, el("span", { class: "note__loss" }));
+        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]}, round ${p.generation + 1}: `, el("span", { class: "note__loss" }));
         note.append(mark);
         if (p.guard === "outlayer" && !li.classList.contains("clause--breach")) li.classList.add("clause--breach", "clause--fresh");
       }
@@ -588,7 +630,6 @@
     g.root.dataset.phase = "done";
     g.num.textContent = near(g.loss);
     Object.keys(guards).forEach(grade);
-    if (siegeEl.dataset.state === "running") announce(`${GUARD[k]} finished: ${near(g.loss)} NEAR lost.`, true);
   }
   // Held: nothing lost. Held to budget: everything lost went through the mandate's new-payee budget and stayed inside it.
   // Mostly held: lost, but at least 90% less than the other guard. Drained: otherwise.
@@ -675,17 +716,23 @@
   // The attack story and the reasoning wait under "How the attack worked".
   const actionOf = (f) => sentence(f.fix.split(/:\s/)[0].split(/,\s+or\s+/)[0]);
   const plural = (n, one, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+  // Each figure here is a sum over the same findings the rule's loss lines show, one guard at a time, so the numbers agree.
   function outcomeOf(fs, all, named = false) {
-    const loss = near(fs.reduce((a, f) => a + f.loss, 0));
-    const n = fs.reduce((a, f) => a + (f.payments ?? 1), 0);
+    const of = (g) => fs.filter((f) => f.guard === g && f.loss > 0);
+    const sum = (xs) => near(xs.reduce((a, f) => a + f.loss, 0));
+    const count = (xs) => xs.reduce((a, f) => a + (f.payments ?? 1), 0);
     // Naming payees or dropping a method stops every payment that went to an account the rules never named.
-    if (fs.every((f) => f.kind === "theft" && f.to && !legit.has(f.to)) && (named || !/Mandate guard|SIEGE/.test(fs[0].fix))) {
+    if (fs.every((f) => f.kind === "theft" && f.to && !legit.has(f.to)) && (named || !/SIEGE/.test(fs[0].fix))) {
       const calls = /drop \S+ from the mandate/.test(fs[0].fix);
-      return `blocks the ${plural(n, calls ? "call" : "payment")} that got money out (${loss} NEAR)`;
+      const o = of("outlayer"), m = of("mandate");
+      const parts = [];
+      if (o.length) parts.push(`blocks the ${plural(count(o), calls ? "call" : "payment")} that got ${sum(o)} NEAR past typical limits`);
+      if (m.length) parts.push(`${o.length ? "and" : "blocks"} the ${sum(m)} NEAR the SIEGE guard ${lastBudget?.withinBudget ? "paid from its allowance" : "let out"}`);
+      return parts.join(" ") || null;
     }
     // Putting the guard in front is backed by this run only where the guard lost nothing on the same rule.
-    if (/Mandate guard/.test(fs[0].fix) && fs.every((f) => f.guard === "outlayer") && !all.some((f) => f.guard === "mandate"))
-      return fs.every((f) => f.kind === "overspend") ? `stops the ${loss} NEAR overshoot; the guard held this rule` : `the guard held this rule, where plain policy lost ${loss} NEAR`;
+    if (/SIEGE guard/.test(fs[0].fix) && fs.every((f) => f.guard === "outlayer") && !all.some((f) => f.guard === "mandate"))
+      return fs.every((f) => f.kind === "overspend") ? `stops the ${sum(fs)} NEAR overshoot; the guard held this rule` : `the guard held this rule, where typical limits lost ${sum(fs)} NEAR`;
     return null;
   }
   function noteFor(findings, s = null) {
@@ -699,7 +746,7 @@
         const n = fs.reduce((a, f) => a + (f.payments ?? 1), 0);
         const inBudget = g === "mandate" && lastBudget?.withinBudget && fs.every((f) => f.kind === "theft");
         line.classList.add(`note__guard--${inBudget ? "budget" : "breach"}`);
-        line.append(el("span", { class: "note__loss", text: inBudget ? `${near(sum)} NEAR within allowance` : `lost ${near(sum)} NEAR` }));
+        line.append(el("span", { class: "note__loss", text: inBudget ? `${near(sum)} NEAR from its allowance` : `lost ${near(sum)} NEAR` }));
         if (n > 1 && fs.every((f) => f.kind === "theft")) line.append(el("span", { class: "note__n", text: `in ${n} payments` }));
       }
       note.append(line);
@@ -734,14 +781,32 @@
     return note;
   }
 
+  // A cap over time can be blown by stolen payments alone. Those count once, as theft on the rule that let them through,
+  // so the cap's own line says how far past it the attack went and where its NEAR is counted, without adding to any total.
+  function capNote(s, all) {
+    if (!s.roles?.includes("window-cap")) return null;
+    const caps = (compiled?.constraints?.windows ?? []).filter((w) => w.token === "NEAR" || w.token === "*");
+    const cap = caps.length ? caps.reduce((a, w) => (w.cap < a.cap ? w : a)) : null;
+    const paid = (attacks.outlayer?.steps ?? []).filter((x) => x.verdict === "allow").reduce((a, x) => a + x.amount, 0);
+    if (!cap || paid <= cap.cap + 0.005) return null;
+    const rules = all.filter((x) => x.findings.some((f) => f.guard === "outlayer" && f.kind === "theft")).map((x) => String(x.index + 1));
+    const note = el("div", { class: "note" });
+    note.append(
+      el("p", { class: "note__guard note__guard--breach" }, el("span", { class: "note__who", text: GUARD.outlayer }), " ", el("span", { class: "note__loss", text: `paid ${near(paid)} NEAR in one attack` })),
+      el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: GUARD.mandate }), " ", el("span", { class: "note__loss", text: "held" })),
+      el("p", { class: "note__how" }, `Payments fired at the same moment raced past this ${near(cap.cap)} NEAR cap.${rules.length ? ` The stolen NEAR is counted once, under rule${rules.length > 1 ? "s" : ""} ${list(rules)}.` : ""}`),
+    );
+    return note;
+  }
+
   // The verdict: one sentence about what the guard changed. The cards above already carry both figures.
   function verdictLine(d) {
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
     let text;
     if (o > 0 && m <= 0) text = `The guard stopped every attack. Without it, the attacker took ${near(o)} NEAR.`;
     else if (o > 0 && m < o) text = `The guard cut the loss from ${near(o)} to ${near(m)} NEAR${b?.withinBudget ? ", all of it inside its new-payee allowance" : ""}.`;
-    else if (o > 0) text = `The guard lost ${near(m)} NEAR; plain policy lost ${near(o)}.`;
-    else if (m > 0) text = `Plain policy held, but the guard lost ${near(m)} NEAR.`;
+    else if (o > 0) text = `The guard lost ${near(m)} NEAR; typical limits lost ${near(o)}.`;
+    else if (m > 0) text = `Typical limits held, but the guard lost ${near(m)} NEAR.`;
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
     v.textContent = text;
@@ -753,20 +818,25 @@
   // and the long version, with the terms spelled out, behind a disclosure.
   function meansLine(d) {
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
-    const lostSteps = (attacks.outlayer?.steps ?? []).filter((s) => s.verdict === "allow" && !legit.has(s.routedTo || s.to) && !(s.kind === "call" && !s.routedTo));
+    // Counted from the findings, the same source as each rule's loss line, so the payments and NEAR here add up to theirs.
+    const fs = [...d.sentences.flatMap((s) => s.findings), ...(d.general ?? [])].filter((f) => f.guard === "outlayer" && f.loss > 0);
+    const theft = fs.filter((f) => f.kind === "theft");
+    const stolen = theft.reduce((a, f) => a + f.loss, 0), overshoot = fs.filter((f) => f.kind === "overspend").reduce((a, f) => a + f.loss, 0);
+    const n = theft.reduce((a, f) => a + (f.payments ?? 1), 0);
     const caps = (compiled?.constraints?.windows ?? []).filter((w) => w.token === "NEAR" || w.token === "*");
     const cap = caps.length ? caps.reduce((a, w) => (w.cap < a.cap ? w : a)) : null;
     const over = cap && o > cap.cap * 1.05;
     const times = over ? (Math.floor(o / cap.cap) >= 2 ? `${Math.floor(o / cap.cap)} times` : "more than") : "";
-    const paid = lostSteps.length > 1 ? ` in ${lostSteps.length} payments` : "";
+    const how = n > 1 ? ` in ${n} payments` : "";
+    const split = overshoot > 0 && stolen > 0 ? `: ${near(stolen)} NEAR to accounts you never named${how}, and ${near(overshoot)} NEAR to your own payees past your cap` : how;
     let short;
-    if (o > 0) short = `Without the guard, one attack took ${near(o)} NEAR${paid}${over ? `, ${times} your ${near(cap.cap)} NEAR ${hours(cap.hours)} limit` : ""}.`;
-    else short = "Plain policy held against every attack SIEGE found this time.";
+    if (o > 0) short = `Without the guard, the best attack took ${near(o)} NEAR${overshoot > 0 && stolen > 0 ? "" : how}${over ? `, ${times} your ${near(cap.cap)} NEAR ${hours(cap.hours)} limit` : ""}.`;
+    else short = "Typical limits held against every attack SIEGE found this time.";
     const full = [];
-    if (o > 0) full.push(`On plain policy, one attack SIEGE found would have cost you ${near(o)} NEAR${paid}${over ? `, ${times} the ${near(cap.cap)} NEAR ${hours(cap.hours)} limit you wrote (payments sent at the same moment raced past it)` : ""}.`);
-    else full.push("Plain policy held against every attack SIEGE found this time.");
-    if (m <= 0) full.push("With the guard in front, no attack got any money out.");
-    else full.push(`With the guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR new-payee allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
+    if (o > 0) full.push(`On typical limits, the best attack SIEGE found took ${near(o)} NEAR${split}.${over ? ` That is ${times} the ${near(cap.cap)} NEAR ${hours(cap.hours)} limit you wrote: payments sent at the same moment raced past it.` : ""}`);
+    else full.push("Typical limits held against every attack SIEGE found this time.");
+    if (m <= 0) full.push("With the SIEGE guard in front, no attack got any money out.");
+    else full.push(`With the SIEGE guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR new-payee allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
     $("#means").textContent = short;
     $("#means").hidden = false;
     $("#means-full").textContent = full.join(" ");
@@ -797,43 +867,40 @@
       if (!g.stops.hidden) g.stops.textContent = `${stopped.toLocaleString("en")} of ${tried.toLocaleString("en")} attacks stopped`;
     }
     clausesEl.replaceChildren();
-    const seen = new Set();
     for (const s of d.sentences) {
       const breach = s.findings.length > 0;
-      const plainBroke = s.findings.some((f) => f.guard === "outlayer");
+      const cn = breach ? null : capNote(s, d.sentences);
+      const plainBroke = !!cn || s.findings.some((f) => f.guard === "outlayer");
       const mf = s.findings.filter((f) => f.guard === "mandate");
       const guardOutcome = !mf.length ? "held" : lastBudget?.withinBudget && mf.every((f) => f.kind === "theft") ? "budget" : "lost";
-      if (plainBroke) seen.add("plain");
-      seen.add(guardOutcome);
       clausesEl.append(
         el(
           "li",
           { class: `clause clause--${plainBroke ? "breach" : "held"}`, "data-index": s.index, "data-guard": guardOutcome },
-          el("span", { class: "clause__text", text: s.text }),
-          breach ? noteFor(s.findings, s) : el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
+          clauseText(s),
+          strikeFor(s.index),
+          breach ? noteFor(s.findings, s) : cn ?? el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
         ),
       );
     }
-    showKey(seen);
+    showKey(true);
     generalEl.replaceChildren();
     if (d.general?.length) {
       generalEl.append(el("h2", { text: "Not tied to one rule" }), noteFor(d.general));
     }
     setMode("annotated");
-    const honest = $("#honest");
-    honest.replaceChildren(`No worse attack found in `, el("b", { text: d.evaluations.toLocaleString("en") }), ` attacks tried across both guards. This is a bounded search, not a proof.`);
-    honest.hidden = false;
     $("#ledgers").hidden = false;
     hasResult = true;
-    stateEl.textContent = example ? "Example run" : `Finished, ${d.evaluations.toLocaleString("en")} attacks tried across both guards`;
-    $("#play-totals").textContent = `Final: plain policy lost ${near(d.losses?.outlayer ?? 0)} NEAR, the guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
+    stateEl.textContent = `${d.evaluations.toLocaleString("en")} attacks tried`;
+    stageAt(GENERATIONS, GENERATIONS, null, true);
+    $("#play-totals").textContent = `Final: typical limits lost ${near(d.losses?.outlayer ?? 0)} NEAR, the SIEGE guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
     renderNext(d);
     if (example) return;
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
-    if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: "auto", block: "start" });
+    if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
     btnLabel.textContent = "Lay siege again";
-    announce(`Siege finished. ${said} Sentences the plain policy lost on are underlined in red in your rules.`, true);
+    announce(`Siege finished. ${said} Rules that typical limits lost on are underlined in coral.`, true);
     // A keyboard user who started the siege lands on the verdict, then tabs on to the clause details and ledgers.
     if (focusAfter()) $("#siege-verdict").focus({ preventScroll: true });
   }
@@ -913,9 +980,9 @@
       $("#siege-error").hidden = true;
     } else clearBoard();
     if (moveFocus) $("#siege-h").focus({ preventScroll: true });
-    announce("Siege started. Attacking plain OutLayer policy first, then the Mandate guard.", true);
+    announce("Siege started. Each round attacks typical limits, then the SIEGE guard.", true);
     // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
-    if (matchMedia("(max-width: 40rem)").matches) siegeEl.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     running("Starting the attacker…");
     const text = ta.value;
     prevRun = lastRun && lastRun.text !== text ? lastRun : null;
@@ -926,9 +993,8 @@
       if (hasResult) clearBoard(true), running("Starting the attacker…");
       const s = JSON.parse(e.data);
       legit = new Set(s.legit || []);
-      guards.outlayer.root.dataset.phase = "running";
-      guards.outlayer.phase.textContent = `Attack round 0 of ${s.generations}`;
-      $(".guard__preview", guards.mandate.root).textContent = "Up next, once the plain policy is done";
+      for (const g of Object.values(guards)) (g.root.dataset.phase = "running"), (g.phase.textContent = `Attack round 0 of ${s.generations}`);
+      stageAt(0, s.generations);
     });
     es.addEventListener("progress", (e) => push("progress", JSON.parse(e.data)));
     es.addEventListener("attack", (e) => push("attack", JSON.parse(e.data)));
@@ -988,7 +1054,7 @@
     else weakEl.textContent = `The guard held every rule. Without it, rule ${weak.s.index + 1} lost the most: ${near(weak.loss)} NEAR.`;
     const fix = fix0;
     // The panel's title is the action itself, from this run's weakest clause.
-    $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the guard as it is" : weak.guardLoss > 0 ? `Fix rule ${weak.s.index + 1}` : "Put the guard in front of your wallet";
+    $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the SIEGE guard as it is" : weak.guardLoss > 0 ? `Fix rule ${weak.s.index + 1}` : "Put the guard in front of your wallet";
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
     if (fix) $("#next-fix-text").textContent = `“${fix}”`;
@@ -1002,12 +1068,14 @@
     await compile();
     laySiege();
   });
-  $("#next-use").addEventListener("click", () => {
-    const x = $("#export");
+  const openPanel = (id) => {
+    const x = $(id);
     x.open = true;
     x.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     $("summary", x).focus({ preventScroll: true });
-  });
+  };
+  $("#next-use").addEventListener("click", () => openPanel("#export"));
+  $("#next-try").addEventListener("click", () => openPanel("#try"));
 
   // ---------- try a transaction ----------
   const form = $("#try-form");
@@ -1113,7 +1181,9 @@
     $$(".line--fresh").forEach((n) => n.classList.remove("line--fresh"));
     $$(".clause--fresh, .live-mark--fresh").forEach((n) => n.classList.remove("clause--fresh", "live-mark--fresh"));
     siegeEl.dataset.example = "true";
-    $("#siege-example").hidden = false;
+    const exEl = $("#siege-example");
+    exEl.hidden = false;
+    exEl.replaceChildren(`Example run on the rules shown, recorded ${ex.recorded}. Press `, el("b", { text: "Lay siege" }), " to run your own.");
   }
   compile().then(() => {
     if (new URLSearchParams(location.search).get("autosiege") === "1" && compileOk) laySiege();

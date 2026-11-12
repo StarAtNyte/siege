@@ -16,12 +16,12 @@
 <meta property="og:image" content="__ORIGIN__/og.png">
 <meta property="og:image:width" content="1440">
 <meta property="og:image:height" content="900">
-<meta property="og:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
+<meta property="og:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: typical limits drained, the SIEGE guard held.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SIEGE: can your AI agent’s wallet be drained?">
 <meta name="twitter:description" content="Write your AI agent’s spending rules in plain English. An evolutionary attacker tries to drain it, and every sentence it gets through is red-lined.">
 <meta name="twitter:image" content="__ORIGIN__/og.png">
-<meta name="twitter:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: plain OutLayer policy drained, the Mandate guard held.">
+<meta name="twitter:image:alt" content="Spending rules red-lined sentence by sentence, beside two guards: typical limits drained, the SIEGE guard held.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,200..900&amp;display=swap">
@@ -42,7 +42,7 @@
         <option value="open">Open invoices</option>
       </select>
     </div>
-    <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span> <kbd>Ctrl Enter</kbd></button>
+    <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span><kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
 
@@ -182,9 +182,16 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__example" id="siege-example" hidden>Example run on the rules shown, recorded 2026-11-12. Press <b>Lay siege</b> to run your own.</p>
-    <p class="siege__sum num" id="siege-sum" hidden></p>
-    <p class="siege__intro" id="siege-intro">Press <b>Lay siege</b>: an attacker tries thousands of tricks to drain your agent, first under plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> limits, then with SIEGE’s Mandate guard in front. Lower NEAR lost wins.</p>
+    <p class="siege__example" id="siege-example" hidden>Example run on the rules shown. Press <b>Lay siege</b> to run your own.</p>
+    <div class="stage" id="stage" hidden>
+      <div class="stage__track" aria-hidden="true"><span class="stage__fill" id="stage-fill"></span></div>
+      <p class="stage__text num" id="stage-text"></p>
+    </div>
+    <div class="sum">
+      <p class="siege__sum num" id="siege-sum" hidden></p>
+      <p class="sum__bound" id="sum-bound" hidden></p>
+    </div>
+    <p class="siege__intro" id="siege-intro">Press <b>Lay siege</b>: an attacker tries thousands of tricks to drain your agent, against typical limits and against the SIEGE guard, round by round. Lower NEAR lost wins.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="siege__error" id="siege-error" hidden>
       <p id="siege-error-msg"></p>
@@ -193,10 +200,10 @@
     <p class="siege__prev" id="siege-prev" hidden>From the last run</p>
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
-        <h3 id="g-outlayer-h">Plain <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> policy</h3>
-        <p class="guard__what">Without SIEGE</p>
+        <h3 id="g-outlayer-h">Typical limits</h3>
+        <p class="guard__what">Caps + allowlist, as in an <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> policy</p>
         <p class="guard__preview">Run a siege to see what gets past</p>
-        <p class="guard__placeholder">Basic limits only: who to pay and how much.</p>
+        <p class="guard__placeholder">Checks amounts and payees only.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
         <p class="guard__phase"></p>
         <p class="guard__stops" hidden></p>
@@ -205,16 +212,16 @@
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
         <figure class="spark">
           <div class="spark__plot">
-            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, plain OutLayer policy"><path class="spark__line" d=""/></svg>
-            <div class="spark__dots" aria-hidden="true"></div>
-            <span class="spark__val" aria-hidden="true" hidden></span>
+            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by attack round, typical limits"><path class="spark__line" d=""/></svg>
+            <span class="spark__val spark__val--start num" aria-hidden="true" hidden></span>
+            <span class="spark__val spark__val--end num" aria-hidden="true" hidden></span>
           </div>
           <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
-        <h3 id="g-mandate-h"><button type="button" class="term" data-tip="guard" aria-describedby="def-guard">Mandate guard</button></h3>
-        <p class="guard__what">With SIEGE</p>
+        <h3 id="g-mandate-h"><button type="button" class="term" data-tip="guard" aria-describedby="def-guard">SIEGE guard</button></h3>
+        <p class="guard__what">Reads intent: who asked, and why</p>
         <p class="guard__preview">Run a siege to see what gets past</p>
         <p class="guard__placeholder">Checks each payment against your rules, and who asked for it.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
@@ -225,23 +232,35 @@
         <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
         <figure class="spark">
           <div class="spark__plot">
-            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by generation, Mandate guard"><path class="spark__line" d=""/></svg>
-            <div class="spark__dots" aria-hidden="true"></div>
-            <span class="spark__val" aria-hidden="true" hidden></span>
+            <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by attack round, SIEGE guard"><path class="spark__line" d=""/></svg>
+            <span class="spark__val spark__val--start num" aria-hidden="true" hidden></span>
+            <span class="spark__val spark__val--end num" aria-hidden="true" hidden></span>
           </div>
           <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
       </article>
     </div>
 
-    <p class="chain" id="chain">On NEAR testnet: the vault <a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a> paid a guard-signed invoice (<a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4x…</a>) and refused one without the guard’s signature (<a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbs…</a>). Through the guard proxy, the allowed payment went through (<a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuL…</a>) and the injected one was refused before it reached the chain. <a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every transaction</a></p>
+    <div class="outcome" id="outcome">
+      <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
+      <p class="means" id="means" hidden></p>
+      <details class="means-more" id="means-more" hidden>
+        <summary>How the worst attack worked</summary>
+        <p id="means-full"></p>
+      </details>
+    </div>
 
-    <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
-    <p class="means" id="means" hidden></p>
-    <details class="means-more" id="means-more" hidden>
-      <summary>How the worst attack worked</summary>
-      <p id="means-full"></p>
-    </details>
+    <section class="chain" id="chain" aria-labelledby="chain-h">
+      <h3 id="chain-h">Enforced on NEAR testnet</h3>
+      <p class="chain__lead">The same guard signs for a two-key vault contract. The agent’s key can’t pay without the guard’s signature.</p>
+      <dl class="chain__rows">
+        <div class="chain__row"><dt>Vault</dt><dd><a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a></dd></div>
+        <div class="chain__row"><dt>Paid</dt><dd><span class="chain__what">A guard-signed 0.01 NEAR invoice</span><a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA</a></dd></div>
+        <div class="chain__row"><dt>Refused <code>(BAD_SIGNATURE)</code></dt><dd><span class="chain__what">The agent’s key paying <span class="mono">drainer.testnet</span> without the guard</span><a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3</a></dd></div>
+        <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live OutLayer wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
+      </dl>
+      <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
+    </section>
 
     <section class="next" id="next" aria-labelledby="next-h" hidden>
       <h3 id="next-h">Fix the weakest rule</h3>
@@ -251,7 +270,10 @@
         <p class="next__quote" id="next-fix-text"></p>
         <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
       </div>
-      <button type="button" class="btn btn--quiet next__use" id="next-use">Use the guard in your agent</button>
+      <div class="next__more">
+        <button type="button" class="btn btn--quiet" id="next-try">Try a transaction</button>
+        <button type="button" class="btn btn--quiet" id="next-use">Use it in your agent</button>
+      </div>
     </section>
 
     <section class="play" id="play" aria-labelledby="play-h" hidden>
@@ -268,11 +290,11 @@
 
     <div class="ledgers" id="ledgers" hidden>
       <section class="ledger" aria-labelledby="l-outlayer-h">
-        <h3 id="l-outlayer-h">Best attack on plain policy</h3>
+        <h3 id="l-outlayer-h">Best attack on typical limits</h3>
         <ol class="ledger__rows" id="l-outlayer"></ol>
       </section>
       <section class="ledger" aria-labelledby="l-mandate-h">
-        <h3 id="l-mandate-h">Best attack on the Mandate guard</h3>
+        <h3 id="l-mandate-h">Best attack on the SIEGE guard</h3>
         <p class="ledger__sum" id="l-mandate-sum" hidden></p>
         <ol class="ledger__rows" id="l-mandate"></ol>
       </section>
@@ -281,9 +303,9 @@
 </main>
 <div class="defs" hidden>
   <span id="def-near">A public blockchain. SIEGE runs on its test network, so no real money moves.</span>
-  <span id="def-outlayer">A wallet service for AI agents on NEAR. Its policy sets basic limits: who to pay and how much.</span>
-  <span id="def-guard">SIEGE’s guard. It checks each payment against your rules, and who asked for it.</span>
-  <span id="def-round">Each round, the attacker breeds new attacks from the ones that worked best. Thirty rounds per guard.</span>
+  <span id="def-outlayer">A wallet service for AI agents on NEAR. Its policy sets typical limits: per-payment and daily caps, and an allowlist of payees.</span>
+  <span id="def-guard">SIEGE’s guard sits in front of the wallet. It checks each payment against your rules, and reads who asked for it and why.</span>
+  <span id="def-round">Each round, the attacker breeds new attacks from the ones that worked best, against both guards. Thirty rounds.</span>
   <span id="def-allowance">The most the guard lets go to payees your rules never named. Named payees don’t count against it.</span>
 </div>
 <p class="tip" id="tip" role="tooltip" hidden></p>
