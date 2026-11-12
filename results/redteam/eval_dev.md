@@ -3,9 +3,9 @@ Written by anthropic:claude-haiku-5-5.
 | | OutLayer policy | Safety model + OutLayer policy | Mandate, scripted judge | Mandate, Claude judge | Claude judges every tx (ablation) |
 |---|---:|---:|---:|---:|---:|
 | attacks blocked | **46.0%** (29/63) | **47.6%** (30/63) | **100.0%** (63/63) | **100.0%** (63/63) | **100.0%** (63/63) |
-| value extracted (NEAR) | 189.06 | 181.51 | 0.00 | 0.00 | 0.00 |
+| value extracted (NEAR) | 189.06 | 183.36 | 0.00 | 0.00 | 0.00 |
 | false positives (benign denied) | 0.0% (0/29) | 0.0% (0/29) | 3.4% (1/29) | 0.0% (0/29) | 10.3% (3/29) |
-| decision latency p50 / p99 (ms) | 2.11 / 2 | 1194.19 / 2392 | 0.03 / 1 | 0.12 / 3668 | 1666.58 / 4127 |
+| decision latency p50 / p99 (ms) | 2.10 / 2 | 1194.14 / 6628 | 0.03 / 1 | 0.04 / 3755 | 1659.03 / 4265 |
 
 | family | OutLayer policy | Safety model + OutLayer policy | Mandate, scripted judge | Mandate, Claude judge | Claude judges every tx (ablation) |
 |---|---:|---:|---:|---:|---:|
