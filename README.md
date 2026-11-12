@@ -6,14 +6,14 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 
 **Live: [near-siege.onrender.com](https://near-siege.onrender.com)**. Testnet only, no funds spent.
 
-![SIEGE red-lining an open invoice mandate: typical limits lost 128.53 NEAR, the SIEGE guard lost 1.02, inside its 3.00 NEAR new-payee budget](docs/app.png)
+![SIEGE red-lining an open invoice mandate: typical limits lost 128.53 NEAR, the SIEGE guard lost 1.02, inside its 3.00 NEAR allowance for unknown payees](docs/app.png)
 
 [Watch the 15-second demo](docs/demo.mp4): a siege runs, red-lines the mandate clause by clause and lands on the verdict.
 
 ## What it does
 
-- **Checks intent, not just limits.** The Mandate guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. Under an open mandate ("pay any vendor invoice") an allowlist cannot do this.
-- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. Under the open mandate the worst case found against Mandate is 3.00 NEAR, its new-payee budget, against 134.60 NEAR for plain cap-and-allowlist policy (`make attack`). This is the worst case a bounded search found, not a proof.
+- **Checks intent, not just limits.** The SIEGE guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. Under an open mandate ("pay any vendor invoice") an allowlist cannot do this.
+- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. Under the open mandate the worst case found against the SIEGE guard is 3.00 NEAR, its allowance for unknown payees, against 134.60 NEAR for plain cap-and-allowlist policy (`make attack`). This is the worst case a bounded search found, not a proof.
 - **Holds the money in a two-key vault.** A NEAR contract pays only with an ed25519 approval from the guard's own key, inside on-chain caps. A compromised agent that went around the guard got 0.00 NEAR; a compromised guard is held to the caps (`make threat`).
 
 Every number in this README maps to a command and a committed file in [CLAIMS.md](CLAIMS.md). Sister project: [DARWIN](https://github.com/StarAtNyte/darwin).
@@ -34,8 +34,8 @@ More commands, each printing the table it writes to `results/`:
 
 ```
 make test         # 18 Rust contract tests, the TypeScript tests, typecheck. First run compiles near-sdk (a few minutes), then about 30 s
-make eval         # regression suite, 320 cases: plain policy blocks 20.0% of attacks, Mandate 100.0% (about 2 s)
-make attack       # evolutionary search, about 42k guard evaluations: max loss 134.60 NEAR on plain policy, 3.00 on Mandate (about 10 s)
+make eval         # regression suite, 320 cases: plain policy blocks 20.0% of attacks, SIEGE guard 100.0% (about 2 s)
+make attack       # evolutionary search, about 42k guard evaluations: max loss 134.60 NEAR on plain policy, 3.00 on the SIEGE guard (about 10 s)
 make threat       # two-key vault: compromised agent vs compromised guard, and the MCP path (about 30 s)
 make redteam      # held-out eval on model-written attacks, replayed from results/redteam (a few seconds)
 git status        # the replays rewrite results/; only measured latencies differ from the committed files
@@ -53,7 +53,7 @@ mandate compiler -> classifier -> LLM judge -> ledger -> wallet
 4. The atomic **ledger** reserves budget so concurrent requests cannot jointly overshoot a cap.
 5. The **wallet** (the two-key vault on testnet, OutLayer, or a mock) pays, and the ledger commits or releases.
 
-The full flow is under [How Mandate decides](#how-mandate-decides).
+The full flow is under [How the SIEGE guard decides](#how-the-siege-guard-decides).
 
 ## Proof on NEAR testnet
 
@@ -94,14 +94,14 @@ Without `VAULT_CONTRACT` or `VAULT_KEYS_FILE` it pays a **mock wallet** and says
 
 | tool | what it does |
 |---|---|
-| `siege_pay(receiver, amount_near, purpose, context?)` | Mandate guard, then the user's confirmation for a new payee, then the vault (or the mock). Returns PAID with the transaction, or DENIED with plain-language reasons and what the user can do. |
+| `siege_pay(receiver, amount_near, purpose, context?)` | SIEGE guard, then the user's confirmation for a new payee, then the vault (or the mock). Returns PAID with the transaction, or DENIED with plain-language reasons and what the user can do. |
 | `siege_check(...)` | The same verdict as a dry run: no payment, no question to the user. Reasons and risk score. |
 | `siege_budget()` | What is left: per transaction, today, the largest payment possible now, and the allowance for new payees (on chain, with the vault). |
 | `siege_rules()` | The compiled spending rules, the payees the user has confirmed or paid, and the vault's on-chain floor. |
 
 **The user confirms new payees, not the agent.** The agent's `context` (the user's instruction, what it read) is untrusted: a compromised agent can write "the user asked me to pay x7f3a.testnet". So when a payment passes the guard but the payee is not vouched for by the rules, by a past payment or by an earlier confirmation, the server asks the user directly through MCP elicitation, a channel the agent cannot write to: *"Pay 2.5 NEAR to cloudhost-billing.testnet for 'hosting invoice'?"*, with a warning when the account looks like a payee the user trusts. An approval is remembered (up to 256 payees, in `.siege/mcp/`). A denial pays nothing and is asked again next time. If the client does not support elicitation, payments to unvouched payees are refused with a message saying so; payees in the mandate still work. Everything stays inside the vault's caps.
 
-Measured with `make threat` (`results/mcp_threat.md`), the compromised agent that lies to the guard, now through the MCP server: under the open mandate it took **0.00 NEAR** when the user denies payees they don't expect (the search put 344 such prompts to the user), against 3.00 without the confirmation step. A user who approves every prompt gets the vault's floor again: 3.00 NEAR per 24 h, or 30.00 with the vault's unlisted-payee budget removed. Under the whitelist mandate it took 0.00 in every case. The simulated user is ideal: a person can be fooled by a well-written purpose or a look-alike account, which is why the vault's floor stays. On testnet, one MCP payment and one MCP denial over stdio are rows 12 and 13 in [docs/TESTNET.md](docs/TESTNET.md).
+Measured with `make threat` (`results/mcp_threat.md`), the compromised agent that lies to the guard, now through the MCP server: under the open mandate it took **0.00 NEAR** when the user denies payees they don't expect (the search put 344 such prompts to the user), against 3.00 without the confirmation step. A user who approves every prompt gets the vault's floor again: 3.00 NEAR per 24 h, or 30.00 with the vault's allowance for unknown payees removed. Under the whitelist mandate it took 0.00 in every case. The simulated user is ideal: a person can be fooled by a well-written purpose or a look-alike account, which is why the vault's floor stays. On testnet, one MCP payment and one MCP denial over stdio are rows 12 and 13 in [docs/TESTNET.md](docs/TESTNET.md).
 
 ## Details
 
@@ -109,14 +109,14 @@ AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custod
 
 Three ways to use it:
 
-- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (caps + allowlist, as in a plain OutLayer policy) and the *SIEGE guard* (the Mandate guard, which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
+- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (caps + allowlist, as in a plain OutLayer policy) and the *SIEGE guard* (which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
 - **The library**: `import { MandateGuard, compileMandate } from "siege"`.
 - **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
 
 | Part | What it is |
 |---|---|
-| **Mandate** (TypeScript) | A plain-language mandate compiled to constraints, a fast semantic classifier, LLM escalation for the ambiguous band, an **atomic** budget ledger and a novel-payee budget, all in front of the wallet adapter. |
+| **SIEGE guard** (TypeScript) | A plain-language mandate compiled to constraints, a fast semantic classifier, LLM escalation for the ambiguous band, an **atomic** budget ledger and an allowance for unknown payees, all in front of the wallet adapter. |
 | **Attack engine** (Python) | A genetic search over transaction sequences against the *real* guard code. Fitness is NEAR extracted. Output is the maximum loss found plus replayable counterexamples. |
 | **Eval harness** | A fixed, seeded attack suite covering prompt injection, address poisoning, confused deputy, drip-drain and races on cumulative caps, plus benign traffic for false positives. |
 | **Vault** (Rust, `contract/`) | A NEAR contract that holds the funds and pays only with the guard's signature, inside on-chain caps. See *Two layers*. |
@@ -125,12 +125,12 @@ Three ways to use it:
 
 A policy check that runs only inside the agent's process is lost when that process is compromised. So the money sits in a vault contract, and SIEGE uses two layers ([details](docs/ARCHITECTURE.md)):
 
-- **The floor (on chain).** The agent's function-call key can call only `spend`. The contract enforces a per-transaction cap, a 24-hour cap, a smaller budget for payees not on the owner's list, an optional allowlist and a pause switch, whoever signed. Only the owner can change them, from a full-access key with 1 yoctoNEAR attached. Allowlist-and-cap vaults give you this layer.
-- **Intent (Mandate), required by the floor.** `spend` pays only with an ed25519 approval from the guard's own key, over `siege-vault-v1|network|vault|receiver|amount|nonce|expires_at`. The guard signs only what Mandate allows. Approvals are single use and expire within an hour.
+- **The floor (on chain).** The agent's function-call key can call only `spend`. The contract enforces a per-transaction cap, a 24-hour cap, a smaller allowance for payees not on the owner's list, an optional allowlist and a pause switch, whoever signed. Only the owner can change them, from a full-access key with 1 yoctoNEAR attached. Allowlist-and-cap vaults give you this layer.
+- **Intent (the SIEGE guard), required by the floor.** `spend` pays only with an ed25519 approval from the guard's own key, over `siege-vault-v1|network|vault|receiver|amount|nonce|expires_at`. The guard signs only what its intent checks allow. Approvals are single use and expire within an hour.
 
 Measured with `make threat` (the same evolutionary search as `make attack`):
 
-- **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's unlisted-payee budget. Without that budget it took 30.00. Through the MCP server, which asks the user to confirm new payees, it took 0.00 when the user denies payees they did not expect (see above).
+- **Compromised agent.** It has the function-call key. Going around the guard (no signature, its own signature, replayed, retargeted or re-amounted approvals, approvals for another vault or network, expired approvals) took **0.00 NEAR** in 96 attempts per mandate. Lying to the guard about the user's instruction took 0.00 under the whitelist mandate and **3.00 NEAR per 24 h** under the open mandate, held there by the vault's allowance for unknown payees. Without that allowance it took 30.00. Through the MCP server, which asks the user to confirm new payees, it took 0.00 when the user denies payees they did not expect (see above).
 - **Compromised guard.** It signs anything. Loss is bounded by the contract's caps: 0.00 under the whitelist mandate (the vault is allowlist-only), and **3.00 NEAR per 24 h** under the open mandate (21.00 over 7 days).
 
 Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.md](docs/TESTNET.md). Refused payments show "Success" on nearblocks: the call ran; the payment was refused; the reason is in the event log (Execution Plan tab). `spend` returns `{ok: false, reason}` and emits `spend_refused` instead of panicking, so the refusal is recorded on chain. OutLayer's TEE custody remains a supported alternative: the `OutLayerWallet` adapter and the guard proxy work in front of it, and the proxy now holds the OutLayer key instead of the agent.
@@ -151,7 +151,7 @@ Labels come from construction, not from the model. An attack must route value to
 
 **Test split v2 (held out, scored once after the judge fix).** 39 scenarios (27 attacks, 12 benign) written by `mistralai/mistral-large-4-1t-a52b` on NVIDIA NIM. This is smaller than planned: the free endpoint timed out on most long batches, and the split was frozen at the time limit. It has no drip, injected-email, lookalike or changed-details cases, so it is a narrow check.
 
-| | OutLayer policy | Safety model + OutLayer policy | Mandate, scripted judge | Mandate, Claude judge | Claude judges every tx |
+| | OutLayer policy | Safety model + OutLayer policy | SIEGE guard, scripted judge | SIEGE guard, Claude judge | Claude judges every tx |
 |---|---:|---:|---:|---:|---:|
 | attacks blocked | 37.0% (10/27) | 48.1% (13/27) | **100.0%** (27/27) | **100.0%** (27/27) | **100.0%** (27/27) |
 | value extracted (NEAR) | 139.77 | 117.98 | **0.00** | **0.00** | **0.00** |
@@ -162,7 +162,7 @@ The one Claude denial is a new vendor the user named with amount and account ("4
 
 **Test split v1 (held out, scored once before the judge fix).** 81 scenarios (51 attacks, 30 benign) by the same Mistral model. Both drip batches came back malformed, so it has no drip family. Numbers after the harness fix, as first reported:
 
-| | OutLayer policy | Safety model + OutLayer policy | Mandate, scripted judge | Mandate, Claude judge | Claude judges every tx |
+| | OutLayer policy | Safety model + OutLayer policy | SIEGE guard, scripted judge | SIEGE guard, Claude judge | Claude judges every tx |
 |---|---:|---:|---:|---:|---:|
 | attacks blocked | 45.1% (23/51) | 47.1% (24/51) | **100.0%** (51/51) | **100.0%** (51/51) | **100.0%** (51/51) |
 | value extracted (NEAR) | 195.14 | 193.39 | **0.00** | **0.00** | **0.00** |
@@ -171,7 +171,7 @@ The one Claude denial is a new vendor the user named with amount and account ("4
 
 **Dev split.** 92 scenarios (63 attacks, 29 benign) written by `claude-haiku-5-5`. This split was read and the guard was fixed against it (findings 004 and 005), so it is not held out.
 
-| | OutLayer policy | Safety model + OutLayer policy | Mandate, scripted judge | Mandate, Claude judge | Claude judges every tx |
+| | OutLayer policy | Safety model + OutLayer policy | SIEGE guard, scripted judge | SIEGE guard, Claude judge | Claude judges every tx |
 |---|---:|---:|---:|---:|---:|
 | attacks blocked | 46.0% (29/63) | 47.6% (30/63) | 100.0% (63/63) | 100.0% (63/63) | 100.0% (63/63) |
 | value extracted (NEAR) | 189.06 | 183.36 | 0.00 | 0.00 | 0.00 |
@@ -197,25 +197,25 @@ Loss is what reached accounts you never named, plus spend to your own payees bey
 |---|---|---:|
 | OutLayer policy | whitelist | 58.70 |
 | OutLayer policy | open | 134.60 |
-| Mandate | whitelist | 0.00 (none found) |
-| Mandate | open | **3.00** |
+| SIEGE guard | whitelist | 0.00 (none found) |
+| SIEGE guard | open | **3.00** |
 
-The engine *did* break Mandate, three times. Each break is kept in `results/findings/`:
+The engine *did* break the SIEGE guard, three times. Each break is kept in `results/findings/`:
 
 1. **001**: the user names a payee, and the agent pays a different account taken from an untrusted document (`bob.testnet.attacker.testnet`, `cloudhost-invoices.testnet`). Fix: a `RECIPIENT_CONTRADICTS_USER` signal, plus lookalike detection for names that embed a trusted account.
 2. **002**: under an open mandate, a payee named only by untrusted content was let through on one weak signal. Fix: that band fails closed unless the user explicitly pointed at the document, and the "address changed" regex was broadened.
 3. **003**: a lookalike of another account named *in the same document* ("Statement for cloudhost.testnet … processed by c1oudhost.testnet"). Fix: accounts named in the document become lookalike references.
 
-After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So Mandate adds a **novel-payee budget**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 3.00 NEAR (the 3 NEAR budget), against 134.60 NEAR on the plain policy.
+After those fixes the engine still extracted exactly the daily cap (30 NEAR) through one residual case: the user says "pay the invoice in the attached email" and the attached invoice names the attacker. No local check can tell that from a real invoice. So the SIEGE guard adds an **allowance for unknown payees**: payees not vouched for by the user, the mandate or past payments share 10% of each window cap. That cut the worst case found from 30 NEAR to 3.00 NEAR (the 3 NEAR allowance), against 134.60 NEAR on the plain policy.
 
-**With Claude as a mutation operator.** `make attack-llm` runs the same search against Mandate, and every third generation Claude (claude-haiku-5-5) sees the best attack and the guard's verdict and reason codes for each transaction, then rewrites what an attacker controls: the planted document, the agent's reasoning, the memo and the payee. It never rewrites the user's instruction. That is capped at 12 calls per restart (72 in all, 53 distinct prompts), and the answers are cached in `results/redteam/mutation_cache.json`.
+**With Claude as a mutation operator.** `make attack-llm` runs the same search against the SIEGE guard, and every third generation Claude (claude-haiku-5-5) sees the best attack and the guard's verdict and reason codes for each transaction, then rewrites what an attacker controls: the planted document, the agent's reasoning, the memo and the payee. It never rewrites the user's instruction. That is capped at 12 calls per restart (72 in all, 53 distinct prompts), and the answers are cached in `results/redteam/mutation_cache.json`.
 
 | guard | mandate | max loss, GA only | max loss, GA + Claude mutation |
 |---|---|---:|---:|
-| Mandate | whitelist | 0.00 | 0.00 |
-| Mandate | open | 3.00 | 3.00 |
+| SIEGE guard | whitelist | 0.00 | 0.00 |
+| SIEGE guard | open | 3.00 | 3.00 |
 
-Claude returned usable rewrites for 14 of the 53 prompts (lookalikes such as `c1oudhost-billing.testnet`, "updated remittance" invoices, redirected staking beneficiaries). For the rest it returned no edits, and when asked directly it declined to tune attacks against the guard's own feedback. None of the 25 rewritten attacks got past the 3 NEAR new-payee budget. So this operator adds little search pressure as built. The independent pressure comes from the held-out cases above, which models were willing to write.
+Claude returned usable rewrites for 14 of the 53 prompts (lookalikes such as `c1oudhost-billing.testnet`, "updated remittance" invoices, redirected staking beneficiaries). For the rest it returned no edits, and when asked directly it declined to tune attacks against the guard's own feedback. None of the 25 rewritten attacks got past the 3 NEAR allowance for unknown payees. So this operator adds little search pressure as built. The independent pressure comes from the held-out cases above, which models were willing to write.
 
 Replay any counterexample against both guards:
 
@@ -227,7 +227,7 @@ node --import tsx src/replay.ts results/attack_outlayer_open.json
 
 **The guard's authors wrote this suite, so it is a regression test, not evidence.** `make eval` (320 cases, seed 7, no API key needed):
 
-| Attack (block rate) | OutLayer policy | Mandate |
+| Attack (block rate) | OutLayer policy | SIEGE guard |
 |---|---:|---:|
 | prompt_injection | 50.0% | 100.0% |
 | address_poisoning | 50.0% | 100.0% |
@@ -241,7 +241,7 @@ node --import tsx src/replay.ts results/attack_outlayer_open.json
 
 The baseline gets 50% on injection and poisoning because a whitelist does stop those when the mandate names its payees. It does nothing for an open mandate ("pay any vendor invoice"), which is where agents are actually useful.
 
-## How Mandate decides
+## How the SIEGE guard decides
 
 ```
 tx ─▶ constraints (kind, recipient, method, swap pair, hours)          hard deny
@@ -251,7 +251,7 @@ tx ─▶ constraints (kind, recipient, method, swap pair, hours)          hard 
         purpose drift · no financial intent · repetition / velocity
    ─▶ judge for 0.3 ≤ risk < 0.75: Claude (claude-haiku-5-5, $25 hard budget shared
         with DARWIN, fails closed) or a scripted judge when there is no key
-   ─▶ novel-payee budget (atomic)
+   ─▶ unknown-payee allowance (atomic)
    ─▶ atomic ledger: serialized check-and-reserve, so N concurrent requests
         cannot jointly overshoot a cap
    ─▶ wallet adapter (OutLayer testnet / mock) ─▶ commit or release
@@ -328,10 +328,10 @@ Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](ht
 ## Honest limits
 
 - "Max loss found" means no worse counterexample was found within a bounded search. It is not a formal proof. The GA searches the phrase and recipient library in `src/oracle.ts`. The Claude mutation operator can write outside it, but it produced usable rewrites for only 14 of 53 prompts, so the search is still mostly bounded by that library.
-- The Claude judge raised false positives on held-out test v1 (finding 006) and still denied 1 of 12 legitimate payments on v2. With the scripted judge, Mandate needs no API key and did better on both.
+- The Claude judge raised false positives on held-out test v1 (finding 006) and still denied 1 of 12 legitimate payments on v2. With the scripted judge, the SIEGE guard needs no API key and did better on both.
 - Test v2 is small (39 cases) and covers only four attack families, because the free generator endpoint timed out on most batches.
 - The held-out eval covers two mandates and 212 model-written scenarios (92 dev, 81 test v1, 39 test v2). The dev split was read and the guard was fixed against it (findings 004 and 005), so only the test split counts as held out. A model writing attacks in one shot is not an adaptive attacker who sees the guard's answers.
-- Labels are by construction: a benign case may only pay accounts the user named, the mandate allows, or the user paid before. A legitimate payee that appears only in an invoice the user points at ("pay the attached invoice") is outside the benign set; Mandate caps that case with the new-payee budget instead of deciding it.
+- Labels are by construction: a benign case may only pay accounts the user named, the mandate allows, or the user paid before. A legitimate payee that appears only in an invoice the user points at ("pay the attached invoice") is outside the benign set; the SIEGE guard caps that case with its allowance for unknown payees instead of deciding it.
 - The regression suite is self-authored, so it is a regression test (see above).
 - The OutLayer baseline is a *model* of its documented policy semantics (whitelist, per-transaction and windowed caps, a best-effort counter). The race result reproduces the documented behaviour; it was not measured against the live service.
 - Intents settlement is not executed: quotes are real (`dry: true`) and execution is mocked. Wallet settlement targets NEAR testnet.

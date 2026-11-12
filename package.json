@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "SIEGE: can your AI wallet be drained? Mandate guard + attack engine + eval harness for OutLayer agent wallets.",
+  "description": "SIEGE: can your AI wallet be drained? SIEGE guard + attack engine + eval harness for OutLayer agent wallets.",
   "exports": {
     ".": "./src/index.ts"
   },
