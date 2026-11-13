@@ -1107,6 +1107,7 @@
     rulesSummary(L, d);
     renderNext(d);
     if (example) return;
+    liveLabel(d);
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.
     if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
@@ -1208,6 +1209,8 @@
     const text = ta.value;
     prevRun = lastRun && lastRun.text !== text ? lastRun : null;
     let started = false, finished = false;
+    liveStart = performance.now();
+    liveEnd = null;
     es = new EventSource(`/api/siege?mandate=${encodeURIComponent(text)}&generations=${GENERATIONS}`);
     es.addEventListener("start", (e) => {
       started = true;
@@ -1221,6 +1224,7 @@
     es.addEventListener("attack", (e) => push("attack", JSON.parse(e.data)));
     es.addEventListener("done", (e) => {
       finished = true;
+      liveEnd = performance.now();
       es.close();
       es = null;
       push("done", JSON.parse(e.data));
@@ -1256,6 +1260,7 @@
     return cap ? `Pay up to ${cap[1]} ${cap[2] || "NEAR"} per transaction to ${who}.` : `Pay only ${who}.`;
   }
   let pendingFix = null;
+  let liveStart = null, liveEnd = null;
   function renderNext(d) {
     const losses = d.losses || {};
     const delta = $("#next-delta");
@@ -1419,6 +1424,17 @@
     $("#replay-btn").hidden = replaying;
     $("#siege-example-text").replaceChildren(replaying ? "Replaying the recorded example" : "Recorded example", el("span", { class: "siege__tag-more", text: ", not a live run" }));
     btnLabel.replaceChildren("Lay ", el("span", { class: "btn__live", text: "a live " }), "siege on your rules");
+  }
+  // A live run says it was live: how long it took and how many attempts it made. The search is seeded, so a live run on the
+  // recorded rules lands on the recorded figures; it says that too, so it does not read as the replay.
+  function liveLabel(d) {
+    const secs = liveStart && liveEnd ? (liveEnd - liveStart) / 1000 : null;
+    const took = `Live run finished${secs ? ` in ${secs < 10 ? secs.toFixed(1) : Math.round(secs)} s` : ""}, ${d.evaluations.toLocaleString("en")} attempts`;
+    const rec = recording && ta.value.trim() === recording.mandate ? recording.events.find(([t]) => t === "done")?.[1] : null;
+    const same = rec && rec.evaluations === d.evaluations && ["outlayer", "mandate"].every((k) => near(rec.losses?.[k] ?? 0) === near(d.losses?.[k] ?? 0));
+    $("#siege-example").hidden = false;
+    $("#replay-btn").hidden = true;
+    $("#siege-example-text").replaceChildren(same ? `${took}: same result as the recording. The search is seeded, so it’s reproducible.` : `${took}.`);
   }
   function playRecording(ex, animate) {
     resetSiege();

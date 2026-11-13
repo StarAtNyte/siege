@@ -895,3 +895,6 @@ a.btn { text-decoration: none; }
 
 /* the header action says it runs live; on a phone the recorded-example tag beside the verdict says the rest */
 @media (max-width: 40rem) { .btn__live { display: none; } }
+
+/* the recorded-example and live-run line is a caption, not a control: only the replay beside it is a button */
+.siege__example p.siege__tag { flex: 0 1 auto; padding: 0; border: 0; background: none; color: var(--color-ink-2); font-weight: 400; font-size: var(--text-sm); line-height: 1.5; white-space: normal; }
