@@ -706,13 +706,31 @@
   // One line over the rules: a struck rule leaked on typical limits (the same definition the cards count, from
   // ui/leaks.js), and a bar is money out in that attack round. Each rule's chips say what each guard did.
   const keyEl = $("#key");
-  function showKey() {
+  function showKey(d = null, L = null) {
     const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
     const items = [
       item(el("span", { class: "key__line", "aria-hidden": "true" }, stamp()), "money got past typical limits"),
       item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "money out, round by round"),
     ];
+    const total = d && L ? leakTotal(d, L) : null;
+    if (total) items.push(el("span", { class: "key__note key__total" }, total));
     keyEl.replaceChildren(...items);
+  }
+  // The headline's figure for typical limits, split by the rules it went through, so the two reconcile on the first screen.
+  // A cap over time that was raced is the same money again, so it is not a term of the sum.
+  function leakTotal(d, L) {
+    const o = d.losses?.outlayer ?? 0;
+    if (o <= 0) return null;
+    const parts = L.rules.filter((r) => r.typicalLoss > 0).map((r) => [`rule ${r.index + 1}`, r.typicalLoss]);
+    const general = (d.general ?? []).filter((f) => f.guard === "outlayer" && f.loss > 0).reduce((a, f) => a + f.loss, 0);
+    if (general > 0) parts.push(["not tied to one rule", general]);
+    const rest = o - parts.reduce((a, [, v]) => a + v, 0);
+    if (parts.length && rest > 0.005) parts.push(["other", rest]);
+    if (!parts.length || rest < -0.005) return null;
+    const head = el("b", { text: `Leaked ${near(o)} NEAR` });
+    if (parts.length === 1) return [head, `, all through ${parts[0][0]}`];
+    const terms = parts.flatMap(([who, v], i) => [i ? " + " : "", `${who} `, el("span", { class: "num", text: near(v) })]);
+    return [head, " = ", ...terms];
   }
 
   // ---------- the assault timeline ----------
@@ -1109,7 +1127,7 @@
         ),
       );
     }
-    showKey();
+    showKey(d, L);
     generalEl.replaceChildren();
     if (d.general?.length) {
       generalEl.append(el("h2", { text: "Not tied to one rule" }), noteFor(d.general));
