@@ -9,7 +9,7 @@ The two-key vault (`contract/`) deployed to testnet and exercised on 2026-11-13.
 - **Agent:** a function-call access key on the vault account, receiver = the vault, methods = `["spend"]`, gas allowance 0.25 NEAR. **Guard:** a separate ed25519 key, registered in the contract as `guard_pk`. Both keys were generated locally and stored in `.siege/vault-testnet.json`, the owner's key in `.env` and `~/.near-credentials`; all, which is gitignored and never printed.
 - **Cost:** the owner account went from 10.000 to 9.013 NEAR. 1.0 NEAR was moved into the vault (about 0.82 of it is the storage stake for the code), the two 0.01 NEAR test payments came back to the owner, and the rest was gas. The vault held 0.977 NEAR after the MCP payment in row 12 (RPC `view_account`, 2026-11-13); the owner can call `withdraw` to take it back.
 
-Reproduce: `make contract-build && node --import tsx src/vault/testnet.ts deploy && node --import tsx src/vault/testnet.ts demo`.
+Reproduce: `make contract-build && node --import tsx src/vault/testnet.ts deploy && node --import tsx src/vault/testnet.ts demo`. This needs a funded testnet account, `NEAR_ACCOUNT` and `NEAR_PRIVATE_KEY`, in the environment or in `.env` at the repo root; without them both commands stop with a one-line message and send nothing. `deploy` creates `vault.<NEAR_ACCOUNT>` and refuses to run again once `.siege/vault-testnet.json` exists.
 
 ## Setup
 

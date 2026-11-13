@@ -44,13 +44,16 @@ function loadEnv() {
 function owner() {
   loadEnv();
   const id = process.env.NEAR_ACCOUNT, key = process.env.NEAR_PRIVATE_KEY as KeyPairString | undefined;
-  if (!id || !key) throw new Error("set NEAR_ACCOUNT and NEAR_PRIVATE_KEY (testnet) in siege/.env");
+  if (!id || !key) throw new Error("set NEAR_ACCOUNT and NEAR_PRIVATE_KEY (a funded testnet account) in the environment or in .env at the repo root");
   if (!id.endsWith(".testnet")) throw new Error("testnet accounts only");
   return new Account(id, new JsonRpcProvider({ url: RPC }), key);
 }
 
 interface Keys { vaultId: string; vaultKey: string; guardKey: string; agentKey: string }
-const loadKeys = (): Keys => JSON.parse(fs.readFileSync(KEYS, "utf8"));
+function loadKeys(): Keys {
+  if (!fs.existsSync(KEYS)) throw new Error(`${path.relative(root, KEYS)} not found: run \`node --import tsx src/vault/testnet.ts deploy\` first`);
+  return JSON.parse(fs.readFileSync(KEYS, "utf8"));
+}
 
 async function deploy() {
   const me = owner();
@@ -179,6 +182,12 @@ async function demo() {
 }
 
 const [cmd] = process.argv.slice(2);
-if (cmd === "deploy") await deploy();
-else if (cmd === "demo") await demo();
-else console.log("usage: testnet.ts deploy | demo");
+try {
+  if (cmd === "deploy") await deploy();
+  else if (cmd === "demo") await demo();
+  else console.log("usage: testnet.ts deploy | demo");
+} catch (e) {
+  // A missing account or key file is a setup step, not a crash: one line, no stack trace.
+  console.error(`testnet.ts ${cmd}: ${(e as Error).message}`);
+  process.exit(1);
+}
