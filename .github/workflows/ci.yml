@@ -20,5 +20,7 @@ jobs:
       - name: keyless replays reproduce the committed results
         run: |
           make eval attack threat redteam
-          # decision latencies are wall-clock measurements and vary run to run; every other line must match
-          git diff --exit-code -I 'latency|p50ms|p99ms' results/
+          # decision latencies are wall-clock measurements and vary run to run. The judge "hits"/"live" counters say
+          # whether a call came from the cache or the API: the committed redteam runs made some calls live, a keyless
+          # replay serves all of them from the cache, so those two counters differ by design. Every other line must match.
+          git diff --exit-code -I 'latency|p50ms|p99ms' -I '^ *"(hits|live)": [0-9]+,$' results/
