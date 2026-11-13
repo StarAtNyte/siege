@@ -16,7 +16,6 @@
   };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const near = (n) => Number(n).toFixed(2);
-  const nearShort = (n) => near(n).replace(/\.00$/, "");
   const GUARD = { outlayer: "Typical limits", mandate: "SIEGE guard" };
   const SHORT = GUARD;
   const GENERATIONS = 30;
@@ -978,7 +977,7 @@
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
     // What the guard's figure is, said in the headline itself: all of it inside its allowance for new payees.
-    const within = m > 0 && b?.withinBudget ? `all inside its ${nearShort(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}allowance for new payees.` : "";
+    const within = m > 0 && b?.withinBudget ? `all inside its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}allowance for new payees.` : "";
     v.replaceChildren(text, ...(within ? [" ", el("span", { class: "siege__within", text: within })] : []));
     v.hidden = false;
     return within ? `${text} ${within}` : text;
