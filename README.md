@@ -32,7 +32,7 @@ make install      # npm install + uv sync, about a minute
 npm start         # the web app on http://127.0.0.1:8686: write a mandate, press "Lay siege"
 ```
 
-More commands, each printing the table it writes to `results/`:
+More commands, each printing the table it writes to `results/` (the printed tables and `results/` call the SIEGE guard by its name in the code, `Mandate`):
 
 ```
 make test         # 18 Rust contract tests, the TypeScript tests, typecheck. First run compiles near-sdk (a few minutes), then about 30 s
