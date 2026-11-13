@@ -33,13 +33,13 @@
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
-    <p class="bar__line">Can your AI agent’s wallet be drained?</p>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span><kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
 
 <section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="false">
   <div class="container stakes__in">
+    <h1 class="hero">Can your AI agent’s wallet be drained?</h1>
     <p class="stakes__why">One poisoned email can make an AI agent pay a thief, and <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button></span> payments can’t be undone. SIEGE attacks your agent’s spending rules first, with test money. <button type="button" class="stakes__toggle" id="stakes-open" aria-controls="stakes-more" aria-expanded="false">How it works</button></p>
     <div class="stakes__more" id="stakes-more">
     <ol class="stakes__beats">
@@ -75,15 +75,15 @@
 <main class="container main">
   <section class="doc" aria-labelledby="doc-h">
     <div class="doc__head">
-      <h1 id="doc-h">Your spending rules</h1>
+      <h2 id="doc-h">Your spending rules</h2>
       <span class="doc__acts">
-        <label class="visually-hidden" for="example-select">Load an example set of rules</label>
+        <label class="doc__pick" for="example-select">Load example</label>
         <select id="example-select" class="input doc__select">
-          <option value="" selected>Examples</option>
-          <option value="whitelist">Named payees</option>
+          <option value="" selected>Choose rules</option>
           <option value="open">Open invoices</option>
+          <option value="fixed">Rules with the fix applied</option>
+          <option value="whitelist">Named payees</option>
         </select>
-        
       </span>
     </div>
     <p class="doc__gloss">What your AI agent may pay: who, how much, what for. Plain English; edit freely.</p>
@@ -101,10 +101,10 @@
     <p class="doc__status" id="doc-status" role="status" aria-live="polite"></p>
     <p class="doc__count" id="doc-count" hidden></p>
 
-    <section class="reading" aria-labelledby="reading-h">
-      <h2 id="reading-h">How SIEGE reads it</h2>
+    <details class="reading" id="reading-box" open data-fold-phone>
+      <summary><h2 id="reading-h">How SIEGE reads it</h2></summary>
       <dl class="reading__list" id="reading"><div class="reading__row"><dt>Status</dt><dd>Start the server to read these rules.</dd></div></dl>
-    </section>
+    </details>
 
     <details class="disclose" id="try">
       <summary>Try a transaction</summary>
@@ -159,9 +159,18 @@
       <div class="verdicts" id="verdicts" hidden></div>
     </details>
 
-    <details class="disclose" id="export">
+    <details class="disclose" id="export" open>
       <summary>Use it in your agent</summary>
       <div class="export" id="export-body">
+        <div class="export__item">
+          <div class="export__head"><h3>Give your agent guarded payment tools</h3><button type="button" class="btn btn--quiet btn--s" data-copy="x-mcp">Copy</button></div>
+          <p class="export__note">The SIEGE MCP server checks every payment against these rules before it pays. It works with Claude Code, Codex, Cursor or any MCP agent; the agent never holds a key.</p>
+          <pre class="code" id="x-mcp" tabindex="0" aria-label="Shell commands to add the SIEGE MCP server">git clone https://github.com/StarAtNyte/siege && cd siege && npm install
+claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transaction." -- node "$PWD/bin/siege-mcp.mjs"</pre>
+          <p class="export__note">It exposes <span class="mono">siege_pay</span> and <span class="mono">siege_check</span>. Without vault keys it pays a mock wallet and says so. <a href="https://github.com/StarAtNyte/siege#use-it-in-your-agent" rel="noopener">Setup for Codex and Cursor</a></p>
+        </div>
+        <details class="export__more">
+          <summary>OutLayer policy, guard config and the proxy</summary>
         <p class="export__note">OutLayer is a custody wallet for AI agents on NEAR. Load the first file as its policy, or run SIEGE’s guard in front of it.</p>
         <div class="export__item">
           <div class="export__head"><h3>OutLayer policy</h3><span class="export__acts"><button type="button" class="btn btn--quiet btn--s" data-copy="x-policy">Copy</button><button type="button" class="btn btn--quiet btn--s" data-download="x-policy" data-file="outlayer-policy.json">Download</button></span></div>
@@ -178,6 +187,7 @@
           <p class="export__note" id="x-for">Your agent keeps its OutLayer key and paths, and sends one header saying why it is spending:</p>
           <pre class="code" id="x-header" tabindex="0" aria-label="Context header example"></pre>
         </div>
+        </details>
       </div>
     </details>
   </section>
@@ -252,6 +262,12 @@
         <p class="guard__compare" hidden></p>
       </article>
     </div>
+    <p class="proof" id="proof"><span class="proof__lead">On NEAR testnet</span><a class="proof__item proof__item--paid" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Paid, guard-signed ✓</a><a class="proof__item proof__item--refused" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">Refused without it (BAD_SIGNATURE) ✓</a><a class="proof__item" href="#chain" id="proof-more">See the transactions</a></p>
+    <section class="timeline" id="timeline" aria-labelledby="timeline-h" hidden>
+      <h3 id="timeline-h">Round by round</h3>
+      <div class="timeline__rows" id="timeline-rows"></div>
+      <p class="timeline__story" id="timeline-story"></p>
+    </section>
     <section class="rulesum" id="rulesum" aria-labelledby="rulesum-h" hidden>
       <h3 id="rulesum-h">Your rules</h3>
       <ol class="rulesum__list" id="rulesum-list"></ol>
@@ -263,10 +279,11 @@
       <div class="next__fix" id="next-fix" hidden>
         <p class="next__quote" id="next-fix-text"></p>
         <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
+        <p class="next__payoff" id="next-payoff" hidden></p>
       </div>
     </section>
-    <section class="chain" id="chain" aria-labelledby="chain-h">
-      <h3 id="chain-h">SIEGE vault, enforced on NEAR testnet</h3>
+    <details class="chain" id="chain" open data-fold-phone>
+      <summary><h3 id="chain-h">SIEGE vault, enforced on NEAR testnet</h3></summary>
       <p class="chain__lead">The search runs off-chain. The same guard signs for a two-key vault contract. The agent’s key can’t pay without the guard’s signature.</p>
       <dl class="chain__rows">
         <div class="chain__row"><dt>Vault</dt><dd><span class="chain__what">SIEGE vault</span><a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a></dd></div>
@@ -275,7 +292,7 @@
         <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
       </dl>
       <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
-    </section>
+    </details>
     <details class="means-more" id="means-more" hidden>
       <summary>How the worst attack worked</summary>
       <p id="means-full"></p>
@@ -323,7 +340,6 @@
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/siege" rel="noopener">Code on GitHub</a>
   <a href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">The SIEGE vault on NearBlocks</a>
-  <a href="https://near-darwin.onrender.com" rel="noopener">DARWIN, the sister project</a>
   <span>Test network only: no real money moves.</span>
 </footer>
 <script src="leaks.js" defer></script>

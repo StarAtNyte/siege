@@ -284,6 +284,7 @@
     $("#x-guard").textContent = JSON.stringify(j.guardConfig, null, 2);
     // Single quotes keep the shell from touching $, `, ! or \ in the mandate; a ' inside becomes '\''.
     const esc = text.replace(/\s+/g, " ").trim().replace(/'/g, "'\\''");
+    $("#x-mcp").textContent = `git clone https://github.com/StarAtNyte/siege && cd siege && npm install\nclaude mcp add siege -e MANDATE='${esc}' -- node "$PWD/bin/siege-mcp.mjs"`;
     $("#x-proxy").textContent = `# The proxy holds your OutLayer key; give the agent only SIEGE_PROXY_TOKEN.\nSIEGE_PROXY_TOKEN=$(openssl rand -hex 24) OUTLAYER_API_KEY=wk_... \\\nMANDATE='${esc}' \\\n  npm run proxy`;
     const ctx = { userInstruction: "Pay the hosting invoice from cloudhost.testnet.", retrieved: ["Invoice #4471. Amount due: 3 NEAR. Pay to: cloudhost.testnet."], reasoning: "The user asked me to pay this invoice.", provenance: "user" };
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(ctx))));
@@ -321,20 +322,40 @@
   );
 
   // ---------- examples ----------
+  // Two recorded sieges ship with the page: the default rules, and the same rules with the suggested fix applied.
+  // An example whose text matches a recording shows that recorded result at once.
   let examples = null;
   const pick = $("#example-select");
-  async function loadExample(name) {
+  const RECORDINGS = { open: "/example-siege.json", fixed: "/example-fixed.json" };
+  const recs = {};
+  async function getRec(name) {
     try {
-      examples ??= await (await fetch("/api/examples")).json();
+      return (recs[name] ??= await (await fetch(RECORDINGS[name])).json());
     } catch {
-      return showCompileError("Can’t reach the SIEGE server to load the examples. Try again in a moment.");
+      return null;
     }
+  }
+  const recFor = (text) => Object.values(recs).find((r) => r?.mandate === text.trim()) ?? null;
+  async function loadExample(name) {
+    let text;
+    if (name === "fixed") text = (await getRec("fixed"))?.mandate;
+    else {
+      try {
+        examples ??= await (await fetch("/api/examples")).json();
+      } catch {
+        return showCompileError("Can’t reach the SIEGE server to load the examples. Try again in a moment.");
+      }
+      text = examples[name];
+    }
+    if (!text) return showCompileError("Can’t load that example. Try again in a moment.");
     setMode("edit");
-    ta.value = examples[name] ?? ta.value;
+    ta.value = text;
     fit();
     pick.value = name;
     resetSiege();
-    compile();
+    await compile();
+    const rec = recFor(text);
+    if (rec && compileOk) (recording = rec), playRecording(rec, false);
   }
   pick.addEventListener("change", () => pick.value && loadExample(pick.value));
 
@@ -408,6 +429,7 @@
     $("#siege-verdict").hidden = true;
     $("#means-more").hidden = true;
     rulesSummary();
+    drawTimeline();
     $("#play").hidden = true;
     $("#evidence").hidden = true;
     $("#evidence").open = false;
@@ -447,6 +469,38 @@
     const first = h.findIndex((v) => v > 0);
     const name = g.svg.getAttribute("aria-label").split(", ").slice(-1)[0];
     g.svg.setAttribute("aria-label", `Chart: best loss found by attack round, ${name}. ${first < 0 ? "No break found." : `First break in round ${first + 1}; ${near(h[end])} NEAR by round ${end + 1}.`}`);
+  }
+
+  // ---------- round by round, on phones ----------
+  // The cards drop their charts on a phone, so one compact chart follows them: a bar per round for each guard,
+  // on one shared scale, with the last value at the end and one line on when money first got out.
+  function drawTimeline() {
+    const box = $("#timeline");
+    const rows = $("#timeline-rows");
+    const peak = sparkPeak();
+    const any = Object.values(guards).some((g) => g.hist.length);
+    box.hidden = !any;
+    if (!any) return;
+    rows.replaceChildren();
+    const story = [];
+    for (const [k, g] of Object.entries(guards)) {
+      const h = Array.from({ length: GENERATIONS }, (_, i) => g.hist[i]);
+      const last = h.filter((v) => v != null).at(-1) ?? 0;
+      rows.append(
+        el("div", { class: "timeline__row", "data-guard": k },
+          el("span", { class: "timeline__who", text: k === "outlayer" ? "Typical" : "SIEGE" }),
+          el("span", { class: "timeline__cells", "aria-hidden": "true" }, ...h.map((v) => {
+            const c = el("span", { class: "timeline__cell" });
+            if (v != null) c.dataset.r = v > 0 ? "hit" : "held", c.style.setProperty("--h", String(peak > 0 ? v / peak : 0));
+            return c;
+          })),
+          el("span", { class: "timeline__end num", text: near(last) })),
+      );
+      const first = h.findIndex((v) => v > 0);
+      const done = h.filter((v) => v != null).length;
+      story.push(first < 0 ? `${GUARD[k]}: nothing out in ${plural(done, "round")}` : `${GUARD[k]}: money out from round ${first + 1}, ${near(last)} NEAR by round ${done}`);
+    }
+    $("#timeline-story").textContent = story.join(". ") + ".";
   }
 
   // ---------- play by play ----------
@@ -529,9 +583,9 @@
   function evidenceSum() {
     const n = $("#play-lines").childElementCount;
     const parts = [];
-    if (n) parts.push(`${plural(n, "attack")} told play by play`);
-    if (attacks.outlayer && attacks.mandate) parts.push("each guard’s best attack, payment by payment");
-    $("#evidence-sum").textContent = parts.length ? list(parts).replace(/^./, (x) => x.toUpperCase()) : "";
+    if (n) parts.push("Each attack, step by step");
+    else if (attacks.outlayer && attacks.mandate) parts.push("Each guard’s best attack, payment by payment");
+    $("#evidence-sum").textContent = parts.join("");
     $("#evidence").hidden = !parts.length;
   }
   function playTotals(p) {
@@ -582,6 +636,7 @@
     stateEl.textContent = `${Object.values(evals).reduce((x, y) => x + y, 0).toLocaleString("en")} attacks tried`;
     if (p.guard === "mandate") announce(`Attack round ${p.generation + 1} of ${p.generations}: typical limits ${near(bestOf("outlayer"))} NEAR lost, SIEGE guard ${near(p.bestLoss)}.`);
     Object.values(guards).forEach(drawSpark);
+    drawTimeline();
     redline(p);
     strike(p);
     playTotals(p);
@@ -593,13 +648,17 @@
   // One line over the rules: coral is money typical limits paid out, green is a rule the guard held,
   // and a struck rule leaked (the same definition the cards count, from ui/leaks.js).
   const keyEl = $("#key");
-  function showKey() {
+  function showKey(L = null) {
     const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
-    keyEl.replaceChildren(
-      item(el("span", { class: "key__badge key__badge--lost", "aria-hidden": "true" }), "typical limits paid"),
-      item(el("span", { class: "key__badge key__badge--held", "aria-hidden": "true" }), "guard held"),
-      item(el("span", { class: "key__line", "aria-hidden": "true", text: "Rule" }), "leaked"),
-    );
+    const badge = (k) => el("span", { class: `key__num key__num--${k}`, "aria-hidden": "true", text: "1" });
+    const has = (k) => L?.rules.some((r) => r.guard === k);
+    const words = ["held", has("budget") && "paid from its allowance", has("lost") && "lost money"].filter(Boolean);
+    const items = [
+      item(el("span", { class: "key__line", "aria-hidden": "true", text: "Rule" }), "struck: typical limits leaked"),
+      item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "bar: money out in that attack round"),
+    ];
+    if (L) items.push(item(el("span", { class: "key__nums" }, badge("held"), has("budget") && badge("budget"), has("lost") && badge("lost")), `badge: SIEGE guard result (${words.join(" or ")})`));
+    keyEl.replaceChildren(...items);
   }
 
   // ---------- the assault timeline ----------
@@ -633,8 +692,7 @@
   // The words sit in their own inline span, so a breach can draw an ink line through them, line by line.
   function clauseText(s) {
     const t = el("span", { class: "clause__text" });
-    if (s.roles?.length === 1 && s.roles[0] === "purpose" && /^for\s/i.test(s.text)) t.append(el("span", { class: "clause__kind", text: "Purpose" }), el("span", { class: "clause__ink", text: s.text.replace(/^for\s+/i, "").replace(/^./, (x) => x.toUpperCase()) }));
-    else t.append(el("span", { class: "clause__ink", text: s.text }));
+    t.append(el("span", { class: "clause__ink", text: s.text }));
     return t;
   }
 
@@ -709,7 +767,7 @@
   function onAttack(a) {
     attacks[a.guard] = a;
     finishGuard(a.guard, a.loss);
-    if (a.history?.length) (guards[a.guard].hist = a.history), Object.values(guards).forEach(drawSpark);
+    if (a.history?.length) (guards[a.guard].hist = a.history), Object.values(guards).forEach(drawSpark), drawTimeline();
     renderLedger(a);
     evidenceSum();
   }
@@ -833,7 +891,7 @@
   // Why the rule let money out, in one short sentence.
   function reasonOf(findings, s) {
     const fs = findings.filter((f) => f.loss > 0);
-    if (!fs.length) return null;
+    if (!fs.length) return "No attack got money out through this rule.";
     if (fs.every((f) => f.kind === "overspend")) return "Payments went past this cap.";
     const theft = fs.filter((f) => f.kind === "theft");
     if (s?.roles?.includes("calls") || theft.some((f) => /\bcall on\b/.test(f.how ?? ""))) return "These calls can pay out to any account; planted notes redirected them.";
@@ -848,14 +906,15 @@
     const where = all.filter((r) => r.typicalLoss > 0).map((r) => r.index + 1);
     const span = b.hours === 24 ? "in one day" : `in ${hours(b.hours).replace(/^per /, "one ")}`;
     const capWord = b.hours === 24 ? `the ${near(b.cap)} NEAR daily cap` : `the ${near(b.cap)} NEAR cap ${hours(b.hours)}`;
-    const what = el("p", { class: "note__guard note__guard--breach note__guard--cap" }, `Payments raced past ${capWord}: `, el("span", { class: "note__loss", text: `${near(b.paid)} sent ${span}` }));
-    if (where.length) what.title = `The same ${near(b.paid)} NEAR is the money counted under rule${where.length > 1 ? "s" : ""} ${list(where.map(String))}; it is not added again.`;
-    const note = el("div", { class: "note" }, what, el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: "SIEGE guard" }), " ", el("span", { class: "note__loss", text: "held" })));
+    const what = el("p", { class: "note__guard note__guard--breach" }, el("span", { class: "note__who", text: "Typical limits" }), " ", el("span", { class: "note__loss", text: `${near(b.paid)} sent ${span}` }));
+    const why = el("p", { class: "note__why", text: `Payments fired at once raced past ${capWord}.${where.length ? ` The same NEAR is counted under rule${where.length > 1 ? "s" : ""} ${list(where.map(String))}, not added again.` : ""}` });
+    const note = el("div", { class: "note" }, what, el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: "SIEGE guard" }), " ", el("span", { class: "note__loss", text: "held" })), why);
+    // Drawn in the strips' frame: the same "Typical" label column, one bar for the best attack's busiest window, the cap marked on it.
     const bar = el(
       "span",
-      { class: "capbar", role: "img", "aria-label": `${near(b.paid)} NEAR sent against a ${near(b.cap)} NEAR cap` },
-      el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill" }), el("span", { class: "capbar__cap", style: `--at:${(b.cap / b.paid).toFixed(4)}` })),
-      el("span", { class: "capbar__label" }, el("span", { text: `${near(b.cap)} cap` }), el("span", { class: "num", text: `${near(b.paid)} sent` })),
+      { class: "capbar", role: "img", "aria-label": `${near(b.paid)} NEAR sent ${span} against a ${near(b.cap)} NEAR cap` },
+      el("span", { class: "strike__row" }, el("span", { class: "strike__who", text: "Typical" }), el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill" }), el("span", { class: "capbar__cap", style: `--at:${(b.cap / b.paid).toFixed(4)}` }))),
+      el("span", { class: "capbar__label" }, el("span", { text: `${near(b.cap)} cap` }), el("span", { class: "num", text: `${near(b.paid)} sent ${span}` })),
     );
     return { note, bar };
   }
@@ -912,8 +971,10 @@
     const L = window.SiegeLeaks.ruleLeaks(d, compiled?.constraints?.windows, attacks.outlayer?.steps);
     const word = L.total === 1 ? "rule" : "rules";
     const allBudget = L.rules.every((r) => r.guard !== "lost");
-    guards.outlayer.clauses.textContent = L.leaked ? `Leaked on ${L.leaked} of your ${L.total} ${word}` : `Held on all ${L.total} ${word}`;
-    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `Paid from its allowance on ${L.guardHit} of your ${L.total} ${word}` : `Got past on ${L.guardHit} of your ${L.total} ${word}`;
+    const which = (rs) => `${rs.length === 1 ? "rule" : "rules"} ${list(rs.map((r) => String(r.index + 1)))} of your ${L.total}`;
+    const leakedRules = L.rules.filter((r) => r.leaked), hitRules = L.rules.filter((r) => r.guard !== "held");
+    guards.outlayer.clauses.textContent = L.leaked ? `Leaked on ${which(leakedRules)}` : `Held on all ${L.total} ${word}`;
+    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `Paid from its allowance on ${which(hitRules)}` : `Got past on ${which(hitRules)}`;
     for (const g of Object.values(guards)) (g.clauses.hidden = L.total === 0), (g.stops.hidden = true);
     // Rules already struck through during the run keep their line; a rule first found leaking now gets it drawn.
     const inked = new Set($$(".clause--breach", clausesEl).map((li) => li.dataset.index));
@@ -929,11 +990,11 @@
           { class: `clause clause--${r.leaked ? "breach" : "held"}${fresh}`, "data-index": s.index, "data-guard": r.guard },
           clauseText(s),
           cn ? cn.bar : strikeFor(s.index),
-          s.findings.length ? noteFor(s.findings, s) : cn?.note ?? el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
+          s.findings.length ? noteFor(s.findings, s) : cn?.note ?? noteFor([], s),
         ),
       );
     }
-    showKey();
+    showKey(L);
     generalEl.replaceChildren();
     if (d.general?.length) {
       generalEl.append(el("h2", { text: "Not tied to one rule" }), noteFor(d.general));
@@ -1121,7 +1182,22 @@
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
     if (fix) $("#next-fix-text").textContent = `“${fix}”`;
+    payoff(fix ? recFor(ta.value.replace(weak.s.text, fix)) : null, weak);
     $("#next").hidden = false;
+  }
+  // What the fix does, said only from a recorded run of the fixed rules: the guard's leak on this rule, before and after.
+  function payoff(rec, weak) {
+    const el2 = $("#next-payoff");
+    const d = rec?.events.find(([t]) => t === "done")?.[1];
+    el2.hidden = !d;
+    if (!d) return;
+    const n = weak.s.index + 1;
+    const after = d.sentences[weak.s.index]?.findings.filter((f) => f.guard === "mandate").reduce((a, f) => a + f.loss, 0) ?? 0;
+    const still = d.sentences.filter((s) => s.findings.some((f) => f.guard === "outlayer" && f.loss > 0)).map((s) => String(s.index + 1));
+    el2.replaceChildren(
+      el("b", { text: `Rule ${n} leak: ${near(weak.guardLoss)} → ${near(after)} NEAR` }),
+      ` in a recorded run with this fix. The guard lost ${near(d.losses?.mandate ?? 0)} NEAR in all${still.length && d.losses?.outlayer > 0 ? `; typical limits still lost ${near(d.losses.outlayer)} through rule ${list(still)}` : ""}.`,
+    );
   }
   $("#next-fix-btn").addEventListener("click", async () => {
     if (!pendingFix || !ta.value.includes(pendingFix.from)) return;
@@ -1247,14 +1323,14 @@
     $$(".clause--fresh, .live-mark--fresh").forEach((n) => n.classList.remove("clause--fresh", "live-mark--fresh"));
   }
   async function showExample() {
-    try {
-      recording = await (await fetch("/example-siege.json")).json();
-    } catch {
-      return;
-    }
+    [recording] = await Promise.all([getRec("open"), getRec("fixed")]);
+    if (!recording) return;
     if (!compileOk || hasResult || siegeEl.dataset.state !== "idle" || ta.value.trim() !== recording.mandate) return;
     playRecording(recording, false);
   }
+  // On phones the secondary blocks start folded, so the result and the rules lead; the proof line opens the vault record.
+  if (matchMedia("(max-width: 40rem)").matches) $$("[data-fold-phone]").forEach((d) => (d.open = false));
+  $("#proof-more").addEventListener("click", () => ($("#chain").open = true));
   $("#replay-btn").addEventListener("click", async () => {
     if (!recording) return;
     if (ta.value.trim() !== recording.mandate) {

@@ -38,6 +38,7 @@ test("the UI counts, strikes and lists rules from that one definition", () => {
   assert.ok(html.indexOf('src="leaks.js"') > 0 && html.indexOf('src="leaks.js"') < html.indexOf('src="app.js"'));
   assert.match(app, /SiegeLeaks\.ruleLeaks\(/);
   assert.match(app, /clause--\$\{r\.leaked \? "breach" : "held"\}/, "the strike-through reads r.leaked");
-  assert.match(app, /Leaked on \$\{L\.leaked\} of your/, "the card counts L.leaked");
+  assert.match(app, /leakedRules = L\.rules\.filter\(\(r\) => r\.leaked\)/, "the card lists the rules r.leaked marks");
+  assert.match(app, /Leaked on \$\{which\(leakedRules\)\}/, "the card names those rules");
   assert.match(app, /\$\{L\.leaked\} of \$\{L\.total\} leaked/, "the phone list counts L.leaked");
 });

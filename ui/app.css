@@ -654,3 +654,86 @@ a.btn { text-decoration: none; }
 .siege__example { padding: var(--space-2xs) var(--space-sm); }
 .siege__example .btn { min-height: 32px; }
 .guard .budget__text { font-weight: 400; }
+
+/* ---------- the question as the page's heading, the verdict as the result's ---------- */
+.hero { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 800; line-height: 1.1; letter-spacing: -0.015em; margin-bottom: var(--space-xs); text-wrap: balance; }
+.stakes__in { padding-block: var(--space-lg) var(--space-md); }
+.doc__head h2, .siege__head h2 { font-size: var(--text-lg); font-weight: 700; line-height: 1.2; }
+.siege__verdict { font-size: var(--text-2xl); font-weight: 700; line-height: 1.2; }
+.doc__pick { font-size: var(--text-sm); color: var(--color-ink-2); white-space: nowrap; }
+.capbar__label > span { white-space: nowrap; }
+@media (max-width: 40rem) {
+  .hero { font-size: var(--text-2xl); }
+  .stakes__in { padding-block: var(--space-md) var(--space-sm); }
+  .siege__verdict { font-size: var(--text-xl); }
+}
+
+/* ---------- cards: as tall as their content; the guard's flat line gives way to its allowance bar ---------- */
+.guards { align-items: start; }
+.guard[data-outcome="budget"] .spark, .guard[data-outcome="held"] .spark { display: none; }
+
+/* ---------- the testnet proof, one line under the cards ---------- */
+.proof { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2xs) 0; font-size: var(--text-sm); color: var(--color-ink-2); }
+.proof__lead { font-weight: 600; color: var(--color-ink); padding-right: var(--space-sm); }
+.proof__item { padding-inline: var(--space-sm); border-left: 1px solid var(--color-rule-strong); color: var(--color-ink); text-underline-offset: 3px; }
+.proof__item--paid, .proof__item--refused { font-weight: 600; }
+.proof a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+@media (max-width: 70rem) { .proof { order: 3; } }
+
+/* ---------- the vault record: readable at 14px, folded behind its title on phones ---------- */
+.chain h3 { font-size: var(--text-md); display: inline; }
+.chain__lead, .chain__row, .chain__row dt code, .chain a.mono { font-size: var(--text-sm); }
+.chain > summary, .reading > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); cursor: pointer; list-style: none; }
+.chain > summary::-webkit-details-marker, .reading > summary::-webkit-details-marker { display: none; }
+.chain > summary::after, .reading > summary::after { content: "+"; font-size: var(--text-lg); line-height: 1; }
+.chain[open] > summary::after, .reading[open] > summary::after { content: "\2212"; }
+.chain > summary:focus-visible, .reading > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+.chain[open] > summary { margin-bottom: var(--space-xs); }
+.reading { display: block; }
+.reading[open] > summary { margin-bottom: var(--space-md); }
+
+/* ---------- the legend: the strike, the round bars, and the number badge ---------- */
+.key__nums { display: inline-flex; gap: var(--space-3xs); align-self: center; }
+.key__num { min-width: 1.25rem; padding: 0 var(--space-2xs); border-radius: var(--radius-input); text-align: center; font-size: var(--text-xs); font-weight: 700; line-height: 1.6; }
+.key__num--held { background: var(--color-hold); color: var(--color-hold-ink); }
+.key__num--budget { background: var(--color-breach-wash); color: var(--color-breach-ink); }
+.key__num--lost { background: var(--color-breach); color: var(--color-breach-ink); }
+
+/* ---------- a cap's bar, in the strips' frame ---------- */
+.capbar { grid-template-columns: 4rem minmax(0, 1fr); gap: var(--space-2xs) var(--space-xs); }
+.capbar > .strike__row { grid-column: 1 / -1; }
+.capbar .strike__row { align-items: center; }
+.capbar__track { align-self: center; }
+.capbar__label { grid-column: 2; gap: var(--space-sm); }
+
+/* ---------- what the fix does, from a recorded run ---------- */
+.next__payoff { max-width: 52ch; font-size: var(--text-sm); padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-input); background: var(--color-hold-wash); color: var(--color-ink); }
+.next__payoff b { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- use it in your agent: the MCP command first, the files behind a fold ---------- */
+.export__more { display: grid; gap: var(--space-lg); }
+.export__more > summary { cursor: pointer; width: fit-content; font-weight: 600; text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
+.export__more > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+.export__note .mono { color: var(--color-ink); }
+
+/* ---------- round by round, on phones only: the cards' charts in one strip ---------- */
+.timeline { display: none; }
+@media (max-width: 40rem) {
+  .timeline:not([hidden]) { display: grid; gap: var(--space-xs); order: 4; }
+  .rulesum__out { font-size: var(--text-sm); }
+  .guard__unit, .guard .budget__text { font-size: var(--text-sm); }
+}
+.timeline h3 { font-size: var(--text-md); font-weight: 700; }
+.timeline__rows { display: grid; gap: var(--space-xs); }
+.timeline__row { display: grid; grid-template-columns: 3.75rem minmax(0, 1fr) 3.5rem; align-items: end; gap: var(--space-xs); }
+.timeline__who { font-size: var(--text-sm); font-weight: 600; line-height: 1; }
+.timeline__cells { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 1px; height: 32px; align-items: end; border-bottom: 1px solid var(--color-rule-strong); }
+.timeline__cell[data-r="held"] { height: 2px; background: var(--color-rule-strong); }
+.timeline__row[data-guard="mandate"] .timeline__cell[data-r="held"] { height: 4px; background: var(--color-hold-2); }
+.timeline__cell[data-r="hit"] { height: max(3px, calc(var(--h) * 100%)); background: var(--color-breach); }
+.timeline__end { font-size: var(--text-sm); font-weight: 700; text-align: right; line-height: 1; }
+.timeline__story { font-size: var(--text-sm); color: var(--color-ink-2); }
+@media (max-width: 40rem) {
+  .proof { flex-direction: column; align-items: flex-start; gap: var(--space-2xs); }
+  .proof__lead, .proof__item { padding: 0; border: 0; }
+}
