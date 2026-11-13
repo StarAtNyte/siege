@@ -1,0 +1,140 @@
+{
+  "vaultId": "vault.darwin-siege-mw23cmc8.testnet",
+  "owner": "darwin-siege-mw23cmc8.testnet",
+  "deployedAt": "2026-11-12T07:29:16.703Z",
+  "guardPublicKey": "ed25519:99baeoLdrKRBvUqd3253PU2X8ApKxo7HgrHne3JaexZm",
+  "agentPublicKey": "ed25519:6Riyuqi3az44pGxXCHGqZ8o5JaUsVtTPctwF5S2tdkCm",
+  "deploy": [
+    {
+      "step": "create vault.darwin-siege-mw23cmc8.testnet, fund 1 NEAR",
+      "hash": "HaGHz4UVdQCTegmskNRUzXzpAGEcNWyNYCsSPMUdC5rF"
+    },
+    {
+      "step": "deploy siege_vault.wasm, new(owner, agent = the vault account, guard key, caps 0.05 / 0.2 / 0.02 NEAR, payees [owner]), add the agent's function-call key (method: spend)",
+      "hash": "AHbGxmKFhJTU88fMaJ2c3YUFCECRuAfH1iajJLaxUEd3"
+    }
+  ],
+  "demoAt": "2026-11-12T07:30:50.088Z",
+  "mandate": "Pay up to 0.05 NEAR per transaction to darwin-siege-mw23cmc8.testnet for invoices. Never spend more than 0.2 NEAR per day.",
+  "policy": {
+    "perTxCap": "50000000000000000000000",
+    "dailyCap": "200000000000000000000000",
+    "novelDailyCap": "20000000000000000000000",
+    "payees": [
+      "darwin-siege-mw23cmc8.testnet"
+    ],
+    "allowlistOnly": false,
+    "paused": false,
+    "maxTtlSecs": 3600
+  },
+  "stats": {
+    "totalSpent": "10000000000000000000000",
+    "spends": 1,
+    "refusals": 6
+  },
+  "replayedNonceUsed": true,
+  "runs": [
+    {
+      "id": "allowed",
+      "what": "Mandate allows a 0.01 NEAR invoice payment the user asked for; the guard signs; the agent's function-call key calls spend()",
+      "proves": "a guard-approved spend pays out (event `spend`)",
+      "hash": "Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA",
+      "outcome": "paid",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend\",\"data\":[{\"receiver\":\"darwin-siege-mw23cmc8.testnet\",\"amount\":\"10000000000000000000000\",\"nonce\":\"108534335247341352\",\"novel_payee\":false}]}"
+      ]
+    },
+    {
+      "id": "denied-by-mandate",
+      "what": "an injected email asks for 0.04 NEAR to drainer.testnet",
+      "proves": "Mandate denies it and the guard never signs, so there is no approval to submit",
+      "outcome": "deny (RECIPIENT_NOT_ALLOWED); signatures issued: 0"
+    },
+    {
+      "id": "no-signature",
+      "what": "the agent's key calls spend() to drainer.testnet with no guard signature",
+      "proves": "the contract refuses without the guard's signature (`spend_refused`, BAD_SIGNATURE)",
+      "hash": "6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3",
+      "outcome": "refused BAD_SIGNATURE",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"drainer.testnet\",\"amount\":\"40000000000000000000000\",\"nonce\":\"1794468568307001\",\"reason\":\"BAD_SIGNATURE\"}]}"
+      ]
+    },
+    {
+      "id": "wrong-signer",
+      "what": "the agent signs an approval with a key of its own",
+      "proves": "only the registered guard key counts (BAD_SIGNATURE)",
+      "hash": "Fj2LideSowvPxKbjbEHqe3cotBJSeyih6tqz8evUynHL",
+      "outcome": "refused BAD_SIGNATURE",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"drainer.testnet\",\"amount\":\"40000000000000000000000\",\"nonce\":\"1794468568307002\",\"reason\":\"BAD_SIGNATURE\"}]}"
+      ]
+    },
+    {
+      "id": "replay",
+      "what": "the agent resubmits the guard's approval from the allowed spend",
+      "proves": "each approval pays once (NONCE_REUSED)",
+      "hash": "3H5Kj8z1xYXMfxyWG9ST4UQ5xMAP4ByWitc9DpusbDUm",
+      "outcome": "refused NONCE_REUSED",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"darwin-siege-mw23cmc8.testnet\",\"amount\":\"10000000000000000000000\",\"nonce\":\"108534335247341352\",\"reason\":\"NONCE_REUSED\"}]}"
+      ]
+    },
+    {
+      "id": "over-cap-valid-sig",
+      "what": "the guard key signs 0.1 NEAR, twice the 0.05 NEAR per-transaction cap",
+      "proves": "the contract's caps hold even with a genuine guard signature (PER_TX_CAP)",
+      "hash": "ruuESjHafiHpNhzwBLhioYSF1wCDQURazp5zZYAgYHX",
+      "outcome": "refused PER_TX_CAP",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"darwin-siege-mw23cmc8.testnet\",\"amount\":\"100000000000000000000000\",\"nonce\":\"1794468568307003\",\"reason\":\"PER_TX_CAP\"}]}"
+      ]
+    },
+    {
+      "id": "novel-budget-valid-sig",
+      "what": "the guard key signs 0.03 NEAR to drainer.testnet, an account not on the payee list (budget 0.02 NEAR per 24 h)",
+      "proves": "a compromised guard can move at most the novel-payee budget to unlisted accounts (NOVEL_PAYEE_BUDGET)",
+      "hash": "EvKB92s3zFaWjfzBYUr7qS6FnvKyzYr5iyGwbgmiKU4r",
+      "outcome": "refused NOVEL_PAYEE_BUDGET",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"drainer.testnet\",\"amount\":\"30000000000000000000000\",\"nonce\":\"1794468568307004\",\"reason\":\"NOVEL_PAYEE_BUDGET\"}]}"
+      ]
+    },
+    {
+      "id": "agent-key-set_policy",
+      "what": "the agent's function-call key calls the owner method set_policy() with the 1 yocto it requires",
+      "proves": "the access key only permits spend(); the network rejects the transaction before execution, so there is no transaction hash",
+      "outcome": "Deposit is not allowed with function call"
+    },
+    {
+      "id": "agent-key-pause",
+      "what": "the agent's function-call key calls the owner method pause()",
+      "proves": "the access key only permits spend(); the network rejects the transaction before execution, so there is no transaction hash",
+      "outcome": "Access key does not allow method pause"
+    },
+    {
+      "id": "owner-pause",
+      "what": "the owner (full-access key, 1 yocto) pauses the vault",
+      "proves": "owner kill switch",
+      "hash": "9MkaLQ83zHwNJgfipWsZtXSkGXrWPcn4Me4j4ZwUzWvS",
+      "outcome": "paused"
+    },
+    {
+      "id": "paused-spend",
+      "what": "a genuine guard-signed 0.01 NEAR spend while paused",
+      "proves": "pause overrides any signature (PAUSED)",
+      "hash": "5TBYeXnkn35772r8nmn8EMEhz1RiTMSGMVEaTWL8A1zu",
+      "outcome": "refused PAUSED",
+      "logs": [
+        "EVENT_JSON:{\"standard\":\"siege_vault\",\"version\":\"1.0.0\",\"event\":\"spend_refused\",\"data\":[{\"receiver\":\"darwin-siege-mw23cmc8.testnet\",\"amount\":\"10000000000000000000000\",\"nonce\":\"1794468568307005\",\"reason\":\"PAUSED\"}]}"
+      ]
+    },
+    {
+      "id": "owner-unpause",
+      "what": "the owner unpauses",
+      "proves": "",
+      "hash": "6EPjL7tEC2abjKfURarmBVHSmDmwwLRHqbNK48qnQz4K",
+      "outcome": "unpaused"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-# Reproducible build of the deployed vault (vault.darwin-siege-mw23cmc8.testnet, 80,021 bytes,
+# Reproducible build of the deployed vault (vault.siege-c0d4426c.testnet, 80,021 bytes,
 # code hash FhCBFTKPd2mA7E6vZwn78rz6Jyzx8FDRgH9XR5KSkmx2). The bytes depend on:
 #   - the Rust toolchain: 1.97.1 with the rust-src component (both checked below;
 #     `rustup toolchain install 1.97.1 --target wasm32-unknown-unknown --component rust-src`,
@@ -39,7 +39,7 @@ build:
 
 # Compare res/siege_vault.wasm with the deployed code. The on-chain side (base58 of the same sha256):
 #   curl -s https://rpc.testnet.near.org -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query",
-#     "params":{"request_type":"view_account","finality":"final","account_id":"vault.darwin-siege-mw23cmc8.testnet"}}'
+#     "params":{"request_type":"view_account","finality":"final","account_id":"vault.siege-c0d4426c.testnet"}}'
 #   -> result.code_hash = FhCBFTKPd2mA7E6vZwn78rz6Jyzx8FDRgH9XR5KSkmx2
 verify:
 	@ls -l res/siege_vault.wasm
