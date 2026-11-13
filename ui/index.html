@@ -83,7 +83,7 @@
           <option value="whitelist">Named payees</option>
           <option value="open">Open invoices</option>
         </select>
-        <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit rules</button>
+        
       </span>
     </div>
     <p class="doc__gloss">What your AI agent may pay: who, how much, what for. Plain English; edit freely.</p>
@@ -91,7 +91,10 @@
     <div class="doc__page">
       <label class="visually-hidden" for="mandate">Your agent’s spending rules, in plain English</label>
       <textarea id="mandate" class="doc__text" spellcheck="false" maxlength="2000" aria-describedby="doc-status doc-count">Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. For invoices, subscriptions and hosting. May call deposit_and_stake and unstake on pool.testnet. Never pay mixer.testnet.</textarea>
-      <p class="key" id="key" hidden></p>
+      <div class="doc__tools" id="doc-tools" hidden>
+        <details class="key" id="key-box"><summary>Key</summary><p class="key__body" id="key"></p></details>
+        <button type="button" class="btn btn--quiet btn--s doc__edit" id="edit-btn"><svg class="doc__pen" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Edit these rules</button>
+      </div>
       <ol class="clauses" id="clauses" hidden></ol>
       <div class="general" id="general" hidden></div>
     </div>
@@ -186,10 +189,11 @@
     </div>
     <div class="outcome" id="outcome">
       <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
+      <p class="bound num" id="bound" hidden></p>
       <p class="allow" id="allow" hidden></p>
     </div>
     <div class="outcome-more" id="outcome-more">
-      <p class="proof" id="proof" hidden><span id="proof-bound"></span> Verified on NEAR testnet: <a class="proof__link" href="#chain">see the transactions</a>.</p>
+      <p class="proof" id="proof" hidden>The search runs off-chain; the guard’s vault enforces the same rules on NEAR testnet: <a class="proof__link" href="#chain">see transactions</a>.</p>
       <p class="means" id="means" hidden></p>
       <details class="means-more" id="means-more" hidden>
         <summary>How the worst attack worked</summary>
@@ -215,7 +219,6 @@
       <button type="button" class="btn btn--quiet" id="retry-btn">Try again</button>
     </div>
     <p class="siege__prev" id="siege-prev" hidden>From the last run</p>
-    <p class="jump" id="rules-jump" hidden><span id="rules-jump-sum"></span> <a href="#mandate" id="rules-jump-link">Edit your rules</a></p>
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Typical limits</h3>
@@ -258,7 +261,19 @@
         <p class="guard__compare" hidden></p>
       </article>
     </div>
+    <a class="jump" id="rules-jump" href="#doc-h" hidden><span id="rules-jump-sum">Your rules</span><span aria-hidden="true">↓</span></a>
 
+    <section class="chain" id="chain" aria-labelledby="chain-h">
+      <h3 id="chain-h">Enforced on NEAR testnet</h3>
+      <p class="chain__lead">The same guard signs for a two-key vault contract. The agent’s key can’t pay without the guard’s signature.</p>
+      <dl class="chain__rows">
+        <div class="chain__row"><dt>Vault</dt><dd><span class="chain__what">SIEGE vault</span><a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a></dd></div>
+        <div class="chain__row"><dt>Paid</dt><dd><span class="chain__what">A guard-signed 0.01 NEAR invoice</span><a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA</a></dd></div>
+        <div class="chain__row"><dt>Refused <code>(BAD_SIGNATURE)</code></dt><dd><span class="chain__what">The agent’s key paying <span class="mono">drainer.testnet</span> without the guard</span><a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3</a></dd></div>
+        <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
+      </dl>
+      <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
+    </section>
 
     <section class="next" id="next" aria-labelledby="next-h" hidden>
       <h3 id="next-h">Fix the weakest rule</h3>
@@ -267,10 +282,6 @@
       <div class="next__fix" id="next-fix" hidden>
         <p class="next__quote" id="next-fix-text"></p>
         <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
-      </div>
-      <div class="next__more">
-        <button type="button" class="btn btn--quiet" id="next-try">Try a transaction</button>
-        <button type="button" class="btn btn--quiet" id="next-use">Use it in your agent</button>
       </div>
     </section>
 
@@ -302,17 +313,6 @@
       </div>
     </details>
 
-    <section class="chain" id="chain" aria-labelledby="chain-h">
-      <h3 id="chain-h">Enforced on NEAR testnet</h3>
-      <p class="chain__lead">The same guard signs for a two-key vault contract. The agent’s key can’t pay without the guard’s signature.</p>
-      <dl class="chain__rows">
-        <div class="chain__row"><dt>Vault</dt><dd><a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a></dd></div>
-        <div class="chain__row"><dt>Paid</dt><dd><span class="chain__what">A guard-signed 0.01 NEAR invoice</span><a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA</a></dd></div>
-        <div class="chain__row"><dt>Refused <code>(BAD_SIGNATURE)</code></dt><dd><span class="chain__what">The agent’s key paying <span class="mono">drainer.testnet</span> without the guard</span><a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3</a></dd></div>
-        <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
-      </dl>
-      <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
-    </section>
   </section>
 </main>
 <div class="defs" hidden>
@@ -325,7 +325,7 @@
 <p class="tip" id="tip" role="tooltip" hidden></p>
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/siege" rel="noopener">Code on GitHub</a>
-  <a href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">The testnet vault on NearBlocks</a>
+  <a href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">The SIEGE vault on NearBlocks</a>
   <a href="https://near-darwin.onrender.com" rel="noopener">DARWIN, the sister project</a>
   <span>Test network only: no real money moves.</span>
 </footer>

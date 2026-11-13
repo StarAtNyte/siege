@@ -38,7 +38,6 @@
   let es = null;
   let legit = new Set();
   let lastBudget = null; // the SIEGE guard's allowance for unknown payees, from the finished siege
-  let lastStops = null; // per guard, attacks tried and attacks that got nothing out, from the finished siege
   let hasResult = false; // a finished siege is on screen; it stays until a new run actually connects
   let lastRun = null; // { text, losses } of the last finished siege
   let prevRun = null; // the finished run a new siege is compared against
@@ -73,7 +72,6 @@
     liveEl.textContent = msg;
   }
   const aPer = (h) => (h === 24 ? "a day" : h === 1 ? "an hour" : h === 168 ? "a week" : `every ${h % 24 === 0 ? `${h / 24} days` : `${h} hours`}`);
-  const trim = (n) => String(Number(Number(n).toFixed(2)));
   const hours = (h) => (h === 24 ? "per day" : h === 1 ? "per hour" : h === 168 ? "per week" : h % 24 === 0 ? `per ${h / 24} days` : `per ${h} hours`);
 
   function lev(a, b) {
@@ -253,20 +251,18 @@
     rulesJump();
   }
 
-  // On narrow screens the rules sit below the outcome: one line says what they are and jumps to edit them.
+  // On narrow screens the rules sit below the outcome: a sticky chip under the cards says how many leak and jumps to them.
   function rulesJump(d = null) {
     const n = compiled?.sentences?.length ?? 0;
     const j = $("#rules-jump");
     j.hidden = !n;
     if (!n) return;
-    const broke = d ? d.sentences.filter((s) => s.findings.some((f) => f.guard === "outlayer" && f.loss > 0)).map((s) => String(s.index + 1)) : [];
-    $("#rules-jump-sum").textContent = `Your rules: ${plural(n, "rule")}.${broke.length ? ` Without the guard, money got out through rule${broke.length > 1 ? "s" : ""} ${list(broke)}.` : ""}`;
+    const leak = d ? d.sentences.filter((s) => s.findings.some((f) => f.loss > 0)).length : null;
+    $("#rules-jump-sum").textContent = leak == null ? `Your rules (${n})` : `Your rules (${leak ? `${leak} leak` : "none leak"})`;
   }
-  $("#rules-jump-link").addEventListener("click", (e) => {
+  $("#rules-jump").addEventListener("click", (e) => {
     e.preventDefault();
-    setMode("edit");
     $("#doc-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    ta.focus({ preventScroll: true });
   });
 
   // ---------- export ----------
@@ -340,12 +336,17 @@
     const annotated = mode === "annotated";
     ta.hidden = annotated;
     clausesEl.hidden = !annotated;
-    keyEl.hidden = !annotated || !keyEl.childElementCount;
+    $("#doc-tools").hidden = !annotated;
     generalEl.hidden = !annotated || !generalEl.childElementCount;
-    editBtn.hidden = !annotated;
     fit();
   }
   editBtn.addEventListener("click", () => {
+    setMode("edit");
+    ta.focus();
+  });
+  // Clicking a rule's text opens it for editing too: the rendered rules are the same text, not a report about it.
+  clausesEl.addEventListener("click", (e) => {
+    if (!e.target.closest?.(".clause__text") || getSelection()?.toString()) return;
     setMode("edit");
     ta.focus();
   });
@@ -370,6 +371,7 @@
     $("#siege-example").hidden = true;
     $("#siege-sum").hidden = true;
     $("#proof").hidden = true;
+    $("#bound").hidden = true;
     $("#stage").hidden = true;
     strikes = new Map();
     evals = {};
@@ -396,7 +398,6 @@
       g.budget.hidden = true;
     }
     lastBudget = null;
-    lastStops = null;
     $("#l-mandate-sum").hidden = true;
     $("#siege-verdict").hidden = true;
     $("#means").hidden = true;
@@ -542,28 +543,27 @@
     sum.replaceChildren();
     const fig = (t) => el("b", { text: t });
     if (!d) {
-      const n = Object.values(evals).reduce((a, x) => a + x, 0);
       sum.dataset.tone = "running";
-      sum.append("Best attack so far: typical limits ", fig(`${near(bestOf("outlayer"))} NEAR`), " · SIEGE guard ", fig(`${near(bestOf("mandate"))} NEAR`), ` · ${n.toLocaleString("en")} attacks tried`);
+      sum.append("Best attack so far: typical limits ", fig(`${near(bestOf("outlayer"))} NEAR`), " · SIEGE guard ", fig(`${near(bestOf("mandate"))} NEAR`));
       sum.hidden = false;
     } else {
-      // Finished: the verdict above says it; this line only carried running totals. The figures are the best a bounded
-      // search found in this run, said beside the verdict with the way to the testnet proof.
+      // Finished: the verdict above says it; this line only carried running totals. The attempt count is said once,
+      // under the verdict, with what it means: the best a bounded search found, not a guarantee.
       sum.hidden = true;
-      $("#proof-bound").textContent = `Best found in this run of ${d.evaluations.toLocaleString("en")} bounded attempts.`;
+      $("#bound").textContent = `Best attack found in ${d.evaluations.toLocaleString("en")} attempts; a bounded search, not a guarantee.`;
+      $("#bound").hidden = false;
       $("#proof").hidden = false;
     }
   }
 
-  // The stage line: which round, and that every round attacks both guards in turn.
-  function stageAt(round, total, guard = null, done = false) {
+  // The stage line: one round counter and how far through the siege is. Every round attacks both guards.
+  function stageAt(round, total, done = false) {
     $("#stage").hidden = false;
     $("#stage-fill").style.setProperty("--done", String(total ? round / total : 0));
     const st = $("#stage-text");
     st.replaceChildren();
-    if (done) return st.append(el("b", { text: `${total} rounds done.` }), " Each attacked typical limits, then the SIEGE guard.");
-    const step = (g, t) => el("span", { class: "stage__step", "data-on": String(guard === g) }, t);
-    st.append(el("b", { text: `Round ${round} of ${total}` }), " ", step("outlayer", "1. Attack typical limits"), el("span", { class: "stage__arrow", "aria-hidden": "true", text: " → " }), step("mandate", "2. Attack SIEGE guard"));
+    if (done) return st.append(el("b", { text: `${total} rounds done` }));
+    st.append(el("b", { text: `Round ${round} of ${total}` }), el("span", { class: "stage__pct", text: `${Math.round((total ? round / total : 0) * 100)}%` }), el("span", { class: "stage__note", text: "Both guards attacked each round" }));
   }
   function onProgress(p) {
     const g = guards[p.guard];
@@ -573,10 +573,8 @@
     g.hist[p.generation] = p.bestLoss;
     g.num.textContent = near(p.bestLoss);
     g.unit.textContent = unitText();
-    g.phase.textContent = `Attack round ${p.generation + 1} of ${p.generations}`;
-    // Each round attacks typical limits first: until the guard's turn comes, its card says it is waiting on this round.
-    if (p.guard === "outlayer" && guards.mandate.root.dataset.phase === "running") guards.mandate.phase.textContent = `Round ${p.generation + 1} of ${p.generations}: waiting`;
-    stageAt(p.generation + 1, p.generations, p.guard);
+    g.phase.textContent = "";
+    stageAt(p.generation + 1, p.generations);
     stateEl.textContent = `${Object.values(evals).reduce((x, y) => x + y, 0).toLocaleString("en")} attacks tried`;
     if (p.guard === "mandate") announce(`Attack round ${p.generation + 1} of ${p.generations}: typical limits ${near(bestOf("outlayer"))} NEAR lost, SIEGE guard ${near(p.bestLoss)}.`);
     Object.values(guards).forEach(drawSpark);
@@ -588,8 +586,8 @@
   }
 
   // ---------- the key ----------
-  // Every mark on the rules, said once. The underline: typical limits let money out through this rule. The rule number's
-  // colour: what the SIEGE guard did on it (a check swatch for held). The bars: each round's best attack on each guard.
+  // Every mark on the rules, said once, folded under "Key". The ink line: typical limits let money out through this rule.
+  // The rule number's colour: what the SIEGE guard did on it. The bars: each round's best attack on each guard.
   // And the accounting: every figure is a guard's best attack, split by the rule it got through.
   const keyEl = $("#key");
   function showKey(done) {
@@ -598,7 +596,7 @@
     const swatch = (k, t = "") => el("span", { class: `key__badge key__badge--${k}`, "aria-hidden": "true", text: t });
     keyEl.replaceChildren(
       ...[
-        item(el("span", { class: "key__line", "aria-hidden": "true", text: "Underlined" }), "typical limits let money out"),
+        item(el("span", { class: "key__line", "aria-hidden": "true", text: "Struck" }), "typical limits let money out"),
         done && item(swatch("held", "\u2713"), "SIEGE guard held this rule"),
         done && has("budget") && item(swatch("budget"), "guard paid from its allowance"),
         done && has("lost") && item(swatch("lost"), "money got past the guard"),
@@ -606,7 +604,6 @@
         el("span", { class: "key__note" }, done ? "Each NEAR figure is a guard’s best attack, split by the rule it got through." : "Figures are each guard’s best attack so far."),
       ].filter(Boolean),
     );
-    keyEl.hidden = false;
   }
 
   // ---------- the assault timeline ----------
@@ -637,10 +634,11 @@
     }
   }
   // A purpose sentence reads as a rule when it is labelled as one.
+  // The words sit in their own inline span, so a breach can draw an ink line through them, line by line.
   function clauseText(s) {
     const t = el("span", { class: "clause__text" });
-    if (s.roles?.length === 1 && s.roles[0] === "purpose" && /^for\s/i.test(s.text)) t.append(el("span", { class: "clause__kind", text: "Purpose" }), s.text.replace(/^for\s+/i, "").replace(/^./, (x) => x.toUpperCase()));
-    else t.append(s.text);
+    if (s.roles?.length === 1 && s.roles[0] === "purpose" && /^for\s/i.test(s.text)) t.append(el("span", { class: "clause__kind", text: "Purpose" }), el("span", { class: "clause__ink", text: s.text.replace(/^for\s+/i, "").replace(/^./, (x) => x.toUpperCase()) }));
+    else t.append(el("span", { class: "clause__ink", text: s.text }));
     return t;
   }
 
@@ -694,7 +692,7 @@
       g.num.textContent = near(g.loss);
       g.unit.textContent = unitText();
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
-      $(".budget__text", g.budget).replaceChildren("All of it from its ", term("allowance", "allowance"), `. Unknown payees get at most ${trim(b.cap)} NEAR ${aPer(b.hours)}, by design.`);
+      $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of ${near(b.cap)} NEAR `, term("allowance", "allowance"), " used");
       g.budget.hidden = false;
       return;
     }
@@ -849,6 +847,7 @@
 
   // A cap over time can be blown by stolen payments alone. Those count once, as theft on the rule that let them through,
   // so the cap's own line says how far past it the attack went and where its NEAR is counted, without adding to any total.
+  // Its bar is its own: what the best attack sent in one window, against the cap marked on the same scale.
   function capNote(s, all) {
     if (!s.roles?.includes("window-cap")) return null;
     const caps = (compiled?.constraints?.windows ?? []).filter((w) => w.token === "NEAR" || w.token === "*");
@@ -856,13 +855,19 @@
     const paid = (attacks.outlayer?.steps ?? []).filter((x) => x.verdict === "allow").reduce((a, x) => a + x.amount, 0);
     if (!cap || paid <= cap.cap + 0.005) return null;
     const where = all.map((x) => ({ n: x.index + 1, loss: x.findings.filter((f) => f.guard === "outlayer").reduce((a, f) => a + f.loss, 0) })).filter((x) => x.loss > 0);
-    const note = el("div", { class: "note" });
-    note.append(
-      el("p", { class: "note__guard note__guard--over" }, el("span", { class: "note__who", text: GUARD.outlayer }), " ", el("span", { class: "note__loss", text: `${near(paid)} NEAR in one day` })),
-      el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: GUARD.mandate }), " ", el("span", { class: "note__loss", text: "held" })),
-      el("p", { class: "note__how" }, `The best attack sent ${near(paid)} NEAR in one day by firing payments at the same moment, past this ${near(cap.cap)} NEAR cap.${where.length ? ` Not an extra loss: that NEAR is the ${where.map((x) => near(x.loss)).join(" + ")} shown under rule${where.length > 1 ? "s" : ""} ${list(where.map((x) => String(x.n)))}.` : ""}`),
+    const span = cap.hours === 24 ? "in one day" : `in ${hours(cap.hours).replace(/^per /, "one ")}`;
+    const note = el(
+      "div",
+      { class: "note" },
+      el("p", { class: "note__guard note__guard--breach note__guard--cap" }, "Breached by timing: ", el("span", { class: "note__loss", text: `${near(paid)} NEAR ${span}` }), where.length ? ` (counted under rule${where.length > 1 ? "s" : ""} ${where.map((x) => x.n).join(" + ")})` : ""),
     );
-    return note;
+    const bar = el(
+      "span",
+      { class: "capbar", role: "img", "aria-label": `${near(paid)} NEAR sent against a ${near(cap.cap)} NEAR cap` },
+      el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill" }), el("span", { class: "capbar__cap", style: `--at:${(cap.cap / paid).toFixed(4)}` })),
+      el("span", { class: "capbar__label" }, el("span", { text: `${near(cap.cap)} cap` }), el("span", { class: "num", text: `${near(paid)} sent` })),
+    );
+    return { note, bar };
   }
 
   // The verdict: one sentence about what the guard changed. The cards above already carry both figures.
@@ -923,7 +928,6 @@
   function onDone(d) {
     siegeEl.dataset.state = "done";
     lastBudget = d.budget ?? null;
-    lastStops = d.tried && d.stopped ? { tried: d.tried, stopped: d.stopped } : null;
     for (const [k, v] of Object.entries(d.losses || {})) finishGuard(k, v);
     if (attacks.mandate) renderLedger(attacks.mandate);
     sumLine(d);
@@ -938,11 +942,11 @@
       const inAllowance = k === "mandate" && lastBudget?.withinBudget && hit.every((s) => s.findings.filter((f) => f.guard === k).every((f) => f.kind === "theft"));
       g.clauses.textContent = n === 0 ? `Held on all ${total} ${word}` : inAllowance ? `Paid from its allowance on ${n} of your ${total} ${word}` : `Got past on ${n} of your ${total} ${word}`;
       g.clauses.hidden = total === 0;
-      const tried = lastStops?.tried?.[k], stopped = lastStops?.stopped?.[k];
-      g.stops.hidden = !(tried > 0 && Number.isInteger(stopped));
-      // Each guard faces its own attacks, built against it, so the totals differ: plain counts, not a share.
-      if (!g.stops.hidden) g.stops.textContent = `${(tried - stopped).toLocaleString("en")} of ${tried.toLocaleString("en")} attacks got money out`;
+      // The attempt count is said once, under the verdict; the cards carry only their figure and outcome.
+      g.stops.hidden = true;
     }
+    // Rules already struck through during the run keep their line; a rule first found breached now gets it drawn.
+    const inked = new Set($$(".clause--breach", clausesEl).map((li) => li.dataset.index));
     clausesEl.replaceChildren();
     for (const s of d.sentences) {
       const breach = s.findings.length > 0;
@@ -950,13 +954,14 @@
       const plainBroke = !!cn || s.findings.some((f) => f.guard === "outlayer");
       const mf = s.findings.filter((f) => f.guard === "mandate");
       const guardOutcome = !mf.length ? "held" : lastBudget?.withinBudget && mf.every((f) => f.kind === "theft") ? "budget" : "lost";
+      const fresh = plainBroke && !inked.has(String(s.index)) ? " clause--fresh" : "";
       clausesEl.append(
         el(
           "li",
-          { class: `clause clause--${plainBroke ? "breach" : "held"}`, "data-index": s.index, "data-guard": guardOutcome },
+          { class: `clause clause--${plainBroke ? "breach" : "held"}${fresh}`, "data-index": s.index, "data-guard": guardOutcome },
           clauseText(s),
-          strikeFor(s.index),
-          breach ? noteFor(s.findings, s) : cn ?? el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
+          cn ? cn.bar : strikeFor(s.index),
+          breach ? noteFor(s.findings, s) : cn?.note ?? el("div", { class: "note" }, el("span", { class: "note--held", text: "Both guards held." })),
         ),
       );
     }
@@ -968,8 +973,8 @@
     setMode("annotated");
     $("#ledgers").hidden = false;
     hasResult = true;
-    stateEl.textContent = `${d.evaluations.toLocaleString("en")} attacks tried`;
-    stageAt(GENERATIONS, GENERATIONS, null, true);
+    stateEl.textContent = "";
+    stageAt(GENERATIONS, GENERATIONS, true);
     $("#play-totals").textContent = `Best attack: typical limits ${near(d.losses?.outlayer ?? 0)} NEAR, the SIEGE guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
     $("#stage-now").hidden = true;
     evidenceSum();
@@ -980,7 +985,7 @@
     if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
     btnLabel.textContent = "Lay siege again";
-    announce(`Siege finished. ${said} Rules that typical limits lost on are underlined in coral.`, true);
+    announce(`Siege finished. ${said} Rules that typical limits lost on are struck through in coral.`, true);
     // A keyboard user who started the siege lands on the verdict, then tabs on to the clause details and ledgers.
     if (focusAfter()) $("#siege-verdict").focus({ preventScroll: true });
   }
@@ -995,8 +1000,17 @@
   function drain() {
     const item = queue.shift();
     if (!item) return void (drainTimer = null);
-    const [type, data] = item;
-    if (type === "progress") onProgress(data);
+    let [type, data] = item;
+    if (type === "progress") {
+      onProgress(data);
+      // Both guards are attacked each round: draw the other guard's same round in the same frame, so the cards move together.
+      const nx = queue[0];
+      if (nx?.[0] === "progress" && nx[1].guard !== data.guard && nx[1].generation === data.generation) {
+        queue.shift();
+        onProgress(nx[1]);
+        if (nx[1].play) data = { ...data, play: nx[1].play };
+      }
+    }
     else if (type === "attack") onAttack(data);
     else if (type === "done") onDone(data);
     else if (type === "call") data();
@@ -1061,7 +1075,7 @@
       $("#siege-error").hidden = true;
     } else clearBoard();
     if (moveFocus) $("#siege-h").focus({ preventScroll: true });
-    announce("Siege started. Each round attacks typical limits, then the SIEGE guard.", true);
+    announce("Siege started. Each round attacks both guards.", true);
     // On phones the siege sits below the mandate, out of sight: bring it up as it starts.
     if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     running("Starting the attacker…");
@@ -1074,7 +1088,7 @@
       if (hasResult) clearBoard(true), running("Starting the attacker…");
       const s = JSON.parse(e.data);
       legit = new Set(s.legit || []);
-      for (const g of Object.values(guards)) (g.root.dataset.phase = "running"), (g.phase.textContent = `Attack round 0 of ${s.generations}`);
+      for (const g of Object.values(guards)) (g.root.dataset.phase = "running"), (g.phase.textContent = "");
       stageAt(0, s.generations);
     });
     es.addEventListener("progress", (e) => push("progress", JSON.parse(e.data)));
@@ -1149,14 +1163,6 @@
     await compile();
     laySiege();
   });
-  const openPanel = (id) => {
-    const x = $(id);
-    x.open = true;
-    x.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
-    $("summary", x).focus({ preventScroll: true });
-  };
-  $("#next-use").addEventListener("click", () => openPanel("#export"));
-  $("#next-try").addEventListener("click", () => openPanel("#try"));
 
   // ---------- try a transaction ----------
   const form = $("#try-form");
@@ -1260,7 +1266,7 @@
     for (const [type, data] of ex.events) {
       if (type === "start") {
         legit = new Set(data.legit || []);
-        for (const g of Object.values(guards)) (g.root.dataset.phase = "running"), (g.phase.textContent = `Attack round 0 of ${data.generations}`);
+        for (const g of Object.values(guards)) (g.root.dataset.phase = "running"), (g.phase.textContent = "");
       } else if (animate) push(type, data);
       else if (type === "progress") onProgress({ ...data, play: undefined });
       else if (type === "attack") onAttack(data);
