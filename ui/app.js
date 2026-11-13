@@ -1304,20 +1304,32 @@
     msg.textContent = "";
     const fd = Object.fromEntries(new FormData(form));
     $$(".input", form).forEach((i) => i.removeAttribute("aria-invalid"));
+    // An error message never sits above the verdicts of an earlier transaction.
+    const invalid = (sel, text) => {
+      msg.textContent = text;
+      $("#verdicts").hidden = true;
+      if (sel) $(sel).setAttribute("aria-invalid", "true"), $(sel).focus();
+    };
+    // The server's own checks, run here first, so a typo is answered without a failed request.
+    const amount = Number(fd.amount);
+    if (!(amount > 0 && amount <= 1e6)) return invalid("#t-amount", "Amount must be a positive number of NEAR.");
+    if (!/^[a-z0-9._-]{2,64}$/.test(String(fd.to ?? "").trim().toLowerCase())) return invalid("#t-to", "Recipient must be a NEAR account id.");
+    if (fd.kind === "call" && String(fd.args ?? "").trim()) {
+      try {
+        JSON.parse(fd.args);
+      } catch {
+        return invalid("#t-args", "Call arguments must be JSON.");
+      }
+    }
     const btn = $("#try-btn");
     btn.setAttribute("aria-busy", "true");
     try {
       const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mandate: ta.value, tx: { ...fd, amount: Number(fd.amount) } }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        msg.textContent = r.status === 422 ? why422(j.error) : sentence(j.error || "That did not go through");
-        const bad = /amount/.test(j.error) ? "#t-amount" : /recipient/.test(j.error) ? "#t-to" : /arguments/.test(j.error) ? "#t-args" : null;
-        if (bad) $(bad).setAttribute("aria-invalid", "true"), $(bad).focus();
-        return;
-      }
+      if (!r.ok) return invalid(/amount/.test(j.error) ? "#t-amount" : /recipient/.test(j.error) ? "#t-to" : /arguments/.test(j.error) ? "#t-args" : null, r.status === 422 ? why422(j.error) : sentence(j.error || "That did not go through"));
       renderVerdicts(j);
     } catch {
-      msg.textContent = "Can’t reach the SIEGE server. Check your connection, then try again.";
+      invalid(null, "Can’t reach the SIEGE server. Check your connection, then try again.");
     } finally {
       btn.removeAttribute("aria-busy");
     }
