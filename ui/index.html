@@ -34,14 +34,6 @@
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
     <p class="bar__line">Can your AI agent’s wallet be drained?</p>
-    <div class="bar__pick">
-      <label class="visually-hidden" for="example-select">Load an example set of rules</label>
-      <select id="example-select" class="input bar__select">
-        <option value="" selected>Examples</option>
-        <option value="whitelist">Named payees</option>
-        <option value="open">Open invoices</option>
-      </select>
-    </div>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span><kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
@@ -82,7 +74,15 @@
   <section class="doc" aria-labelledby="doc-h">
     <div class="doc__head">
       <h1 id="doc-h">Your spending rules</h1>
-      <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit rules</button>
+      <span class="doc__acts">
+        <label class="visually-hidden" for="example-select">Load an example set of rules</label>
+        <select id="example-select" class="input doc__select">
+          <option value="" selected>Examples</option>
+          <option value="whitelist">Named payees</option>
+          <option value="open">Open invoices</option>
+        </select>
+        <button type="button" class="btn btn--quiet" id="edit-btn" hidden>Edit rules</button>
+      </span>
     </div>
     <p class="doc__gloss">What your AI agent may pay: who, how much, what for. Plain English; edit freely.</p>
 
@@ -182,14 +182,25 @@
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
-    <p class="siege__example" id="siege-example" hidden>Example run on the rules shown. Press <b>Lay siege</b> to run your own.</p>
+    <div class="outcome" id="outcome">
+      <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
+      <p class="proof" id="proof" hidden><span id="proof-bound"></span> Verified on NEAR testnet: <a class="proof__link" href="#chain">see the transactions</a>.</p>
+      <p class="means" id="means" hidden></p>
+      <details class="means-more" id="means-more" hidden>
+        <summary>How the worst attack worked</summary>
+        <p id="means-full"></p>
+      </details>
+    </div>
+    <div class="siege__example" id="siege-example" hidden>
+      <p id="siege-example-text"></p>
+      <button type="button" class="btn btn--quiet btn--s" id="replay-btn">Replay this siege</button>
+    </div>
     <div class="stage" id="stage" hidden>
       <div class="stage__track" aria-hidden="true"><span class="stage__fill" id="stage-fill"></span></div>
       <p class="stage__text num" id="stage-text"></p>
     </div>
     <div class="sum">
       <p class="siege__sum num" id="siege-sum" hidden></p>
-      <p class="sum__bound" id="sum-bound" hidden></p>
     </div>
     <p class="siege__intro" id="siege-intro">Press <b>Lay siege</b>: an attacker tries thousands of tricks to drain your agent, against typical limits and against the SIEGE guard, round by round. Lower NEAR lost wins.</p>
     <p class="visually-hidden" id="siege-live" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -201,15 +212,10 @@
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Typical limits</h3>
-        <p class="guard__what">Caps + allowlist, as in an <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> policy</p>
+        <p class="guard__what">Per-payment and daily caps, and a payee allowlist</p>
         <p class="guard__preview">Run a siege to see what gets past</p>
         <p class="guard__placeholder">Checks amounts and payees only.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
-        <p class="guard__phase"></p>
-        <p class="guard__stops" hidden></p>
-        <p class="guard__clauses" hidden></p>
-        <p class="guard__compare" hidden></p>
-        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
         <figure class="spark">
           <div class="spark__plot">
             <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by attack round, typical limits"><path class="spark__line" d=""/></svg>
@@ -218,6 +224,11 @@
           </div>
           <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
+        <p class="guard__phase"></p>
+        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
+        <p class="guard__stops" hidden></p>
+        <p class="guard__clauses" hidden></p>
+        <p class="guard__compare" hidden></p>
       </article>
       <article class="guard" id="g-mandate" data-guard="mandate" data-phase="waiting" aria-labelledby="g-mandate-h">
         <h3 id="g-mandate-h"><button type="button" class="term" data-tip="guard" aria-describedby="def-guard">SIEGE guard</button></h3>
@@ -225,11 +236,6 @@
         <p class="guard__preview">Run a siege to see what gets past</p>
         <p class="guard__placeholder">Checks each payment against your rules, and who asked for it.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
-        <p class="guard__phase"></p>
-        <p class="guard__stops" hidden></p>
-        <p class="guard__clauses" hidden></p>
-        <p class="guard__compare" hidden></p>
-        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
         <figure class="spark">
           <div class="spark__plot">
             <svg class="spark__svg" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Chart: best loss found by attack round, SIEGE guard"><path class="spark__line" d=""/></svg>
@@ -238,17 +244,14 @@
           </div>
           <figcaption class="spark__axis"><span>1</span><button type="button" class="term" data-tip="round" aria-describedby="def-round">Attack round</button><span class="spark__end">30</span></figcaption>
         </figure>
+        <p class="guard__phase"></p>
+        <div class="budget" hidden><div class="budget__track"><span class="budget__fill"></span></div><p class="budget__text"></p></div>
+        <p class="guard__stops" hidden></p>
+        <p class="guard__clauses" hidden></p>
+        <p class="guard__compare" hidden></p>
       </article>
     </div>
 
-    <div class="outcome" id="outcome">
-      <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
-      <p class="means" id="means" hidden></p>
-      <details class="means-more" id="means-more" hidden>
-        <summary>How the worst attack worked</summary>
-        <p id="means-full"></p>
-      </details>
-    </div>
 
     <section class="chain" id="chain" aria-labelledby="chain-h">
       <h3 id="chain-h">Enforced on NEAR testnet</h3>
@@ -257,7 +260,7 @@
         <div class="chain__row"><dt>Vault</dt><dd><a class="mono" href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">vault.darwin-siege-mw23cmc8.testnet</a></dd></div>
         <div class="chain__row"><dt>Paid</dt><dd><span class="chain__what">A guard-signed 0.01 NEAR invoice</span><a class="mono" href="https://testnet.nearblocks.io/txns/Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA" rel="noopener">Gmvqcm4xn8Hz34Y2KBibz9RmMRQE9BKVBaQfu37cZhHA</a></dd></div>
         <div class="chain__row"><dt>Refused <code>(BAD_SIGNATURE)</code></dt><dd><span class="chain__what">The agent’s key paying <span class="mono">drainer.testnet</span> without the guard</span><a class="mono" href="https://testnet.nearblocks.io/txns/6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3" rel="noopener">6FKZ3cbstrmCgpjPvNLgYoLpRYPHjZVXePWthYSTGwD3</a></dd></div>
-        <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live OutLayer wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
+        <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
       </dl>
       <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
     </section>
@@ -303,7 +306,7 @@
 </main>
 <div class="defs" hidden>
   <span id="def-near">A public blockchain. SIEGE runs on its test network, so no real money moves.</span>
-  <span id="def-outlayer">A wallet service for AI agents on NEAR. Its policy sets typical limits: per-payment and daily caps, and an allowlist of payees.</span>
+  <span id="def-outlayer">A custody wallet for AI agents on NEAR. Its policy is what typical limits means here: per-payment and daily caps, and a payee allowlist.</span>
   <span id="def-guard">SIEGE’s guard sits in front of the wallet. It checks each payment against your rules, and reads who asked for it and why.</span>
   <span id="def-round">Each round, the attacker breeds new attacks from the ones that worked best, against both guards. Thirty rounds.</span>
   <span id="def-allowance">The most the guard lets go to payees your rules never named. Named payees don’t count against it.</span>
@@ -311,6 +314,7 @@
 <p class="tip" id="tip" role="tooltip" hidden></p>
 <footer class="foot container">
   <a href="https://github.com/StarAtNyte/siege" rel="noopener">Code on GitHub</a>
+  <a href="https://testnet.nearblocks.io/address/vault.darwin-siege-mw23cmc8.testnet" rel="noopener">The testnet vault on NearBlocks</a>
   <a href="https://near-darwin.onrender.com" rel="noopener">DARWIN, the sister project</a>
   <span>Test network only: no real money moves.</span>
 </footer>
