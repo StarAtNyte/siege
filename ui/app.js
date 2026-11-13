@@ -84,7 +84,7 @@
   }
   // Render an account id in mono, marking the characters that differ from the real payee it imitates.
   function account(id) {
-    const span = el("span");
+    const span = el("span", { class: "acct" });
     if (!id) return span;
     let best = null, bd = Infinity;
     for (const l of legit) {
@@ -268,7 +268,7 @@
       const out = [];
       if (r) {
         const typ = r.cap ? `raced past the ${near(r.cap.cap)} cap` : r.typicalLoss > 0 ? `typical lost ${near(r.typicalLoss)}` : "typical held";
-        const grd = r.guard === "held" ? "guard held" : r.guard === "budget" ? `guard leaked ${near(r.guardLoss)}, capped by its allowance` : `guard lost ${near(r.guardLoss)}`;
+        const grd = r.guard === "held" ? "guard held" : r.guard === "budget" ? `guard paid ${near(r.guardLoss)} to new payees, within its allowance` : `guard lost ${near(r.guardLoss)}`;
         out.push(el("span", { class: "rulesum__out", text: `${typ.charAt(0).toUpperCase() + typ.slice(1)} · ${grd}` }));
       }
       list.append(
@@ -789,7 +789,7 @@
       g.compare.hidden = true;
       // Both cards lead with NEAR lost, so they compare at a glance; the gauge shows it all came from the allowance.
       g.num.textContent = near(g.loss);
-      g.unit.textContent = "NEAR leaked, capped by its allowance";
+      g.unit.textContent = "NEAR to new payees, within its allowance";
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
       $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}`, term("allowance", "allowance"), " for new payees");
       g.budget.hidden = false;
@@ -1037,7 +1037,8 @@
     const L = window.SiegeLeaks.ruleLeaks(d, compiled?.constraints?.windows, attacks.outlayer?.steps);
     const word = L.total === 1 ? "rule" : "rules";
     const allBudget = L.rules.every((r) => r.guard !== "lost");
-    const which = (rs) => `${rs.length === 1 ? "rule" : "rules"} ${list(rs.map((r) => String(r.index + 1)))} of your ${L.total}`;
+    // "rules 1, 2 and 4" holds together on one line, so a wrap falls before or after it, never inside.
+    const which = (rs) => `${`${rs.length === 1 ? "rule" : "rules"} ${list(rs.map((r) => String(r.index + 1)))}`.replace(/ /g, "\u00a0")} of your ${L.total}`;
     const leakedRules = L.rules.filter((r) => r.leaked), hitRules = L.rules.filter((r) => r.guard !== "held");
     guards.outlayer.clauses.textContent = L.leaked ? `Leaked on ${which(leakedRules)}` : `Held on all ${L.total} ${word}`;
     guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `${hitRules.length === 1 ? "Rule" : "Rules"} ${list(hitRules.map((r) => String(r.index + 1)))}: ${near(hitRules.reduce((a, r) => a + r.guardLoss, 0))} NEAR to new payees, within the ${near(lastBudget?.cap ?? 0)} allowance` : `Got past on ${which(hitRules)}`;
@@ -1249,7 +1250,8 @@
     $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the SIEGE guard as it is" : weak.guardLoss > 0 ? `Fix rule ${weak.s.index + 1}` : "Put the guard in front of your wallet";
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
-    if (fix) $("#next-fix-text").textContent = `“${fix}”`;
+    // Account names stay on one line: "acme-supplies.testnet" must not break at its hyphen.
+    if (fix) $("#next-fix-text").replaceChildren(...`“${fix}”`.split(/([a-z0-9_-]+(?:\.[a-z0-9_-]+)*\.(?:testnet|near))/).map((t, i) => (i % 2 ? el("span", { class: "acct", text: t }) : t)));
     payoff(fix ? recFor(ta.value.replace(weak.s.text, fix)) : null, weak);
     $("#next").hidden = false;
   }
