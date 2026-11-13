@@ -898,3 +898,21 @@ a.btn { text-decoration: none; }
 
 /* the recorded-example and live-run line is a caption, not a control: only the replay beside it is a button */
 .siege__example p.siege__tag { flex: 0 1 auto; padding: 0; border: 0; background: none; color: var(--color-ink-2); font-weight: 400; font-size: var(--text-sm); line-height: 1.5; white-space: normal; }
+
+/* the guard card's punchline: the cap the NEAR vault contract enforces, linked to the vault */
+.vaultbadge { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2xs); padding: var(--space-2xs) var(--space-xs); border: 1.5px solid var(--color-on-field); border-radius: var(--radius-input); background: var(--color-paper); color: var(--color-ink); text-decoration: none; }
+.vaultbadge[hidden] { display: none; }
+.vaultbadge__v { font-weight: 700; font-size: var(--text-md); white-space: nowrap; }
+.vaultbadge__k { font-size: var(--text-sm); font-weight: 600; }
+.vaultbadge__s { flex-basis: 100%; font-size: var(--text-xs); color: var(--color-ink-2); text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
+.vaultbadge:hover .vaultbadge__s { color: var(--color-ink); text-decoration-color: currentColor; }
+.vaultbadge:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 40rem) {
+  .vaultbadge { padding: var(--space-3xs) var(--space-2xs); }
+  .vaultbadge__v { font-size: var(--text-sm); }
+  .vaultbadge__k { font-size: var(--text-xs); }
+}
+
+/* the legend's sum: the headline's figure split by rule */
+.key__total { margin-top: var(--space-3xs); color: var(--color-ink); }
+.key__total b { font-weight: 600; }

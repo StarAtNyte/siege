@@ -428,6 +428,7 @@
     $("#siege-sum").hidden = true;
     $("#bound").hidden = true;
     $("#vault-cap").hidden = true;
+    $("#vault-badge").hidden = true;
     $("#see-fix").hidden = true;
     $("#stage").hidden = true;
     strikes = new Map();
@@ -796,6 +797,21 @@
     g.num.textContent = near(g.loss);
     Object.keys(guards).forEach(grade);
   }
+  // A daily allowance for new payees is the vault's own cap too (src/vault/model.ts), so the card says the chain enforces it,
+  // linked to the vault contract named in the footer.
+  function vaultBadge(b) {
+    const badge = $("#vault-badge");
+    const vault = $('.foot a[href*="/address/"]');
+    badge.hidden = !(b && b.hours === 24 && vault);
+    if (badge.hidden) return;
+    badge.href = vault.href;
+    badge.replaceChildren(
+      el("span", { class: "vaultbadge__v num", text: `${near(b.cap)} NEAR/day` }),
+      el("span", { class: "vaultbadge__k", text: "on-chain cap" }),
+      el("span", { class: "vaultbadge__s", text: "to new payees, enforced by the NEAR vault contract" }),
+    );
+    badge.setAttribute("aria-label", `On-chain cap: ${near(b.cap)} NEAR a day to new payees, enforced by the NEAR vault contract. Opens the vault on NearBlocks.`);
+  }
   // Held: nothing lost. Held to budget: everything lost went through the mandate's new-payee budget and stayed inside it.
   // Mostly held: lost, but at least 90% less than the other guard. Otherwise the card carries only its figure and rule count.
   function grade(k) {
@@ -812,9 +828,11 @@
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
       $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}`, term("allowance", "allowance"), " for new payees");
       g.budget.hidden = false;
+      vaultBadge(b);
       return;
     }
     g.budget.hidden = true;
+    if (k === "mandate") vaultBadge(null);
     g.num.textContent = near(g.loss);
     g.unit.textContent = unitText();
     const [ok, other] = Object.entries(guards).find(([x]) => x !== k);
