@@ -250,7 +250,24 @@
     if (c.swaps?.length) row("Swaps", c.swaps.map((p) => (Array.isArray(p) ? p.join(" to ") : String(p))).join(", "));
     if (c.activeHoursUtc) row("Hours", `${c.activeHoursUtc.join?.(" to ") ?? JSON.stringify(c.activeHoursUtc)} UTC`);
     row("Purposes", c.purposes?.length ? list(c.purposes).replace(/^./, (x) => x.toUpperCase()) : "Any purpose");
+    rulesJump();
   }
+
+  // On narrow screens the rules sit below the outcome: one line says what they are and jumps to edit them.
+  function rulesJump(d = null) {
+    const n = compiled?.sentences?.length ?? 0;
+    const j = $("#rules-jump");
+    j.hidden = !n;
+    if (!n) return;
+    const broke = d ? d.sentences.filter((s) => s.findings.some((f) => f.guard === "outlayer" && f.loss > 0)).map((s) => String(s.index + 1)) : [];
+    $("#rules-jump-sum").textContent = `Your rules: ${plural(n, "rule")}.${broke.length ? ` Without the guard, money got out through rule${broke.length > 1 ? "s" : ""} ${list(broke)}.` : ""}`;
+  }
+  $("#rules-jump-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    setMode("edit");
+    $("#doc-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    ta.focus({ preventScroll: true });
+  });
 
   // ---------- export ----------
   function staleExport() {
@@ -385,6 +402,10 @@
     $("#means").hidden = true;
     $("#means-more").hidden = true;
     $("#play").hidden = true;
+    $("#evidence").hidden = true;
+    $("#evidence").open = false;
+    $("#allow").hidden = true;
+    $("#stage-now").hidden = true;
     $("#play-lines").replaceChildren();
     $("#play-totals").textContent = "";
     attacks = {};
@@ -462,8 +483,8 @@
     else if (p.dripped) what.append(` It split the theft into ${p.payments} small payments.`);
     const o = p.verdicts.outlayer, m = p.verdicts.mandate;
     const plain = o.paid
-      ? `Typical limits paid it${o.lost > p.amount + 0.005 ? `; the whole attack took ${near(o.lost)} NEAR` : ""}.`
-      : `Typical limits refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of the attack still took ${near(o.lost)} NEAR` : ""}.`;
+      ? `Typical limits paid it${o.lost > p.amount + 0.005 ? `; this attack took ${near(o.lost)} NEAR in all` : ""}.`
+      : `Typical limits refused: ${because(o.reason, p)}${o.lost > 0 ? `, but the rest of this attack still took ${near(o.lost)} NEAR` : ""}.`;
     const guard = m.paid
       ? m.novel ? "The guard paid it from its allowance: the most it lets go to payees your rules never named." : "The guard paid it too."
       : `The guard refused: ${because(m.reason, p)}.`;
@@ -481,15 +502,40 @@
     ol.prepend(playLine(p));
     while (ol.childElementCount > PLAY_KEEP) ol.lastElementChild.remove();
     $("#play").hidden = false;
+    nowLine(p);
+    evidenceSum();
+  }
+  // While the siege runs, one line says what the newest narrated attack tried, from the same engine event as its play line.
+  const NOUN = { deputy: "a redirected contract call", hidden: "a hidden instruction", address: "a changed-address email", document: "a forged document", plain: "a plain request", lookalike: "a lookalike payee", drip: "a drip of small payments", race: "payments fired at once" };
+  function nowLine(p) {
+    const now = $("#stage-now");
+    const what = list((p.tags ?? []).map((k) => NOUN[k]).filter(Boolean)) || "a payment to a stranger";
+    const m = p.verdicts.mandate;
+    now.replaceChildren(
+      el("b", { text: `Round ${p.round}: ` }),
+      `${what} against ${p.guard === "outlayer" ? "typical limits" : "the SIEGE guard"}, paying `,
+      el("span", { class: "mono" }, account(p.to)),
+      `. ${p.verdicts.outlayer.paid ? "Typical limits paid" : "Typical limits refused"}; ${m.paid ? (m.novel ? "the guard paid from its allowance" : "the guard paid") : "the guard refused"}.`,
+    );
+    now.hidden = siegeEl.dataset.state === "done";
+  }
+  // The evidence stays folded under one line that says what is inside.
+  function evidenceSum() {
+    const n = $("#play-lines").childElementCount;
+    const parts = [];
+    if (n) parts.push(`${plural(n, "attack")} told play by play`);
+    if (attacks.outlayer && attacks.mandate) parts.push("each guard’s best attack, payment by payment");
+    $("#evidence-sum").textContent = parts.length ? list(parts).replace(/^./, (x) => x.toUpperCase()) : "";
+    $("#evidence").hidden = !parts.length;
   }
   function playTotals(p) {
     const lost = (k) => near(Math.max(0, ...guards[k].hist.filter((v) => v != null)));
     const n = Object.values(evals).reduce((a, x) => a + x, 0);
-    $("#play-totals").textContent = `${n.toLocaleString("en")} attacks tried. Paid out so far: typical limits ${lost("outlayer")} NEAR, the SIEGE guard ${lost("mandate")} NEAR.`;
+    $("#play-totals").textContent = `${n.toLocaleString("en")} attacks tried. Best attack so far: typical limits ${lost("outlayer")} NEAR, the SIEGE guard ${lost("mandate")} NEAR.`;
   }
 
   // The outcome in one line above the cards. While the siege runs these are running totals, never the result.
-  const unitText = () => (siegeEl.dataset.state === "running" ? "NEAR lost so far" : "NEAR lost");
+  const unitText = () => (siegeEl.dataset.state === "running" ? "NEAR lost, best attack so far" : "NEAR lost in the best attack");
   const bestOf = (k) => Math.max(0, ...guards[k].hist.filter((v) => v != null));
   function sumLine(d) {
     const sum = $("#siege-sum");
@@ -498,7 +544,7 @@
     if (!d) {
       const n = Object.values(evals).reduce((a, x) => a + x, 0);
       sum.dataset.tone = "running";
-      sum.append("So far: typical limits lost ", fig(`${near(bestOf("outlayer"))} NEAR`), " · SIEGE guard lost ", fig(near(bestOf("mandate"))), ` · ${n.toLocaleString("en")} attacks tried`);
+      sum.append("Best attack so far: typical limits ", fig(`${near(bestOf("outlayer"))} NEAR`), " · SIEGE guard ", fig(`${near(bestOf("mandate"))} NEAR`), ` · ${n.toLocaleString("en")} attacks tried`);
       sum.hidden = false;
     } else {
       // Finished: the verdict above says it; this line only carried running totals. The figures are the best a bounded
@@ -542,14 +588,22 @@
   }
 
   // ---------- the key ----------
-  // Two marks only. Coral: the attack got money out through this rule (the underline, the strip bars, a coral number).
-  // Green: the SIEGE guard held this rule.
+  // Every mark on the rules, said once. The underline: typical limits let money out through this rule. The rule number's
+  // colour: what the SIEGE guard did on it (a check swatch for held). The bars: each round's best attack on each guard.
+  // And the accounting: every figure is a guard's best attack, split by the rule it got through.
   const keyEl = $("#key");
   function showKey(done) {
+    const has = (g) => !!clausesEl.querySelector(`.clause[data-guard="${g}"]`);
+    const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
+    const swatch = (k, t = "") => el("span", { class: `key__badge key__badge--${k}`, "aria-hidden": "true", text: t });
     keyEl.replaceChildren(
       ...[
-        el("span", { class: "key__item" }, el("span", { class: "key__swatch key__swatch--hit", "aria-hidden": "true" }), "money got out"),
-        done && el("span", { class: "key__item" }, el("span", { class: "key__badge key__badge--held", "aria-hidden": "true", text: "1" }), "SIEGE guard held this rule"),
+        item(el("span", { class: "key__line", "aria-hidden": "true", text: "Underlined" }), "typical limits let money out"),
+        done && item(swatch("held", "\u2713"), "SIEGE guard held this rule"),
+        done && has("budget") && item(swatch("budget"), "guard paid from its allowance"),
+        done && has("lost") && item(swatch("lost"), "money got past the guard"),
+        item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "bars: each round’s best attack, typical limits above, SIEGE guard below"),
+        el("span", { class: "key__note" }, done ? "Each NEAR figure is a guard’s best attack, split by the rule it got through." : "Figures are each guard’s best attack so far."),
       ].filter(Boolean),
     );
     keyEl.hidden = false;
@@ -612,7 +666,7 @@
       let mark = note && $(`[data-guard="${p.guard}"]`, note);
       if (!note) continue;
       if (!mark) {
-        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard }, `${SHORT[p.guard]}, round ${p.generation + 1}: `, el("span", { class: "note__loss" }));
+        mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard, title: `First got through in round ${p.generation + 1}` }, `${SHORT[p.guard]}, best attack so far: `, el("span", { class: "note__loss" }));
         note.append(mark);
         if (p.guard === "outlayer" && !li.classList.contains("clause--breach")) li.classList.add("clause--breach", "clause--fresh");
       }
@@ -663,6 +717,7 @@
     finishGuard(a.guard, a.loss);
     if (a.history?.length) (guards[a.guard].hist = a.history), Object.values(guards).forEach(drawSpark);
     renderLedger(a);
+    evidenceSum();
   }
   // The best attack, step by step. Against the Mandate guard, payments that stayed inside its new-payee allowance read
   // as what they are, neutral and grey; only a payment past the allowance is marked lost. The budget arrives with "done".
@@ -800,12 +855,12 @@
     const cap = caps.length ? caps.reduce((a, w) => (w.cap < a.cap ? w : a)) : null;
     const paid = (attacks.outlayer?.steps ?? []).filter((x) => x.verdict === "allow").reduce((a, x) => a + x.amount, 0);
     if (!cap || paid <= cap.cap + 0.005) return null;
-    const rules = all.filter((x) => x.findings.some((f) => f.guard === "outlayer" && f.kind === "theft")).map((x) => String(x.index + 1));
+    const where = all.map((x) => ({ n: x.index + 1, loss: x.findings.filter((f) => f.guard === "outlayer").reduce((a, f) => a + f.loss, 0) })).filter((x) => x.loss > 0);
     const note = el("div", { class: "note" });
     note.append(
-      el("p", { class: "note__guard note__guard--breach" }, el("span", { class: "note__who", text: GUARD.outlayer }), " ", el("span", { class: "note__loss", text: `paid ${near(paid)} NEAR in one attack` })),
+      el("p", { class: "note__guard note__guard--over" }, el("span", { class: "note__who", text: GUARD.outlayer }), " ", el("span", { class: "note__loss", text: `${near(paid)} NEAR in one day` })),
       el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: GUARD.mandate }), " ", el("span", { class: "note__loss", text: "held" })),
-      el("p", { class: "note__how" }, `Payments fired at the same moment raced past this ${near(cap.cap)} NEAR cap.${rules.length ? ` The stolen NEAR is counted once, under rule${rules.length > 1 ? "s" : ""} ${list(rules)}.` : ""}`),
+      el("p", { class: "note__how" }, `The best attack sent ${near(paid)} NEAR in one day by firing payments at the same moment, past this ${near(cap.cap)} NEAR cap.${where.length ? ` Not an extra loss: that NEAR is the ${where.map((x) => near(x.loss)).join(" + ")} shown under rule${where.length > 1 ? "s" : ""} ${list(where.map((x) => String(x.n)))}.` : ""}`),
     );
     return note;
   }
@@ -815,13 +870,23 @@
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
     let text;
     if (o > 0 && m <= 0) text = `The guard stopped every attack. Without it, the attacker took ${near(o)} NEAR.`;
-    else if (o > 0 && m < o) text = `The guard cut the loss from ${near(o)} to ${near(m)} NEAR${b?.withinBudget ? ", all of it inside its allowance" : ""}.`;
+    else if (o > 0 && m < o) text = `The guard cut the best attack’s take from ${near(o)} to ${near(m)} NEAR.`;
     else if (o > 0) text = `The guard lost ${near(m)} NEAR; typical limits lost ${near(o)}.`;
     else if (m > 0) text = `Typical limits held, but the guard lost ${near(m)} NEAR.`;
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
     v.textContent = text;
     v.hidden = false;
+    // Why the guard let anything through, said beside the verdict: the allowance, what it is for, and how much was used.
+    const allow = $("#allow");
+    allow.hidden = !(m > 0 && b?.withinBudget);
+    if (!allow.hidden) {
+      allow.replaceChildren(
+        `Why ${near(m)} got through: the guard gives payees your rules never named a small `, term("allowance", "allowance"),
+        `, ${near(b.cap)} NEAR ${aPer(b.hours)}, so a real invoice from a new vendor still gets paid. The best attack fit inside it.`,
+      );
+      text += ` ${near(m)} NEAR got through inside the guard’s ${near(b.cap)} NEAR allowance for payees your rules never named.`;
+    }
     return text;
   }
 
@@ -875,11 +940,8 @@
       g.clauses.hidden = total === 0;
       const tried = lastStops?.tried?.[k], stopped = lastStops?.stopped?.[k];
       g.stops.hidden = !(tried > 0 && Number.isInteger(stopped));
-      // Each guard faces its own attacks, bred against it, so the totals differ: the share stopped compares them.
-      if (!g.stops.hidden) {
-        const pct = Math.floor((stopped / tried) * 1000) / 10;
-        g.stops.textContent = `Stopped ${pct}% of the ${tried.toLocaleString("en")} attacks bred against it`;
-      }
+      // Each guard faces its own attacks, built against it, so the totals differ: plain counts, not a share.
+      if (!g.stops.hidden) g.stops.textContent = `${(tried - stopped).toLocaleString("en")} of ${tried.toLocaleString("en")} attacks got money out`;
     }
     clausesEl.replaceChildren();
     for (const s of d.sentences) {
@@ -908,7 +970,10 @@
     hasResult = true;
     stateEl.textContent = `${d.evaluations.toLocaleString("en")} attacks tried`;
     stageAt(GENERATIONS, GENERATIONS, null, true);
-    $("#play-totals").textContent = `Final: typical limits lost ${near(d.losses?.outlayer ?? 0)} NEAR, the SIEGE guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
+    $("#play-totals").textContent = `Best attack: typical limits ${near(d.losses?.outlayer ?? 0)} NEAR, the SIEGE guard ${near(d.losses?.mandate ?? 0)} NEAR.`;
+    $("#stage-now").hidden = true;
+    evidenceSum();
+    rulesJump(d);
     renderNext(d);
     if (example) return;
     // The mandate's notes grow during the run and push the siege down on phones: land on the verdict when it is in.

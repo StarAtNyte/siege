@@ -48,7 +48,9 @@ a.btn { text-decoration: none; }
 .doc { min-width: 0; display: grid; gap: var(--space-lg); position: sticky; top: var(--stick-top, var(--space-lg)); }
 .doc__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs) var(--space-md); min-height: 40px; }
 .doc__acts { display: flex; align-items: center; gap: var(--space-xs); }
-.doc__select { width: auto; min-height: 40px; }
+.doc__select { width: auto; min-height: 40px; padding-right: 2.25rem; appearance: none; -webkit-appearance: none; cursor: pointer; font-weight: 500; background: var(--color-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 12px center / 12px 8px; }
+.doc__select:hover { border-color: var(--color-ink); }
+.doc__select:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .doc__head h1 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
 .doc__page { background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: var(--radius-card); padding: var(--space-xl) var(--space-xl) var(--space-xl); box-shadow: var(--shadow-card); }
 .doc__text { display: block; width: 100%; min-height: 3lh; field-sizing: content; resize: none; overflow: hidden; border: 0; border-left: 2px solid var(--color-muted); padding: 0 0 0 var(--space-lg); background: transparent; color: var(--color-ink); font-family: var(--font-doc); font-stretch: var(--stretch-doc); font-size: var(--text-doc); line-height: 1.6; max-width: 62ch; }
@@ -274,7 +276,7 @@ a.btn { text-decoration: none; }
 
 .ledgers { display: grid; gap: var(--space-xl); }
 .ledger { display: grid; gap: var(--space-sm); min-width: 0; }
-.ledger h3 { font-size: var(--text-md); font-weight: 600; }
+.ledger h4 { font-size: var(--text-md); font-weight: 600; }
 .ledger__rows { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--color-rule); }
 .step { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(5.25rem, auto); gap: var(--space-2xs) var(--space-md); padding-block: var(--space-xs); border-top: 1px solid var(--color-rule); align-items: baseline; }
 .step__to { font-family: var(--font-mono); font-size: var(--text-sm); min-width: 0; overflow-wrap: anywhere; }
@@ -396,7 +398,7 @@ a.btn { text-decoration: none; }
 /* ---------- play by play: the attacker's moves, newest first, marked up in the same two pens ---------- */
 .play { display: grid; gap: var(--space-sm); }
 .play__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2xs) var(--space-md); }
-.play__head h3 { font-size: var(--text-md); font-weight: 600; }
+.play__head h4 { font-size: var(--text-md); font-weight: 600; }
 .play__totals { font-size: var(--text-sm); color: var(--color-ink); }
 .play__gloss { font-size: var(--text-sm); color: var(--color-ink-2); }
 .play__lines { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -413,7 +415,6 @@ a.btn { text-decoration: none; }
 .line__v--budget { background: var(--color-budget); color: var(--color-budget-ink); }
 .line--fresh { animation: line-in var(--dur-long) var(--ease-out) both; }
 @keyframes line-in { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
-.siege[data-state="done"] .play__gloss { display: none; }
 
 /* ---------- what the verdict means, in plain words ---------- */
 .means { color: var(--color-ink-2); max-width: 52ch; margin-top: calc(-1 * var(--space-sm)); }
@@ -470,7 +471,7 @@ a.btn { text-decoration: none; }
 .sum__bound { font-size: var(--text-sm); color: var(--color-ink-2); max-width: 60ch; }
 
 /* ---------- the testnet proof: a titled block, one labelled row per transaction, full hashes ---------- */
-.chain { display: grid; gap: var(--space-sm); padding: var(--space-lg); border-radius: var(--radius-card); background: var(--color-band); color: var(--color-on-band); }
+.chain { display: grid; gap: var(--space-xs); padding: var(--space-md); border-radius: var(--radius-card); background: var(--color-paper-2); color: var(--color-ink); border: 1px solid var(--color-rule); }
 .chain h3 { font-size: var(--text-md); font-weight: 700; }
 .chain__lead { font-size: var(--text-sm); color: var(--color-on-band-2); max-width: 56ch; }
 .chain__rows { display: grid; gap: 0; margin: 0; }
@@ -534,10 +535,81 @@ a.btn { text-decoration: none; }
 /* ---------- the verdict, right under the cards ---------- */
 .outcome { display: grid; gap: var(--space-xs); }
 .outcome:has(> .siege__verdict[hidden]) { display: none; }
-.outcome .means, .outcome .means-more { margin-top: 0; }
+.outcome-more .means, .outcome-more .means-more { margin-top: 0; }
 .spark__val--start { left: 0; transform: translate(0, calc(-100% - var(--space-2xs))); padding: 0; }
 .spark__val--end[data-side="left"] { transform: translate(0, calc(-100% - var(--space-2xs))); padding: 0 0 0 var(--space-2xs); }
 
 /* finished: the verdict says it all; the running totals and the round track step aside */
 .sum:has(> .siege__sum[hidden]) { display: none; }
 .siege[data-state="done"] .stage { display: none; }
+
+/* ---------- the key: the underline, the guard's number colours with a check for held, the round bars, and the accounting ---------- */
+.key__badge--held { min-width: 1.25rem; font-size: var(--text-xs); line-height: 1.6; }
+.key__badge--budget, .key__badge--lost { width: 1.25rem; height: 1rem; min-width: 0; padding: 0; }
+.key__badge--budget { background: var(--color-breach-wash); box-shadow: none; }
+.key__line { font-size: var(--text-xs); }
+.key__bars { align-self: center; display: inline-grid; grid-template-columns: repeat(3, 3px); gap: var(--space-3xs); align-items: end; height: 0.9rem; }
+.key__bars i { display: block; background: var(--color-breach); height: 40%; }
+.key__bars i:nth-child(2) { height: 70%; }
+.key__bars i:nth-child(3) { height: 100%; }
+.key__note { flex-basis: 100%; color: var(--color-ink); }
+
+/* ---------- why the guard let anything through, right under the verdict ---------- */
+.allow { font-size: var(--text-md); color: var(--color-ink); max-width: 56ch; }
+
+/* ---------- the live line: what the newest attack tried ---------- */
+.stage__now { font-size: var(--text-sm); color: var(--color-ink); max-width: 60ch; }
+.stage__now b { font-weight: 600; }
+.stage__now mark { background: var(--color-breach); color: var(--color-breach-ink); border-radius: 2px; }
+.outcome-more { display: grid; gap: var(--space-xs); margin-top: calc(-1 * var(--space-sm)); }
+.outcome-more:not(:has(> :not([hidden]))) { display: none; }
+
+/* a cap's own line: how far past it the best attack went, which is not an extra loss */
+.note__guard--over .note__loss { background: var(--color-paper-3); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-breach); }
+
+/* ---------- the evidence: play by play and the best attacks, folded under one line ---------- */
+.evidence { border-top: 1px solid var(--color-rule-strong); border-bottom: 1px solid var(--color-rule); }
+.evidence > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2xs) var(--space-sm); padding-block: var(--space-sm); cursor: pointer; list-style: none; }
+.evidence > summary::-webkit-details-marker { display: none; }
+.evidence > summary::after { content: "+"; margin-left: auto; font-size: var(--text-lg); line-height: 1; }
+.evidence[open] > summary::after { content: "\2212"; }
+.evidence > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.evidence__title { font-size: var(--text-md); font-weight: 600; }
+.evidence__sum { font-size: var(--text-sm); color: var(--color-ink-2); }
+.evidence > summary:hover .evidence__sum { color: var(--color-ink); }
+.evidence__body { display: grid; gap: var(--space-xl); padding-bottom: var(--space-lg); }
+
+/* ---------- the testnet record: kept, but quieter than the verdict ---------- */
+.chain { --color-on-band: var(--color-ink); --color-on-band-2: var(--color-ink-2); --color-band-rule: var(--color-rule); --color-focus-on-band: var(--color-focus); }
+.chain h3 { font-size: var(--text-sm); }
+.chain__lead, .chain__row { font-size: var(--text-xs); }
+.chain__row { grid-template-columns: 7rem minmax(0, 1fr); }
+.chain__row dt code { font-size: var(--text-xs); }
+.chain__row:nth-child(2) dt, .chain__row:nth-child(3) dt { color: var(--color-ink); }
+.chain__row:nth-child(2) dt::before, .chain__row:nth-child(3) dt::before { content: ""; display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: var(--space-2xs); border-radius: 2px; background: var(--color-hold); }
+.chain__row:nth-child(3) dt::before { background: var(--color-breach); }
+
+/* ---------- the rules, in one line, where they sit below the outcome ---------- */
+.jump { display: none; }
+@media (max-width: 70rem) {
+  .jump:not([hidden]) { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2xs) var(--space-md); order: 4; padding: var(--space-sm) var(--space-md); border: 1px solid var(--color-rule-strong); border-radius: var(--radius-card); font-size: var(--text-sm); }
+  .jump a { color: var(--color-ink); font-weight: 600; text-underline-offset: 3px; white-space: nowrap; }
+  /* the verdict, then both figures, then why; the rules before the fix for one of them */
+  .outcome { order: 2; }
+  .guards { order: 3; }
+  .outcome-more, .siege__example { order: 4; margin-top: 0; }
+  .doc__head, .doc__gloss, .doc__page, .doc__status { order: 5; }
+  .next { order: 6; }
+  .evidence, .chain { order: 7; }
+  .reading, .disclose { order: 8; }
+}
+@media (max-width: 40rem) {
+  /* the two figures side by side, right under the headline; the detail is in the lines under them */
+  .guards { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .guard { padding: var(--space-sm); gap: var(--space-2xs); }
+  .guard__what, .guard .spark, .guard__compare, .guard .budget__text, .guard__clauses { display: none; }
+  .guard__figure { margin-top: var(--space-2xs); }
+  .guard__num { font-size: 2.6rem; }
+  .guard__unit, .guard__stops { font-size: var(--text-xs); }
+  .guard[data-phase="waiting"] .guard__placeholder { display: none; }
+}
