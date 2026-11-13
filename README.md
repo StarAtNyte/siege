@@ -10,7 +10,7 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 
 [![Watch the demo: a live siege, the fix and the testnet proof](docs/demo-poster.png)](docs/demo.mp4)
 
-[Watch the 108-second demo](docs/demo.mp4) (narrated screen recording of the live app). Scripts in [docs/video](docs/video).
+[Watch the 133-second demo](docs/demo.mp4) (narrated screen recording of the live app). Scripts in [docs/video](docs/video).
 
 ## What it does
 
