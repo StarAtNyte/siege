@@ -1430,7 +1430,13 @@
   if (matchMedia("(max-width: 40rem)").matches) $$("[data-fold-phone]").forEach((d) => (d.open = false));
   $("#proof-more").addEventListener("click", () => ($("#chain").open = true));
   // The section index opens a folded section it points at.
-  $$(".index a").forEach((a) => a.addEventListener("click", () => { const t = $(a.getAttribute("href")); const d = t?.closest("details") ?? (t?.tagName === "DETAILS" ? t : null); if (d) d.open = true; }));
+  // "Fix" before any result points at a hidden panel: it goes to the siege instead, where the button to start one is.
+  $$(".index a").forEach((a) => a.addEventListener("click", (e) => {
+    const t = $(a.getAttribute("href"));
+    if (t?.closest("[hidden]")) return e.preventDefault(), $("#siege-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    const d = t?.closest("details") ?? (t?.tagName === "DETAILS" ? t : null);
+    if (d) d.open = true;
+  }));
   $("#replay-btn").addEventListener("click", async () => {
     if (!recording) return;
     if (ta.value.trim() !== recording.mandate) {
