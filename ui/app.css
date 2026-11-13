@@ -84,10 +84,6 @@ a.btn { text-decoration: none; }
 .doc__edit { font-weight: 600; border-color: var(--color-ink); }
 .doc__pen { width: 14px; height: 14px; flex: none; }
 .key { flex: 1 1 16rem; font-size: var(--text-sm); color: var(--color-ink-2); }
-.key > summary { display: inline-flex; align-items: center; min-height: 32px; cursor: pointer; color: var(--color-ink-2); text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
-.key > summary:hover { color: var(--color-ink); }
-.key > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
-.key__body { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); margin-top: var(--space-xs); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-rule); }
 .key__item { display: inline-flex; align-items: baseline; gap: var(--space-xs); }
 .try__gloss { font-size: var(--text-sm); color: var(--color-ink-2); margin-bottom: var(--space-md); max-width: 62ch; }
 .key__line { color: var(--color-ink); font-weight: 600; background: linear-gradient(var(--color-breach), var(--color-breach)) no-repeat 0 58% / 100% 3px; }
@@ -432,9 +428,8 @@ a.btn { text-decoration: none; }
 @keyframes line-in { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ---------- what the verdict means, in plain words ---------- */
-.means { color: var(--color-ink-2); max-width: 52ch; margin-top: calc(-1 * var(--space-sm)); }
-.siege[data-stale] .means, .siege[data-prev] .means, .siege[data-prev] .means-more { opacity: 0.5; }
-.means-more { margin-top: calc(-1 * var(--space-sm)); font-size: var(--text-sm); color: var(--color-ink-2); }
+.siege[data-prev] .means-more { opacity: 0.5; }
+.means-more { font-size: var(--text-sm); color: var(--color-ink-2); }
 .means-more > summary { cursor: pointer; width: fit-content; padding-block: var(--space-2xs); text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
 .means-more > summary:hover { color: var(--color-ink); }
 .means-more > summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
@@ -447,7 +442,6 @@ a.btn { text-decoration: none; }
 @media (max-width: 40rem) {
   .stakes__in { padding-block: var(--space-xs); }
   .beat__lead { font-size: var(--text-md); }
-  .means { font-size: var(--text-md); }
 }
 @media (prefers-reduced-motion: reduce) { .line--fresh { animation: none; } }
 
@@ -466,7 +460,7 @@ a.btn { text-decoration: none; }
 @keyframes tip-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
 
 /* phone: the siege state goes under its heading; the key reads as a list */
-@media (max-width: 40rem) { .siege__head { flex-direction: column; align-items: flex-start; gap: var(--space-3xs); } .key__body { flex-direction: column; } }
+@media (max-width: 40rem) { .siege__head { flex-direction: column; align-items: flex-start; gap: var(--space-3xs); } }
 
 
 /* ---------- the outcome in one line, the example label, the testnet proof ---------- */
@@ -474,9 +468,6 @@ a.btn { text-decoration: none; }
 .siege__example p { flex: 1 1 18rem; }
 .siege__example .btn { background: var(--color-paper); }
 /* the bound and the testnet cue, right under the verdict */
-.proof { font-size: var(--text-sm); color: var(--color-ink-2); }
-.proof__link { color: var(--color-ink); font-weight: 600; text-underline-offset: 3px; white-space: nowrap; }
-.proof__link:hover { text-decoration-thickness: 2px; }
 .siege__example b { color: var(--color-ink); font-weight: 600; }
 .siege__sum { font-size: var(--text-md); color: var(--color-ink); }
 .siege__sum b { font-weight: 700; }
@@ -556,7 +547,6 @@ a.btn { text-decoration: none; }
 /* ---------- the verdict, right under the cards ---------- */
 .outcome { display: grid; gap: var(--space-xs); }
 .outcome:has(> .siege__verdict[hidden]) { display: none; }
-.outcome-more .means, .outcome-more .means-more { margin-top: 0; }
 .spark__val--start { left: 0; transform: translate(0, calc(-100% - var(--space-2xs))); padding: 0; }
 .spark__val--end[data-side="left"] { transform: translate(0, calc(-100% - var(--space-2xs))); padding: 0 0 0 var(--space-2xs); }
 
@@ -577,15 +567,11 @@ a.btn { text-decoration: none; }
 
 /* the search's bound, said once, in the headline */
 .bound { font-size: var(--text-sm); color: var(--color-ink-2); }
-/* ---------- why the guard let anything through, right under the verdict ---------- */
-.allow { font-size: var(--text-md); color: var(--color-ink); max-width: 56ch; }
 
 /* ---------- the live line: what the newest attack tried ---------- */
 .stage__now { font-size: var(--text-sm); color: var(--color-ink); max-width: 60ch; }
 .stage__now b { font-weight: 600; }
 .stage__now mark { background: var(--color-breach); color: var(--color-breach-ink); border-radius: 2px; }
-.outcome-more { display: grid; gap: var(--space-xs); margin-top: calc(-1 * var(--space-sm)); }
-.outcome-more:not(:has(> :not([hidden]))) { display: none; }
 
 /* a cap's own line: breached by timing, and where its NEAR is counted */
 .note__guard--cap { display: block; color: var(--color-ink); }
@@ -611,21 +597,18 @@ a.btn { text-decoration: none; }
 .chain__row:nth-child(2) dt::before, .chain__row:nth-child(3) dt::before { content: ""; display: inline-block; width: 0.6rem; height: 0.6rem; margin-right: var(--space-2xs); border-radius: 2px; background: var(--color-hold); }
 .chain__row:nth-child(3) dt::before { background: var(--color-breach); }
 
-/* ---------- the rules, in one line, where they sit below the outcome ---------- */
-.jump { display: none; }
+/* ---------- one column: the verdict, both figures, the rules in brief, the fix, the vault, then the full rules ---------- */
+.rulesum { display: none; }
 @media (max-width: 70rem) {
-  /* a chip under the cards that stays in view while the rules are below */
-  .jump:not([hidden]) { display: inline-flex; align-items: center; gap: var(--space-xs); justify-self: start; order: 3; position: sticky; top: var(--space-xs); z-index: var(--z-sticky); min-height: 40px; padding: 0 var(--space-md); border-radius: var(--radius-pill); background: var(--color-ink); color: var(--color-paper); font-size: var(--text-sm); font-weight: 600; text-decoration: none; box-shadow: 0 0 0 2px var(--color-paper); }
-  .jump:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-  .chain { order: 4; }
-  /* the verdict, then both figures, then why; the rules before the fix for one of them */
-  .outcome { order: 2; }
+  .outcome, .siege__example, .stage, .sum { order: 2; }
   .guards { order: 3; }
-  .outcome-more, .siege__example { order: 4; margin-top: 0; }
-  .doc__head, .doc__gloss, .doc__page, .doc__status { order: 5; }
-  .next { order: 6; }
-  .evidence { order: 7; }
-  .reading, .disclose { order: 8; }
+  .rulesum:not([hidden]) { display: grid; gap: var(--space-xs); order: 4; }
+  .next { order: 5; }
+  .chain { order: 6; }
+  .means-more { order: 7; }
+  .doc__head, .doc__gloss, .doc__page, .doc__status { order: 8; }
+  .evidence { order: 9; }
+  .reading, .disclose { order: 10; }
 }
 @media (max-width: 40rem) {
   /* the two figures side by side, right under the headline; the detail is in the lines under them */
@@ -639,3 +622,35 @@ a.btn { text-decoration: none; }
   .guard[data-phase="waiting"] .guard__placeholder { display: none; }
 }
 .chain__row:first-child .chain__what { color: var(--color-ink); font-weight: 600; }
+
+/* ---------- the legend: one line over the rules ---------- */
+.key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs) var(--space-md); }
+.key__item { align-items: center; }
+.key__badge--lost, .key__badge--held { width: 0.875rem; height: 0.875rem; min-width: 0; padding: 0; border-radius: 2px; }
+
+/* ---------- the live round: a large counter, then one line for the newest attack ---------- */
+.stage__text { align-items: baseline; gap: var(--space-xs); }
+.stage__label { font-size: var(--text-md); color: var(--color-ink-2); }
+.stage__round { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 800; line-height: 1; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.stage__of { font-size: var(--text-md); color: var(--color-ink-2); }
+.stage__now { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs) var(--space-xs); font-size: var(--text-md); max-width: none; }
+.now__v { padding: 0 var(--space-xs); border-radius: 3px; font-size: var(--text-sm); font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.now__v--lost { background: var(--color-breach); color: var(--color-breach-ink); }
+.now__v--held { background: var(--color-hold); color: var(--color-hold-ink); }
+.now__v--budget { background: var(--color-breach-wash); color: var(--color-breach-ink); }
+
+/* ---------- the rules in brief, under the cards on narrow screens ---------- */
+.rulesum h3 { font-size: var(--text-md); font-weight: 700; }
+.rulesum__list { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--color-rule); }
+.rulesum__row { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: var(--space-3xs) var(--space-xs); padding-block: var(--space-xs); border-top: 1px solid var(--color-rule); }
+.rulesum__n { grid-row: span 2; align-self: start; padding: 0 var(--space-2xs); border-radius: var(--radius-input); text-align: center; font: 700 var(--text-sm)/1.5 var(--font-body); font-variant-numeric: tabular-nums; background: var(--color-hold); color: var(--color-hold-ink); }
+.rulesum__row[data-guard="budget"] .rulesum__n { background: var(--color-breach-wash); color: var(--color-breach-ink); }
+.rulesum__row[data-guard="lost"] .rulesum__n { background: var(--color-breach); color: var(--color-breach-ink); }
+.rulesum__text { font-size: var(--text-sm); color: var(--color-ink); }
+.rulesum__row--leak .rulesum__ink { background: linear-gradient(var(--color-breach), var(--color-breach)) no-repeat 0 58% / 100% 2px; }
+.rulesum__out { font-size: var(--text-xs); color: var(--color-ink-2); }
+
+/* the example label: one slim line, so the cards stay in the first screen */
+.siege__example { padding: var(--space-2xs) var(--space-sm); }
+.siege__example .btn { min-height: 32px; }
+.guard .budget__text { font-weight: 400; }
