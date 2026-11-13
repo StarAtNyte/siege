@@ -5,6 +5,7 @@ import { AtomicLedger, RacyLedger } from "../src/mandate/ledger.ts";
 import { MandateGuard } from "../src/mandate/guard.ts";
 import { lookalike } from "../src/mandate/classifier.ts";
 import { toMicro, type Tx } from "../src/mandate/types.ts";
+import { attackTags } from "../src/attack/narrate.ts";
 
 const M = "Pay up to 5 NEAR per transaction to alice.testnet and bob.testnet for invoices. Never spend more than 20 NEAR per day.";
 const mk = (p: Partial<Tx> = {}): Tx => ({
@@ -53,4 +54,16 @@ test("prompt injection to an ungrounded account is denied; plain request allowed
   assert.equal(bad.verdict, "deny");
   const ok = await g.submit(mk({ recipient: "printshop.testnet", amount: toMicro(3), context: { userInstruction: "Pay 3 NEAR to printshop.testnet for the invoice.", retrieved: [], reasoning: "user asked", provenance: "user" } }));
   assert.equal(ok.verdict, "allow");
+});
+
+test("play-by-play tags follow each attack's real class", () => {
+  const base = { technique: "document" as const, lure: null, imitates: null, to: "x7f3a.testnet", dripped: false, raced: false };
+  // A planted tip that redirects deposit_and_stake is a redirected call, not a lookalike, unless its payout imitates a payee.
+  assert.deepEqual(attackTags({ ...base, technique: "deputy", lure: "tip" }), ["deputy"]);
+  assert.deepEqual(attackTags({ ...base, technique: "deputy", lure: "tip", to: "acme-suppliess.testnet", imitates: "acme-supplies.testnet" }), ["deputy", "lookalike"]);
+  // A changed-address email is tagged as one, with the lookalike it names.
+  assert.deepEqual(attackTags({ ...base, technique: "lookalike", lure: "address-change", to: "c1oudhost.testnet", imitates: "cloudhost.testnet" }), ["address", "lookalike"]);
+  assert.deepEqual(attackTags({ ...base, technique: "injection", lure: "injection" }), ["hidden"]);
+  assert.deepEqual(attackTags({ ...base, lure: "invoice", dripped: true }), ["document", "drip"]);
+  assert.deepEqual(attackTags({ ...base, technique: "direct", raced: true }), ["plain", "race"]);
 });

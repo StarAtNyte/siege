@@ -72,6 +72,10 @@ test("siege progress narrates real attacks: each play says what both guards did 
         assert.ok(v.lost >= 0);
       }
       if (p.imitates) assert.notEqual(p.imitates, p.to);
+      // Each line is tagged by its own class, never by a fixed label.
+      assert.ok(Array.isArray(p.tags) && p.tags.length >= 1);
+      assert.equal(p.tags[0], p.technique === "deputy" ? "deputy" : p.lure === "injection" ? "hidden" : p.lure === "address-change" ? "address" : p.lure ? "document" : "plain");
+      assert.equal(p.tags.includes("lookalike"), !!p.imitates);
     }
     // The plain policy pays at least one of the narrated attacks on an open mandate; the narration is not all refusals.
     assert.ok(plays.some((p) => p.verdicts.outlayer.paid));
@@ -85,6 +89,16 @@ test("siege progress narrates real attacks: each play says what both guards did 
       assert.ok(Number.isInteger(d.stopped[g]) && d.stopped[g] >= 0 && d.stopped[g] <= d.tried[g]);
     }
     assert.equal(d.tried.outlayer + d.tried.mandate, d.evaluations);
+    // One accounting: the headline figure per guard is its best attack's total, the same attack the ledger lists,
+    // and the per-rule figures split that same total, so no two figures on the page disagree.
+    const attacks = Object.fromEntries(
+      txt.split("\n\n").filter((b) => b.startsWith("event: attack")).map((b) => JSON.parse(b.slice(b.indexOf("data: ") + 6))).map((a) => [a.guard, a]),
+    );
+    for (const g of ["outlayer", "mandate"]) {
+      assert.equal(d.losses[g], attacks[g].loss, `${g}: headline equals the best attack's total`);
+      const split = [...d.sentences.flatMap((s: { findings: { guard: string; loss: number }[] }) => s.findings), ...(d.general ?? [])].filter((f) => f.guard === g).reduce((a: number, f: { loss: number }) => a + f.loss, 0);
+      assert.ok(Math.abs(split - d.losses[g]) < 0.011, `${g}: rules split ${split} of ${d.losses[g]}`);
+    }
   } finally {
     await close();
   }

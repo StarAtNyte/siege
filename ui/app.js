@@ -447,14 +447,9 @@
     };
     return plain[c] ?? "it breaks your rules";
   }
-  // The four tricks, each with the same name and mark in the strip's legend and on every line.
-  const tagsOf = (p) =>
-    [
-      p.lure === "injection" && ["hidden", "Hidden instruction"],
-      p.imitates && ["lookalike", "Lookalike name"],
-      p.dripped && ["drip", "Drip"],
-      p.raced && ["race", "Race"],
-    ].filter(Boolean);
+  // Each line is tagged by its attack's class, as the engine tagged it: how it reached the agent, then the tricks it used.
+  const TAG = { deputy: "Redirected call", hidden: "Hidden instruction", address: "Changed address", document: "Forged document", plain: "Plain request", lookalike: "Lookalike name", drip: "Drip", race: "Race" };
+  const tagsOf = (p) => (p.tags ?? []).filter((k) => TAG[k]).map((k) => [k, TAG[k]]);
   function playLine(p) {
     const lure = p.lure ? LURE[p.lure] ?? "A forged document" : "A request with no paperwork";
     const what = el("p", { class: "line__what" });

@@ -28,6 +28,34 @@ export interface Play {
   /** The tightest cap over time in the mandate, in NEAR, for race and drip lines. */
   cap: number | null;
   verdicts: Record<GuardKind, { paid: boolean; lost: number; reason: string | null; paidCount: number; novel: boolean }>;
+  /** The attack's class, as tags for the play-by-play: how it reached the agent, then the tricks it used. */
+  tags: AttackTag[];
+}
+
+export type AttackTag = "deputy" | "hidden" | "address" | "document" | "plain" | "lookalike" | "drip" | "race";
+export const TAG_LABEL: Record<AttackTag, string> = {
+  deputy: "Redirected call", hidden: "Hidden instruction", address: "Changed address", document: "Forged document", plain: "Plain request",
+  lookalike: "Lookalike name", drip: "Drip", race: "Race",
+};
+
+/**
+ * Tag one attack by its class, from the engine's own facts about it. The first tag says how the attack reached the
+ * agent: a redirected contract call, a hidden instruction, a changed-address email, another forged document, or a
+ * plain request with no paperwork. Then the tricks it used, each only when the attack really used it: a lookalike payee,
+ * a drip of small payments, a race of payments fired at once.
+ */
+export function attackTags(p: Pick<Play, "technique" | "lure" | "imitates" | "to" | "dripped" | "raced">): AttackTag[] {
+  const via: AttackTag =
+    p.technique === "deputy" ? "deputy"
+    : p.lure === "injection" ? "hidden"
+    : p.lure === "address-change" ? "address"
+    : p.lure ? "document"
+    : "plain";
+  const tags: AttackTag[] = [via];
+  if (p.imitates && p.imitates !== p.to) tags.push("lookalike");
+  if (p.dripped) tags.push("drip");
+  if (p.raced) tags.push("race");
+  return tags;
 }
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
@@ -66,10 +94,11 @@ export async function narrate(judge: Arena, guard: GuardKind, round: number, gen
     const paidCount = txs.filter((t) => evs[g].decisions.get(t.id)?.verdict === "allow").length;
     return { paid: d.verdict === "allow", lost: round2(evs[g].loss), reason: d.verdict === "allow" ? null : d.reasons[0] ?? null, paidCount, novel: d.novelBudget };
   };
-  return {
+  const play: Omit<Play, "tags"> = {
     round, guard, technique, lure, to, imitates: lib.imitates[to] ?? null, method: tx.kind === "call" ? tx.method ?? null : null,
     amount: fromMicro(tx.amount), payments: txs.length, burst, raced: burst >= 3 && overspent,
     dripped: thefts.length >= 4 && thefts.every((t) => fromMicro(t.amount) <= 2.5), asked: round2(txs.reduce((a, t) => a + fromMicro(t.amount), 0)), cap: cap == null ? null : round2(cap),
     verdicts: { outlayer: verdict("outlayer"), mandate: verdict("mandate") },
   };
+  return { ...play, tags: attackTags(play) };
 }
