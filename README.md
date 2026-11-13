@@ -63,7 +63,7 @@ The vault [`vault.siege-c0d4426c.testnet`](https://testnet.nearblocks.io/address
 
 ## Use it in your agent
 
-SIEGE is also a library (`import { MandateGuard, compileMandate } from "siege"`) and a drop-in OutLayer-compatible proxy (`npm run proxy`, see below). The MCP server gives any MCP agent guarded payment tools.
+SIEGE is also a library (`npm install github:StarAtNyte/siege tsx`, then `import { MandateGuard, compileMandate } from "siege"` and run with `node --import tsx`, since the package ships TypeScript source) and a drop-in OutLayer-compatible proxy (`npm run proxy`, see below). The MCP server gives any MCP agent guarded payment tools.
 
 The SIEGE MCP server gives any MCP agent guarded payment tools over stdio. It holds every key (the guard's signing key and the agent's function-call key on the vault); the agent sees only verdicts and transaction hashes. The spending rules come from the server's `MANDATE` (or `MANDATE_FILE`), never from tool arguments.
 
@@ -113,7 +113,7 @@ Three ways to use it:
 
 - **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (caps + allowlist, as in a plain OutLayer policy) and the *SIEGE guard* (which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
-- **The library**: `import { MandateGuard, compileMandate } from "siege"`.
+- **The library**: `import { MandateGuard, compileMandate } from "siege"` (install and run as in [Use it in your agent](#use-it-in-your-agent)).
 - **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
 
 | Part | What it is |
