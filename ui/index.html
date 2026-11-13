@@ -238,7 +238,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
     <div class="guards">
       <article class="guard" id="g-outlayer" data-guard="outlayer" data-phase="waiting" aria-labelledby="g-outlayer-h">
         <h3 id="g-outlayer-h">Typical limits</h3>
-        <p class="guard__what">Per-payment and daily caps, and a payee allowlist</p>
+        <p class="guard__what" id="typical-what">Per-payment and daily caps, and an allowlist only where your rules name payees</p>
         <p class="guard__preview">Run a siege to see what gets past</p>
         <p class="guard__placeholder">Checks amounts and payees only.</p>
         <p class="guard__figure"><span class="guard__num num">0.00</span> <span class="guard__unit">NEAR lost</span></p>
@@ -340,7 +340,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
 </main>
 <div class="defs" hidden>
   <span id="def-near">A public blockchain. SIEGE runs on its test network, so no real money moves.</span>
-  <span id="def-outlayer">A custody wallet for AI agents on NEAR. Its policy is what typical limits means here: per-payment and daily caps, and a payee allowlist.</span>
+  <span id="def-outlayer">A custody wallet for AI agents on NEAR. Its policy is what typical limits means here: per-payment and daily caps, and an allowlist only where your rules name payees.</span>
   <span id="def-guard">SIEGE’s guard sits in front of the wallet. It checks each payment against your rules, and reads who asked for it and why.</span>
   <span id="def-round">Each round, the attacker builds new attacks from the ones that worked best, against both guards. Thirty rounds.</span>
   <span id="def-allowance">The most the guard lets go to payees your rules never named. Named payees don’t count against it.</span>

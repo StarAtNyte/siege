@@ -180,6 +180,7 @@
       status.textContent = "";
       siegeBtn.removeAttribute("aria-disabled");
       renderReading(j.constraints);
+      typicalWhat(j.constraints);
       renderExport(j, text);
       if (!hasResult) rulesSummary();
     } catch {
@@ -250,6 +251,11 @@
     if (c.swaps?.length) row("Swaps", c.swaps.map((p) => (Array.isArray(p) ? p.join(" to ") : String(p))).join(", "));
     if (c.activeHoursUtc) row("Hours", `${c.activeHoursUtc.join?.(" to ") ?? JSON.stringify(c.activeHoursUtc)} UTC`);
     row("Purposes", c.purposes?.length ? list(c.purposes).replace(/^./, (x) => x.toUpperCase()) : "Any purpose");
+  }
+
+  // What typical limits check, for these rules: a plain OutLayer policy has an allowlist only when the rules name payees.
+  function typicalWhat(c) {
+    $("#typical-what").textContent = typeof c.payees === "string" ? "Per-payment and daily caps. No allowlist: your rules let it pay anyone" : "Per-payment and daily caps, and an allowlist of the payees your rules name";
   }
 
   // On narrow screens the full rules sit far below the outcome, so a folded strip above the siege lists them: each rule,
