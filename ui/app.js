@@ -381,6 +381,7 @@
     ta.hidden = annotated;
     clausesEl.hidden = !annotated;
     $("#doc-tools").hidden = !annotated;
+    editBtn.hidden = !annotated;
     generalEl.hidden = !annotated || !generalEl.childElementCount;
     fit();
   }

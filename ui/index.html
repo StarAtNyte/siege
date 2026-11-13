@@ -79,14 +79,17 @@
   <section class="doc" aria-labelledby="doc-h">
     <div class="doc__head">
       <h2 id="doc-h">Your spending rules</h2>
-      <span class="doc__acts">
-        <label class="doc__pick" for="example-select">Load example</label>
-        <select id="example-select" class="input doc__select">
-          <option value="" hidden>Your own rules</option>
-          <option value="open" selected>Default rules</option>
-          <option value="fixed">Default rules, fixed</option>
-          <option value="whitelist">Named payees only</option>
-        </select>
+      <span class="doc__acts" role="group" aria-label="Rules on the page">
+        <button type="button" class="btn btn--quiet btn--s doc__edit" id="edit-btn" hidden><svg class="doc__pen" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Edit rules</button>
+        <span class="doc__pickrow">
+          <label class="doc__pick" for="example-select">Load example</label>
+          <select id="example-select" class="input doc__select">
+            <option value="" hidden>Your own rules</option>
+            <option value="open" selected>Default rules</option>
+            <option value="fixed">Default rules, fixed</option>
+            <option value="whitelist">Named payees only</option>
+          </select>
+        </span>
       </span>
     </div>
     <p class="doc__gloss">What your AI agent may pay: who, how much, what for. Plain English; edit freely.</p>
@@ -96,7 +99,6 @@
       <textarea id="mandate" class="doc__text" spellcheck="false" maxlength="2000" aria-describedby="doc-status doc-count">Pay any vendor invoice up to 10 NEAR per transaction. At most 30 NEAR per day. For invoices, subscriptions and hosting. May call deposit_and_stake and unstake on pool.testnet. Never pay mixer.testnet.</textarea>
       <div class="doc__tools" id="doc-tools" hidden>
         <p class="key" id="key" aria-label="Legend"></p>
-        <button type="button" class="btn btn--quiet btn--s doc__edit" id="edit-btn"><svg class="doc__pen" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Edit these rules</button>
       </div>
       <ol class="clauses" id="clauses" hidden></ol>
       <div class="general" id="general" hidden></div>
