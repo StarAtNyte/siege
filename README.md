@@ -24,7 +24,7 @@ Every number in this README maps to a command and a committed file in [CLAIMS.md
 
 Live: open [near-siege.onrender.com](https://near-siege.onrender.com), write a mandate and press "Lay siege". The free host may take about a minute to wake.
 
-Local, with no API key, NEAR account or `.env`. Prerequisites: Node 22.6 or later (CI uses 24), [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12 if needed) and Rust with cargo (for the contract's unit tests).
+Local, with no API key, NEAR account or `.env`. Prerequisites: Node 22.22.2 or later (near-api-js requires it; CI uses 24), [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12 if needed) and Rust with cargo (for the contract's unit tests).
 
 ```
 git clone https://github.com/StarAtNyte/siege && cd siege
