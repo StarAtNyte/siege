@@ -340,3 +340,19 @@ Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](ht
 - The OutLayer baseline is a *model* of its documented policy semantics (whitelist, per-transaction and windowed caps, a best-effort counter). The race result reproduces the documented behaviour; it was not measured against the live service.
 - Intents settlement is not executed: quotes are real (`dry: true`) and execution is mocked. Wallet settlement targets NEAR testnet.
 - The guard reduces risk. It does not make LLM judgement infallible, and an attacker who controls the user's own instruction channel is limited only by the caps.
+
+## Provenance and credits
+
+Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. Nothing was copied from another project. No template or scaffold was used.
+
+Libraries:
+
+- near-api-js: NEAR RPC, accounts and transactions
+- near-sdk (Rust): the vault contract
+- @anthropic-ai/sdk: Claude calls for the judge and attack generation
+- @modelcontextprotocol/sdk: the MCP server
+- zod: schema validation
+- tsx, typescript, binaryen: build and run tooling
+- Python engine: standard library only (built with hatchling, managed with uv)
+
+Other project by the same author: [DARWIN](https://github.com/StarAtNyte/darwin)
