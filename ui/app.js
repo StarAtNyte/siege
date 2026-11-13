@@ -476,6 +476,11 @@
     const minRise = (2 * 40) / plotH;
     const y = (v) => (peak > 0 && v > 0 ? 38 - Math.max((v / peak) * 36, minRise) : 38);
     const x = (i) => (n > 1 ? (i / (n - 1)) * 100 : 0);
+    // A tick for every round on the axis from the first round on, the rounds run so far in ink: round 4 reads as 4 of 30, not a stub.
+    const ticks = (from, to) => Array.from({ length: Math.max(0, to - from) }, (_, k) => `M${x(from + k).toFixed(2)} 40 L${x(from + k).toFixed(2)} 36`).join(" ");
+    const [rest, done] = $$(".spark__ticks", g.svg);
+    done.setAttribute("d", ticks(0, h.length));
+    rest.setAttribute("d", ticks(h.length, n));
     g.path.setAttribute("d", h.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(2)} ${y(v).toFixed(2)}`).join(" ") + (h.length === 1 ? ` L${x(0.5).toFixed(2)} ${y(h[0]).toFixed(2)}` : ""));
     const end = h.length - 1;
     g.v1.hidden = false;
@@ -790,7 +795,7 @@
       g.compare.hidden = true;
       // Both cards lead with NEAR lost, so they compare at a glance; the gauge shows it all came from the allowance.
       g.num.textContent = near(g.loss);
-      g.unit.textContent = "NEAR to new payees, within its allowance";
+      g.unit.textContent = unitText();
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
       $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}`, term("allowance", "allowance"), " for new payees");
       g.budget.hidden = false;
