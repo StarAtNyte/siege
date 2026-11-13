@@ -8,7 +8,6 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.run_started_at < '2026-11-26'
     steps:
       - name: Ping SIEGE and DARWIN
         run: |
