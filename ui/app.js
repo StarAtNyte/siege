@@ -706,8 +706,8 @@
   function showKey() {
     const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
     const items = [
-      item(el("span", { class: "key__line", "aria-hidden": "true" }, stamp()), "typical limits let money out through this rule"),
-      item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "bar: money out in that attack round"),
+      item(el("span", { class: "key__line", "aria-hidden": "true" }, stamp()), "money got past typical limits"),
+      item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "money out, round by round"),
     ];
     keyEl.replaceChildren(...items);
   }
@@ -1432,8 +1432,7 @@
     if (!compileOk || hasResult || siegeEl.dataset.state !== "idle" || ta.value.trim() !== recording.mandate) return;
     playRecording(recording, false);
   }
-  // On phones the secondary blocks start folded, so the result and the rules lead; the proof line opens the vault record.
-  if (matchMedia("(max-width: 40rem)").matches) $$("[data-fold-phone]").forEach((d) => (d.open = false));
+  // The proof line under the verdict opens the vault record, which starts folded.
   $("#proof-more").addEventListener("click", () => ($("#chain").open = true));
   // The section index opens a folded section it points at.
   // "Fix" before any result points at a hidden panel: it goes to the siege instead, where the button to start one is.

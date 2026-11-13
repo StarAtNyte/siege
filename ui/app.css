@@ -849,7 +849,7 @@ a.btn { text-decoration: none; }
 .capbar__key { display: inline-block; width: 2px; height: 0.9em; margin-right: var(--space-2xs); vertical-align: -0.1em; background: var(--color-ink); }
 .siege__state:empty { display: none; }
 @media (max-width: 40rem) {
-  .siege__tag-more, .guard .budget__text { display: none; }
+  .guard .budget__text { display: none; }
   .guard .budget { margin-top: var(--space-2xs); }
 }
 /* line breaks: account names never split at a hyphen; rule text and card counts avoid a one-word last line */

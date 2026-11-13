@@ -82,7 +82,7 @@
       <span class="doc__acts" role="group" aria-label="Rules on the page">
         <button type="button" class="btn btn--quiet btn--s doc__edit" id="edit-btn" hidden><svg class="doc__pen" viewBox="0 0 16 16" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Edit rules</button>
         <span class="doc__pickrow">
-          <label class="doc__pick" for="example-select">Load example</label>
+          <label class="doc__pick" for="example-select">Load example rules</label>
           <select id="example-select" class="input doc__select">
             <option value="" hidden>Your own rules</option>
             <option value="open" selected>Default rules</option>
@@ -209,7 +209,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
     </div>
     <div class="siege__example" id="siege-example" hidden>
       <p class="siege__tag" id="siege-example-text">Recorded example</p>
-      <button type="button" class="btn btn--quiet btn--s" id="replay-btn">Replay this siege</button>
+      <button type="button" class="btn btn--quiet btn--s" id="replay-btn">Replay the recording</button>
     </div>
     <div class="outcome" id="outcome">
       <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
@@ -292,13 +292,13 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
         <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
         <p class="next__payoff" id="next-payoff" hidden></p>
       </div>
-      <details class="means-more" id="means-more" open hidden>
+      <details class="means-more" id="means-more" hidden>
         <summary>How the worst attack worked</summary>
         <p id="means-full"></p>
         <ol class="trace" id="trace"></ol>
       </details>
     </section>
-    <details class="chain" id="chain" open data-fold-phone>
+    <details class="chain" id="chain">
       <summary><h3 id="chain-h">SIEGE vault, enforced on NEAR testnet</h3></summary>
       <p class="chain__lead">The search runs off-chain. The same guard signs for a two-key vault contract. The agent’s key can’t pay without the guard’s signature.</p>
       <dl class="chain__rows">
