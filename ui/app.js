@@ -1398,6 +1398,8 @@
   }
   function playRecording(ex, animate) {
     resetSiege();
+    // The board now shows the recording, so the next live siege has no run of this visitor's to compare against.
+    lastRun = prevRun = null;
     example = true;
     siegeEl.dataset.state = "running";
     siegeEl.dataset.example = "true";
