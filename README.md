@@ -13,7 +13,9 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 ## What it does
 
 - **Checks intent, not just limits.** The SIEGE guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. Under an open mandate ("pay any vendor invoice") an allowlist cannot do this.
-- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. Under the open mandate the worst case found against the SIEGE guard is 3.00 NEAR, its allowance for unknown payees, against 134.60 NEAR for plain cap-and-allowlist policy. These figures come from the `make attack` benchmark (about 42k guard evaluations). The live page runs a shorter search, 30 rounds and about 3.6k attempts, so its default example shows a different run: 128.53 NEAR on typical limits against 1.02 on the SIEGE guard, also inside the 3.00 NEAR allowance. Both are the worst case a bounded search found, not a proof.
+- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. On the live page's default example (an open "pay any vendor invoice" mandate, 30 rounds, about 3.6k attempts), the best attack took **128.53 NEAR** past typical limits and **1.02 NEAR** past the SIEGE guard, paid within its 3.00 NEAR daily allowance for payees the rules never named.
+  - Benchmark (`make attack`, about 42k guard evaluations, open mandate): 134.60 NEAR on plain cap-and-allowlist policy, 3.00 on the SIEGE guard.
+  - Both are the worst case a bounded search found, not a proof.
 - **Holds the money in a two-key vault.** A NEAR contract pays only with an ed25519 approval from the guard's own key, inside on-chain caps. A compromised agent that went around the guard got 0.00 NEAR; a compromised guard is held to the caps (`make threat`).
 
 Every number in this README maps to a command and a committed file in [CLAIMS.md](CLAIMS.md). Sister project: [DARWIN](https://github.com/StarAtNyte/darwin).
