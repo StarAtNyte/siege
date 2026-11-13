@@ -847,3 +847,13 @@ a.btn { text-decoration: none; }
   .siege__tag-more, .guard .budget__text { display: none; }
   .guard .budget { margin-top: var(--space-2xs); }
 }
+/* line breaks: account names never split at a hyphen; rule text and card counts avoid a one-word last line */
+.acct { white-space: nowrap; }
+.clause__text, .note__why, .capbar__label { text-wrap: pretty; }
+.guard__clauses, .budget__text, .guard__unit { text-wrap: balance; }
+/* the worst attack on a phone: the payee gets its own line, so a long method or account never collides with the amount */
+@media (max-width: 30rem) {
+  .trace__step { grid-template-columns: minmax(0, 1fr) 4.5rem; }
+  .trace__to { grid-column: 1 / -1; overflow-wrap: normal; }
+  .trace__amt { justify-self: start; text-align: left; }
+}
