@@ -4,8 +4,10 @@ Each claim in the README and `docs/` with the command that produces it, the comm
 value to expect and what it needs. "nothing" means no API key, no NEAR account and no `.env`. "testnet read" means a
 public RPC call or an explorer page, no account.
 
-The replays rewrite their files in `results/`. Apart from measured latencies (wall-clock, different on every run), a
-rerun leaves them unchanged: `git diff -I 'latency|p50ms|p99ms' --exit-code results/` (CI runs this).
+The replays rewrite their files in `results/`. Apart from measured latencies (wall-clock, different on every run) and
+the red-team judge-cache counters `hits` and `live` (the committed runs made some calls live; a keyless replay serves
+every call from the cache), a rerun leaves them unchanged:
+`git diff --exit-code -I 'latency|p50ms|p99ms' -I '^ *"(hits|live)": [0-9]+,$' results/` (CI runs this).
 
 | claim | command | output file | expected value | needs |
 |---|---|---|---|---|

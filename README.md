@@ -40,7 +40,7 @@ make eval         # regression suite, 320 cases: plain policy blocks 20.0% of at
 make attack       # evolutionary search, about 42k guard evaluations: max loss 134.60 NEAR on plain policy, 3.00 on the SIEGE guard (about 10 s)
 make threat       # two-key vault: compromised agent vs compromised guard, and the MCP path (about 30 s)
 make redteam      # held-out eval on model-written attacks, replayed from results/redteam (a few seconds)
-git status        # the replays rewrite results/; only measured latencies differ from the committed files
+git status        # the replays rewrite results/; only measured latencies and the judge-cache counters (hits/live) differ from the committed files
 ```
 
 ## How it works
