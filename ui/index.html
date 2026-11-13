@@ -193,6 +193,11 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
   </section>
 
   <section class="siege" aria-labelledby="siege-h" id="siege" data-state="idle">
+    <details class="rulesum" id="rulesum" hidden>
+      <summary><span class="rulesum__title" id="rulesum-h">Your rules</span> <span class="rulesum__sum" id="rulesum-sum"></span></summary>
+      <ol class="rulesum__list" id="rulesum-list"></ol>
+      <a class="rulesum__edit" href="#doc-h">Edit them</a>
+    </details>
     <div class="siege__head">
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
@@ -268,10 +273,6 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
       <div class="timeline__rows" id="timeline-rows"></div>
       <p class="timeline__story" id="timeline-story"></p>
     </section>
-    <section class="rulesum" id="rulesum" aria-labelledby="rulesum-h" hidden>
-      <h3 id="rulesum-h">Your rules</h3>
-      <ol class="rulesum__list" id="rulesum-list"></ol>
-    </section>
     <section class="next" id="next" aria-labelledby="next-h" hidden>
       <h3 id="next-h">Fix the weakest rule</h3>
       <p class="next__delta" id="next-delta" hidden></p>
@@ -293,12 +294,6 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
       </dl>
       <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
     </details>
-    <details class="means-more" id="means-more" hidden>
-      <summary>How the worst attack worked</summary>
-      <p id="means-full"></p>
-    </details>
-
-
     <details class="evidence" id="evidence" hidden>
       <summary><span class="evidence__title">The evidence</span> <span class="evidence__sum" id="evidence-sum"></span></summary>
       <div class="evidence__body">
@@ -326,7 +321,10 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
       </div>
       </div>
     </details>
-
+    <details class="means-more" id="means-more" hidden>
+      <summary>How the worst attack worked</summary>
+      <p id="means-full"></p>
+    </details>
   </section>
 </main>
 <div class="defs" hidden>

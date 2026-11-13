@@ -181,6 +181,7 @@
       siegeBtn.removeAttribute("aria-disabled");
       renderReading(j.constraints);
       renderExport(j, text);
+      if (!hasResult) rulesSummary();
     } catch {
       if (seq !== compileSeq) return;
       showCompileError("Can’t reach the SIEGE server. It retries when you edit your rules or come back to this tab.");
@@ -250,23 +251,30 @@
     row("Purposes", c.purposes?.length ? list(c.purposes).replace(/^./, (x) => x.toUpperCase()) : "Any purpose");
   }
 
-  // On narrow screens the full rules sit far below the outcome, so a compact list of them follows the cards:
-  // each rule, struck where it leaked, with what each guard did on it. Counted from the same leaks as the cards.
+  // On narrow screens the full rules sit far below the outcome, so a folded strip above the siege lists them: each rule,
+  // and after a siege, struck where it leaked, with what each guard did on it. Counted from the same leaks as the cards.
   function rulesSummary(L = null, d = null) {
     const box = $("#rulesum");
-    if (!L || !d) return void (box.hidden = true);
+    const sentences = d?.sentences ?? compiled?.sentences ?? [];
+    if (!sentences.length) return void (box.hidden = true);
     const list = $("#rulesum-list");
     list.replaceChildren();
-    $("#rulesum-h").textContent = `Your rules: ${L.leaked ? `${L.leaked} of ${L.total} leaked` : "none leaked"}`;
-    const text = new Map(d.sentences.map((s) => [s.index, s.text]));
-    for (const r of L.rules) {
-      const typ = r.cap ? `raced past the ${near(r.cap.cap)} cap` : r.typicalLoss > 0 ? `typical lost ${near(r.typicalLoss)}` : "typical held";
-      const grd = r.guard === "held" ? "guard held" : r.guard === "budget" ? `guard paid ${near(r.guardLoss)} from its allowance` : `guard lost ${near(r.guardLoss)}`;
+    $("#rulesum-h").textContent = `Your rules (${sentences.length})`;
+    $("#rulesum-sum").textContent = L ? (L.leaked ? `${L.leaked} of ${L.total} leaked on typical limits` : "none leaked") : "";
+    const byIndex = new Map((L?.rules ?? []).map((r) => [r.index, r]));
+    for (const s of sentences) {
+      const r = byIndex.get(s.index);
+      const out = [];
+      if (r) {
+        const typ = r.cap ? `raced past the ${near(r.cap.cap)} cap` : r.typicalLoss > 0 ? `typical lost ${near(r.typicalLoss)}` : "typical held";
+        const grd = r.guard === "held" ? "guard held" : r.guard === "budget" ? `guard leaked ${near(r.guardLoss)}, capped by its allowance` : `guard lost ${near(r.guardLoss)}`;
+        out.push(el("span", { class: "rulesum__out", text: `${typ.charAt(0).toUpperCase() + typ.slice(1)} · ${grd}` }));
+      }
       list.append(
-        el("li", { class: `rulesum__row rulesum__row--${r.leaked ? "leak" : "held"}`, "data-guard": r.guard },
-          el("span", { class: "rulesum__n", text: String(r.index + 1) }),
-          el("span", { class: "rulesum__text" }, el("span", { class: "rulesum__ink", text: text.get(r.index) ?? "" })),
-          el("span", { class: "rulesum__out", text: `${typ.charAt(0).toUpperCase() + typ.slice(1)} · ${grd}` })),
+        el("li", { class: `rulesum__row rulesum__row--${r?.leaked ? "leak" : "held"}` },
+          el("span", { class: "rulesum__n", text: String(s.index + 1) }),
+          el("span", { class: "rulesum__text" }, el("span", { class: "rulesum__ink", text: s.text })),
+          ...out),
       );
     }
     box.hidden = false;
@@ -645,19 +653,15 @@
   }
 
   // ---------- the legend ----------
-  // One line over the rules: coral is money typical limits paid out, green is a rule the guard held,
-  // and a struck rule leaked (the same definition the cards count, from ui/leaks.js).
+  // One line over the rules: a struck rule leaked on typical limits (the same definition the cards count, from
+  // ui/leaks.js), and a bar is money out in that attack round. Each rule's chips say what each guard did.
   const keyEl = $("#key");
-  function showKey(L = null) {
+  function showKey() {
     const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
-    const badge = (k) => el("span", { class: `key__num key__num--${k}`, "aria-hidden": "true", text: "1" });
-    const has = (k) => L?.rules.some((r) => r.guard === k);
-    const words = ["held", has("budget") && "paid from its allowance", has("lost") && "lost money"].filter(Boolean);
     const items = [
       item(el("span", { class: "key__line", "aria-hidden": "true", text: "Rule" }), "struck: typical limits leaked"),
       item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "bar: money out in that attack round"),
     ];
-    if (L) items.push(item(el("span", { class: "key__nums" }, badge("held"), has("budget") && badge("budget"), has("lost") && badge("lost")), `badge: SIEGE guard result (${words.join(" or ")})`));
     keyEl.replaceChildren(...items);
   }
 
@@ -744,7 +748,7 @@
       g.compare.hidden = true;
       // Both cards lead with NEAR lost, so they compare at a glance; the gauge shows it all came from the allowance.
       g.num.textContent = near(g.loss);
-      g.unit.textContent = "NEAR paid within its allowance";
+      g.unit.textContent = "NEAR leaked, capped by its allowance";
       $(".budget__fill", g.budget).style.setProperty("--used", String(Math.min(1, g.loss / b.cap)));
       $(".budget__text", g.budget).replaceChildren(`${near(g.loss)} of its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}`, term("allowance", "allowance"), " for new payees");
       g.budget.hidden = false;
@@ -929,7 +933,8 @@
     else if (m > 0) text = `Typical limits held, but the guard lost ${near(m)} NEAR.`;
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
-    v.textContent = text;
+    // A recorded run is labelled on the headline itself, so it never reads as this visitor's own result.
+    v.replaceChildren(...(example ? [el("span", { class: "siege__tag", text: "Example run" }), " "] : []), text);
     v.hidden = false;
     // The allowance itself is explained on the guard's card, beside its figure; the announcement says it here.
     if (m > 0 && b?.withinBudget) text += ` ${near(m)} NEAR got through inside the guard’s ${near(b.cap)} NEAR allowance for payees your rules never named.`;
@@ -974,7 +979,7 @@
     const which = (rs) => `${rs.length === 1 ? "rule" : "rules"} ${list(rs.map((r) => String(r.index + 1)))} of your ${L.total}`;
     const leakedRules = L.rules.filter((r) => r.leaked), hitRules = L.rules.filter((r) => r.guard !== "held");
     guards.outlayer.clauses.textContent = L.leaked ? `Leaked on ${which(leakedRules)}` : `Held on all ${L.total} ${word}`;
-    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `Paid from its allowance on ${which(hitRules)}` : `Got past on ${which(hitRules)}`;
+    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `Leaked on ${which(hitRules)}, capped by its allowance` : `Got past on ${which(hitRules)}`;
     for (const g of Object.values(guards)) (g.clauses.hidden = L.total === 0), (g.stops.hidden = true);
     // Rules already struck through during the run keep their line; a rule first found leaking now gets it drawn.
     const inked = new Set($$(".clause--breach", clausesEl).map((li) => li.dataset.index));
@@ -994,7 +999,7 @@
         ),
       );
     }
-    showKey(L);
+    showKey();
     generalEl.replaceChildren();
     if (d.general?.length) {
       generalEl.append(el("h2", { text: "Not tied to one rule" }), noteFor(d.general));
@@ -1190,10 +1195,14 @@
     const el2 = $("#next-payoff");
     const d = rec?.events.find(([t]) => t === "done")?.[1];
     el2.hidden = !d;
+    const btn = $("#next-fix-btn");
+    btn.textContent = "Apply this fix and lay siege again";
     if (!d) return;
     const n = weak.s.index + 1;
     const after = d.sentences[weak.s.index]?.findings.filter((f) => f.guard === "mandate").reduce((a, f) => a + f.loss, 0) ?? 0;
     const still = d.sentences.filter((s) => s.findings.some((f) => f.guard === "outlayer" && f.loss > 0)).map((s) => String(s.index + 1));
+    // The button promises the recorded figure only: example-fixed.json is a real run of the fixed rules.
+    btn.textContent = `Apply fix → ${near(after)} NEAR on rule ${n}`;
     el2.replaceChildren(
       el("b", { text: `Rule ${n} leak: ${near(weak.guardLoss)} → ${near(after)} NEAR` }),
       ` in a recorded run with this fix. The guard lost ${near(d.losses?.mandate ?? 0)} NEAR in all${still.length && d.losses?.outlayer > 0 ? `; typical limits still lost ${near(d.losses.outlayer)} through rule ${list(still)}` : ""}.`,
