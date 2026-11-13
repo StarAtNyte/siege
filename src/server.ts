@@ -118,6 +118,8 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
     const sides = (["outlayer", "mandate"] as const).map((guard) => {
       const it = new Search(arena, guard, 1).rounds(generations, 64, () => closed);
       const judge = new Arena(c);
+      // A second arena for the live feed: one real attempt per round, re-run against both guards, kept apart from the narration.
+      const feedJudge = new Arena(c);
       // Pin the best attack's breaches to clauses whenever the best attack improves, so the UI can red-line live.
       let lastLoss = -1;
       let marks: { index: number; loss: number }[] = [];
@@ -139,7 +141,10 @@ async function siege(req: http.IncomingMessage, res: http.ServerResponse, url: U
           if (play && !improved && key === lastKey) play = null;
           if (play) (plays++, (lastKey = key), (playedLoss = Math.max(playedLoss, p.bestLoss)));
         }
-        emit("progress", { ...p, marks, general, play });
+        // The live feed: this round's sampled attack, as payee, trick and what each guard did with it.
+        const t = sample?.length ? await narrate(feedJudge, guard, p.generation + 1, sample) : null;
+        const attempt = t ? { to: t.to, imitates: t.imitates, tag: t.tags[0], tags: t.tags, lure: t.lure, amount: t.amount, outlayer: t.verdicts.outlayer.paid, mandate: t.verdicts.mandate.paid ? (t.verdicts.mandate.novel ? "allowance" : "paid") : "refused" } : null;
+        emit("progress", { ...p, marks, general, play, attempt });
       };
       return { it, onProgress, result: null as SearchResult | null };
     });

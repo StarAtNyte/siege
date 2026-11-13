@@ -79,6 +79,15 @@ test("siege progress narrates real attacks: each play says what both guards did 
     }
     // The plain policy pays at least one of the narrated attacks on an open mandate; the narration is not all refusals.
     assert.ok(plays.some((p) => p.verdicts.outlayer.paid));
+    // The live feed: most rounds carry one real attempt, with each guard's outcome on it.
+    const attempts = txt.split("\n\n").filter((b) => b.startsWith("event: progress")).map((b) => JSON.parse(b.slice(b.indexOf("data: ") + 6)).attempt).filter(Boolean);
+    assert.ok(attempts.length >= 4, `expected feed attempts, got ${attempts.length}`);
+    for (const a of attempts) {
+      assert.match(a.to, /\.testnet$/);
+      assert.equal(typeof a.outlayer, "boolean");
+      assert.ok(["refused", "allowance", "paid"].includes(a.mandate));
+      assert.equal(a.tag, a.tags[0]);
+    }
     // The heavy genomes stay on the server.
     assert.ok(!/"genome"|"sample"/.test(txt));
     // The done event says, per guard, how many attacks were tried and how many got nothing out.
