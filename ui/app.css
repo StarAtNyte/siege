@@ -868,3 +868,30 @@ a.btn { text-decoration: none; }
   .rules-jump:not([hidden]) { display: inline-block; margin-top: var(--space-2xs); padding-block: var(--space-3xs); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink); text-underline-offset: 3px; }
   .rulesum { scroll-margin-top: var(--space-md); }
 }
+
+/* ---------- what SIEGE is, under the question, linked to the install section ---------- */
+.stakes__what { margin-top: var(--space-2xs); font-size: var(--text-sm); color: var(--color-ink); text-wrap: pretty; }
+.stakes__what a { font-weight: 600; color: var(--color-ink); text-decoration: underline 1px var(--color-rule-strong); text-underline-offset: 0.2em; }
+.stakes__what a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+
+/* ---------- under the verdict: what capped the guard, the bound said plainly, and the testnet proof ---------- */
+.vaultcap { max-width: 60ch; font-size: var(--text-md); color: var(--color-ink); text-wrap: pretty; }
+.vaultcap b { font-weight: 600; }
+.bound { font-size: var(--text-md); font-weight: 500; color: var(--color-ink); }
+.outcome .proof { display: grid; gap: var(--space-3xs); margin-top: var(--space-2xs); }
+.proof__lead a { margin-left: var(--space-xs); font-weight: 400; color: var(--color-ink-2); text-underline-offset: 3px; }
+.proof__row { display: flex; flex-wrap: wrap; gap: var(--space-2xs) 0; }
+.proof__row .proof__item:first-child { padding-left: 0; border-left: 0; }
+.proof__item code { font-family: var(--font-mono); font-size: var(--text-xs); }
+@media (max-width: 40rem) { .proof__row { flex-direction: column; } }
+@media (max-width: 40rem) { .vaultcap, .bound { font-size: var(--text-sm); } }
+
+/* ---------- under the cards: straight to the fix ---------- */
+.see-fix { justify-self: start; width: fit-content; text-decoration: none; font-weight: 600; }
+@media (max-width: 70rem) { .see-fix { order: 3; } .outcome .proof { order: 0; } }
+/* two columns: the fix already sits right under the cards */
+@media (min-width: 70.0625rem) { .see-fix { display: none; } }
+#next { scroll-margin-top: var(--space-md); }
+
+/* the header action says it runs live; on a phone the recorded-example tag beside the verdict says the rest */
+@media (max-width: 40rem) { .btn__live { display: none; } }

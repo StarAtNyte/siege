@@ -427,6 +427,8 @@
     $("#siege-example").hidden = true;
     $("#siege-sum").hidden = true;
     $("#bound").hidden = true;
+    $("#vault-cap").hidden = true;
+    $("#see-fix").hidden = true;
     $("#stage").hidden = true;
     strikes = new Map();
     evals = {};
@@ -663,7 +665,7 @@
       // Finished: the verdict above says it; this line only carried running totals. The attempt count is said once,
       // under the verdict, with what it means: the best a bounded search found, not a guarantee.
       sum.hidden = true;
-      $("#bound").textContent = `Best attack found in ${d.evaluations.toLocaleString("en")} attempts; a bounded search, not a guarantee.`;
+      $("#bound").textContent = `Best attack in ${d.evaluations.toLocaleString("en")} attempts: a bounded search, not a guarantee.`;
       $("#bound").hidden = false;
     }
   }
@@ -994,11 +996,20 @@
     else if (m > 0) text = `Typical limits held, but the guard lost ${near(m)} NEAR.`;
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
-    // What the guard's figure is, said in the headline itself: all of it inside its allowance for new payees.
-    const within = m > 0 && b?.withinBudget ? `all inside its ${near(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}allowance for new payees.` : "";
+    // What capped the guard's figure. A daily allowance for new payees is the vault's too (src/vault/model.ts mirrors the
+    // guard's share of the daily cap), so the line under the headline says the NEAR vault holds a fooled guard to it.
+    // Any other window stays the guard's own allowance, said in the headline.
+    const inBudget = m > 0 && b?.withinBudget;
+    const vault = inBudget && b.hours === 24;
+    const within = inBudget && !vault ? `all inside its ${near(b.cap)} NEAR allowance for new payees.` : "";
+    if (vault) text = text.replace(/,$/, ".");
     v.replaceChildren(text, ...(within ? [" ", el("span", { class: "siege__within", text: within })] : []));
     v.hidden = false;
-    return within ? `${text} ${within}` : text;
+    const cap = $("#vault-cap");
+    cap.hidden = !vault;
+    if (vault) cap.replaceChildren(`All of it went to payees your rules never named. `, el("b", { text: `The NEAR vault caps those at ${near(b.cap)} NEAR a day, even when the guard signs,` }), " so a fooled guard can’t give away more.");
+    const said = [text, within, vault ? cap.textContent : ""].filter(Boolean).join(" ");
+    return said;
   }
 
   // What the verdict means, with the terms spelled out, behind a disclosure: the headline already gives both figures.
@@ -1267,6 +1278,7 @@
     $("#next-h").textContent = !weak || weak.loss <= 0 ? "Use the SIEGE guard as it is" : weak.guardLoss > 0 ? `Fix rule ${weak.s.index + 1}` : "Put the guard in front of your wallet";
     pendingFix = fix ? { from: weak.s.text, to: fix } : null;
     $("#next-fix").hidden = !fix;
+    $("#see-fix").hidden = !fix;
     // Account names stay on one line: "acme-supplies.testnet" must not break at its hyphen.
     if (fix) $("#next-fix-text").replaceChildren(...`“${fix}”`.split(/([a-z0-9_-]+(?:\.[a-z0-9_-]+)*\.(?:testnet|near))/).map((t, i) => (i % 2 ? el("span", { class: "acct", text: t }) : t)));
     payoff(fix ? recFor(ta.value.replace(weak.s.text, fix)) : null, weak);
@@ -1290,6 +1302,12 @@
       ` in a recorded run with this fix. The guard lost ${near(d.losses?.mandate ?? 0)} NEAR in all${still.length && d.losses?.outlayer > 0 ? `; typical limits still lost ${near(d.losses.outlayer)} through rule ${list(still)}` : ""}.`,
     );
   }
+  // Under the cards: straight down to the fix and its button, which sit far below on a phone.
+  $("#see-fix").addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#next").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    $("#next-fix-btn").focus({ preventScroll: true });
+  });
   $("#next-fix-btn").addEventListener("click", async () => {
     if (!pendingFix || !ta.value.includes(pendingFix.from)) return;
     ta.value = ta.value.replace(pendingFix.from, pendingFix.to);
@@ -1400,7 +1418,7 @@
     $("#siege-example").hidden = false;
     $("#replay-btn").hidden = replaying;
     $("#siege-example-text").replaceChildren(replaying ? "Replaying the recorded example" : "Recorded example", el("span", { class: "siege__tag-more", text: ", not a live run" }));
-    btnLabel.textContent = "Lay siege on your rules";
+    btnLabel.replaceChildren("Lay ", el("span", { class: "btn__live", text: "a live " }), "siege on your rules");
   }
   function playRecording(ex, animate) {
     resetSiege();
@@ -1436,7 +1454,7 @@
   $("#proof-more").addEventListener("click", () => ($("#chain").open = true));
   // The section index opens a folded section it points at.
   // "Fix" before any result points at a hidden panel: it goes to the siege instead, where the button to start one is.
-  $$(".index a").forEach((a) => a.addEventListener("click", (e) => {
+  $$(".index a, a[data-opens]").forEach((a) => a.addEventListener("click", (e) => {
     const t = $(a.getAttribute("href"));
     if (t?.closest("[hidden]")) return e.preventDefault(), $("#siege-h").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     const d = t?.closest("details") ?? (t?.tagName === "DETAILS" ? t : null);
