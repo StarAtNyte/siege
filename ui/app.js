@@ -1040,7 +1040,7 @@
     const which = (rs) => `${rs.length === 1 ? "rule" : "rules"} ${list(rs.map((r) => String(r.index + 1)))} of your ${L.total}`;
     const leakedRules = L.rules.filter((r) => r.leaked), hitRules = L.rules.filter((r) => r.guard !== "held");
     guards.outlayer.clauses.textContent = L.leaked ? `Leaked on ${which(leakedRules)}` : `Held on all ${L.total} ${word}`;
-    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `Leaked on ${which(hitRules)}, capped by its allowance` : `Got past on ${which(hitRules)}`;
+    guards.mandate.clauses.textContent = !L.guardHit ? `Held on all ${L.total} ${word}` : allBudget ? `${hitRules.length === 1 ? "Rule" : "Rules"} ${list(hitRules.map((r) => String(r.index + 1)))}: ${near(hitRules.reduce((a, r) => a + r.guardLoss, 0))} NEAR to new payees, within the ${near(lastBudget?.cap ?? 0)} allowance` : `Got past on ${which(hitRules)}`;
     for (const g of Object.values(guards)) (g.clauses.hidden = L.total === 0), (g.stops.hidden = true);
     // Rules already struck through during the run keep their line; a rule first found leaking now gets it drawn.
     const inked = new Set($$(".clause--breach", clausesEl).map((li) => li.dataset.index));
