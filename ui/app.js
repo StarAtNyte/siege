@@ -681,7 +681,7 @@
     g.unit.textContent = unitText();
     g.phase.textContent = "";
     stageAt(p.generation + 1, p.generations);
-    stateEl.textContent = `${Object.values(evals).reduce((x, y) => x + y, 0).toLocaleString("en")} attacks tried`;
+    stateEl.textContent = `${Object.values(evals).reduce((x, y) => x + y, 0).toLocaleString("en")} attacks tried so far`;
     if (p.guard === "mandate") announce(`Attack round ${p.generation + 1} of ${p.generations}: typical limits ${near(bestOf("outlayer"))} NEAR lost, SIEGE guard ${near(p.bestLoss)}.`);
     Object.values(guards).forEach(drawSpark);
     drawTimeline();
