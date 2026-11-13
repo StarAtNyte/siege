@@ -815,8 +815,8 @@
     g.num.textContent = near(g.loss);
     Object.keys(guards).forEach(grade);
   }
-  // A daily allowance for new payees is the vault's own cap too (src/vault/model.ts), so the card says the chain enforces it,
-  // linked to the vault contract named in the footer.
+  // A daily allowance for new payees is the vault's own cap too (src/vault/model.ts). The deployed testnet vault uses
+  // 0.02 NEAR/day (src/vault/testnet.ts), so the badge says the contract enforces such a cap, not this exact figure.
   function vaultBadge(b) {
     const badge = $("#vault-badge");
     const vault = $('.foot a[href*="/address/"]');
@@ -825,10 +825,10 @@
     badge.href = vault.href;
     badge.replaceChildren(
       el("span", { class: "vaultbadge__v num", text: `${near(b.cap)} NEAR/day` }),
-      el("span", { class: "vaultbadge__k", text: "on-chain cap" }),
-      el("span", { class: "vaultbadge__s", text: "to new payees, enforced by the NEAR vault contract" }),
+      el("span", { class: "vaultbadge__k", text: "cap to new payees" }),
+      el("span", { class: "vaultbadge__s", text: "The NEAR vault contract makes a cap like this hard: even the guard's signature can't move more. Its testnet vault is set to 0.02 NEAR/day." }),
     );
-    badge.setAttribute("aria-label", `On-chain cap: ${near(b.cap)} NEAR a day to new payees, enforced by the NEAR vault contract. Opens the vault on NearBlocks.`);
+    badge.setAttribute("aria-label", `${near(b.cap)} NEAR a day cap to new payees. The NEAR vault contract makes a cap like this hard: even the guard's signature can't move more. Its testnet vault is set to 0.02 NEAR a day. Opens the vault on NearBlocks.`);
   }
   // Held: nothing lost. Held to budget: everything lost went through the mandate's new-payee budget and stayed inside it.
   // Mostly held: lost, but at least 90% less than the other guard. Otherwise the card carries only its figure and rule count.
