@@ -51,7 +51,7 @@ mandate compiler -> classifier -> LLM judge -> ledger -> wallet
 2. The **classifier** scores each transaction for injection, look-alike payees, confused-deputy arguments and drift, in about 0.05 ms.
 3. The **LLM judge** decides the ambiguous band (Claude, or a scripted judge with no key).
 4. The atomic **ledger** reserves budget so concurrent requests cannot jointly overshoot a cap.
-5. The **wallet** (the two-key vault on testnet, OutLayer, or a mock) pays, and the ledger commits or releases.
+5. The **wallet** (the two-key vault on testnet, OutLayer, a custody wallet for AI agents on NEAR, or a mock) pays, and the ledger commits or releases.
 
 The full flow is under [How the SIEGE guard decides](#how-the-siege-guard-decides).
 
