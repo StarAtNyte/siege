@@ -220,9 +220,11 @@ function notFound(res: http.ServerResponse, p: string) {
 export const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
   const p = url.pathname;
+  // HEAD is answered like GET (Node drops the body), so uptime monitors and link checkers see the real status.
+  const get = req.method === "GET" || req.method === "HEAD";
   try {
-    if (req.method === "GET" && p === "/healthz") return send(res, 200, { ok: true, sieges: running, maxSieges: MAX_SIEGES });
-    if (req.method === "GET" && p === "/api/examples") return send(res, 200, MANDATES);
+    if (get && p === "/healthz") return send(res, 200, { ok: true, sieges: running, maxSieges: MAX_SIEGES });
+    if (get && p === "/api/examples") return send(res, 200, MANDATES);
     if (req.method === "POST" && p === "/api/compile") {
       const b = await body(req);
       const c = compileOr400(b.mandate);
@@ -244,7 +246,7 @@ export const server = http.createServer(async (req, res) => {
       return send(res, 200, { mandate: m, outlayer: o, signals: cls.signals, risk: cls.risk });
     }
     if (req.method === "GET" && p === "/api/siege") return await siege(req, res, url);
-    if (req.method === "GET") {
+    if (get) {
       const file = path.resolve(UI, "." + (p === "/" ? "/index.html" : p));
       if (p !== "/404.html" && file.startsWith(UI + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
         const headers = { "content-type": STATIC[path.extname(file)] ?? "application/octet-stream", "x-content-type-options": "nosniff" };

@@ -23,6 +23,8 @@ test("web app: real 404s, absolute share tags, a served og:image, and a 429 the 
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
     const evil = await getWithHost("/", "x\"><b>").catch(() => "");
     assert.ok(!evil.includes("x\"><b>"), "a hostile Host header is not reflected into the page");
+    for (const path of ["/", "/healthz", "/app.js"]) assert.equal((await fetch(base + path, { method: "HEAD" })).status, 200, `HEAD ${path}`);
+    assert.equal((await fetch(base + "/no/such/page", { method: "HEAD" })).status, 404);
     const og = await fetch(base + "/og.png");
     assert.equal(og.status, 200);
     assert.equal(og.headers.get("content-type"), "image/png");
