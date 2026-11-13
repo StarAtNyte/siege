@@ -16,6 +16,7 @@
   };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const near = (n) => Number(n).toFixed(2);
+  const nearShort = (n) => near(n).replace(/\.00$/, "");
   const GUARD = { outlayer: "Typical limits", mandate: "SIEGE guard" };
   const SHORT = GUARD;
   const GENERATIONS = 30;
@@ -223,6 +224,7 @@
   ta.addEventListener("input", () => {
     fit();
     count();
+    syncPick();
     // The siege tests the text it started with: an edit stops a running siege and marks a finished one as out of date.
     if (siegeEl.dataset.state === "running") siegeError("Stopped: your rules changed. Lay siege again to test the new text.", "Lay siege on the new text");
     else if (siegeEl.dataset.state === "done" && !siegeEl.dataset.stale) {
@@ -273,7 +275,7 @@
       list.append(
         el("li", { class: `rulesum__row rulesum__row--${r?.leaked ? "leak" : "held"}` },
           el("span", { class: "rulesum__n", text: String(s.index + 1) }),
-          el("span", { class: "rulesum__text" }, el("span", { class: "rulesum__ink", text: s.text })),
+          el("span", { class: "rulesum__text" }, r?.leaked ? stamp() : null, el("span", { class: "rulesum__ink", text: s.text })),
           ...out),
       );
     }
@@ -366,6 +368,13 @@
     if (rec && compileOk) (recording = rec), playRecording(rec, false);
   }
   pick.addEventListener("change", () => pick.value && loadExample(pick.value));
+  // The picker names the rules on the page: an example's name while the text is that example, otherwise "Your own rules".
+  function syncPick() {
+    const t = ta.value.trim();
+    const named = Object.entries(examples ?? {}).find(([, v]) => v.trim() === t)?.[0] ?? (recs.fixed?.mandate === t ? "fixed" : null);
+    pick.value = named && pick.querySelector(`option[value="${named}"]`) ? named : "";
+  }
+  fetch("/api/examples").then((r) => r.json()).then((j) => { examples ??= j; syncPick(); }).catch(() => {});
 
   // ---------- document modes ----------
   function setMode(mode) {
@@ -442,6 +451,8 @@
     $("#evidence").hidden = true;
     $("#evidence").open = false;
     $("#stage-now").hidden = true;
+    $("#feed").hidden = true;
+    $("#feed-lines").replaceChildren();
     $("#play-lines").replaceChildren();
     $("#play-totals").textContent = "";
     attacks = {};
@@ -587,6 +598,25 @@
     );
     now.hidden = siegeEl.dataset.state === "done";
   }
+  // The live feed: one real attempt per guard per round, from the engine's own sample, newest at the bottom, six kept.
+  const FEED_LURE = { invoice: "forged invoice", history: "forged payment history", billing: "forged billing note", receipt: "fake receipt", notes: "forged meeting notes", tip: "planted tip", statement: "forged statement", renewal: "fake renewal notice" };
+  const FEED_HOW = { deputy: "redirected call", hidden: "hidden instruction", address: "changed address", plain: "plain request" };
+  const FEED_KEEP = 6;
+  function feedLine(a) {
+    const box = $("#feed");
+    if (!a || siegeEl.dataset.state === "done") return;
+    const ol = $("#feed-lines");
+    const how = a.tag === "document" ? FEED_LURE[a.lure] ?? "forged document" : FEED_HOW[a.tag] ?? "plain request";
+    const g = { refused: ["held", "blocked"], allowance: ["budget", "allowance"], paid: ["lost", "paid"] }[a.mandate];
+    ol.append(
+      el("li", { class: `feed__line${reduced ? "" : " feed__line--fresh"}` },
+        el("span", { class: "feed__what" }, el("span", { class: "feed__to" }, account(a.to)), el("span", { class: "feed__how", text: `${how}${a.tags?.includes("lookalike") ? ", lookalike" : ""}` })),
+        el("span", { class: `feed__v feed__v--${a.outlayer ? "lost" : "held"}`, text: a.outlayer ? "paid" : "blocked" }),
+        el("span", { class: `feed__v feed__v--${g[0]}`, text: g[1] })),
+    );
+    while (ol.childElementCount > FEED_KEEP) ol.firstElementChild.remove();
+    box.hidden = false;
+  }
   // The evidence stays folded under one line that says what is inside.
   function evidenceSum() {
     const n = $("#play-lines").childElementCount;
@@ -650,6 +680,7 @@
     playTotals(p);
     sumLine();
     if (p.play) onPlay(p.play);
+    feedLine(p.attempt);
   }
 
   // ---------- the legend ----------
@@ -659,7 +690,7 @@
   function showKey() {
     const item = (mark, text) => el("span", { class: "key__item" }, mark, text);
     const items = [
-      item(el("span", { class: "key__line", "aria-hidden": "true", text: "Rule" }), "struck: typical limits leaked"),
+      item(el("span", { class: "key__line", "aria-hidden": "true" }, stamp()), "typical limits let money out through this rule"),
       item(el("span", { class: "key__bars", "aria-hidden": "true" }, el("i"), el("i"), el("i")), "bar: money out in that attack round"),
     ];
     keyEl.replaceChildren(...items);
@@ -694,10 +725,21 @@
   }
   // A purpose sentence reads as a rule when it is labelled as one.
   // The words sit in their own inline span, so a breach can draw an ink line through them, line by line.
-  function clauseText(s) {
+  function clauseText(s, leaked = false) {
     const t = el("span", { class: "clause__text" });
+    if (leaked) t.append(stamp());
     t.append(el("span", { class: "clause__ink", text: s.text }));
     return t;
+  }
+  // The red pen's margin note: the user's words stay whole, a coral rule runs down the margin and a small stamp says why.
+  function stamp() {
+    return el("span", { class: "stamp" }, el("span", { "aria-hidden": "true", text: "Leaked" }), el("span", { class: "visually-hidden", text: "Leaked: " }));
+  }
+  function markLeaked(li) {
+    if (li.classList.contains("clause--breach")) return;
+    li.classList.add("clause--breach", "clause--fresh");
+    const t = $(".clause__text", li);
+    if (t && !$(".stamp", t)) t.prepend(stamp());
   }
 
   // ---------- live red-lining ----------
@@ -724,7 +766,7 @@
       if (!mark) {
         mark = el("span", { class: "live-mark live-mark--fresh", "data-guard": p.guard, title: `First got through in round ${p.generation + 1}` }, `${SHORT[p.guard]}, best attack so far: `, el("span", { class: "note__loss" }));
         note.append(mark);
-        if (p.guard === "outlayer" && !li.classList.contains("clause--breach")) li.classList.add("clause--breach", "clause--fresh");
+        if (p.guard === "outlayer") markLeaked(li);
       }
       $(".note__loss", mark).textContent = `lost ${near(m.loss)} NEAR`;
     }
@@ -906,7 +948,7 @@
   // A cap over time can be blown by stolen payments alone. Those count once, as theft on the rule that let them through,
   // so the cap's own row says what happened and that the guard held; the overlap with other rules waits in a hover.
   // Its bar is its own: what the best attack sent in one window, against the cap marked on the same scale.
-  function capNote(b, all) {
+  function capNote(b, all, guardSent = 0) {
     const where = all.filter((r) => r.typicalLoss > 0).map((r) => r.index + 1);
     const span = b.hours === 24 ? "in one day" : `in ${hours(b.hours).replace(/^per /, "one ")}`;
     const capWord = b.hours === 24 ? `the ${near(b.cap)} NEAR daily cap` : `the ${near(b.cap)} NEAR cap ${hours(b.hours)}`;
@@ -917,9 +959,11 @@
     const bar = el(
       "span",
       { class: "capbar", role: "img", "aria-label": `${near(b.paid)} NEAR sent ${span} against a ${near(b.cap)} NEAR cap` },
-      el("span", { class: "strike__row" }, el("span", { class: "strike__who", text: "Typical" }), el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill" }), el("span", { class: "capbar__cap", style: `--at:${(b.cap / b.paid).toFixed(4)}` }))),
-      el("span", { class: "capbar__label" }, el("span", { text: `${near(b.cap)} cap` }), el("span", { class: "num", text: `${near(b.paid)} sent ${span}` })),
+      el("span", { class: "strike__row", "data-guard": "outlayer" }, el("span", { class: "strike__who", text: "Typical" }), el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill" }), el("span", { class: "capbar__cap", style: `--at:${(b.cap / b.paid).toFixed(4)}` })), el("span", { class: "capbar__val num", text: near(b.paid) })),
+      el("span", { class: "strike__row", "data-guard": "mandate" }, el("span", { class: "strike__who", text: "SIEGE" }), el("span", { class: "capbar__track" }, el("span", { class: "capbar__fill", style: `--w:${Math.max(0.004, Math.min(1, guardSent / b.paid)).toFixed(4)}` }), el("span", { class: "capbar__cap", style: `--at:${(b.cap / b.paid).toFixed(4)}` })), el("span", { class: "capbar__val num", text: near(guardSent) })),
+      el("span", { class: "capbar__label" }, el("span", { class: "capbar__key", "aria-hidden": "true" }), `the ${near(b.cap)} NEAR cap ${hours(b.hours)}; figures are NEAR sent ${span}`),
     );
+    bar.setAttribute("aria-label", `Typical limits: ${near(b.paid)} NEAR sent ${span}; SIEGE guard: ${near(guardSent)} NEAR; against a ${near(b.cap)} NEAR cap`);
     return { note, bar };
   }
 
@@ -928,17 +972,16 @@
     const o = d.losses?.outlayer ?? 0, m = d.losses?.mandate ?? 0, b = d.budget;
     let text;
     if (o > 0 && m <= 0) text = `The guard stopped every attack. Without it, the attacker took ${near(o)} NEAR.`;
-    else if (o > 0 && m < o) text = `The guard cut the best attack’s take from ${near(o)} to ${near(m)} NEAR.`;
+    else if (o > 0 && m < o) text = `The guard cut the best attack’s take from ${near(o)} to ${near(m)} NEAR${m > 0 && b?.withinBudget ? "," : "."}`;
     else if (o > 0) text = `The guard lost ${near(m)} NEAR; typical limits lost ${near(o)}.`;
     else if (m > 0) text = `Typical limits held, but the guard lost ${near(m)} NEAR.`;
     else text = "Neither guard lost anything to the attacks SIEGE found.";
     const v = $("#siege-verdict");
-    // A recorded run is labelled on the headline itself, so it never reads as this visitor's own result.
-    v.replaceChildren(...(example ? [el("span", { class: "siege__tag", text: "Example run" }), " "] : []), text);
+    // What the guard's figure is, said in the headline itself: all of it inside its allowance for new payees.
+    const within = m > 0 && b?.withinBudget ? `all inside its ${nearShort(b.cap)} NEAR ${b.hours === 24 ? "daily " : ""}allowance for new payees.` : "";
+    v.replaceChildren(text, ...(within ? [" ", el("span", { class: "siege__within", text: within })] : []));
     v.hidden = false;
-    // The allowance itself is explained on the guard's card, beside its figure; the announcement says it here.
-    if (m > 0 && b?.withinBudget) text += ` ${near(m)} NEAR got through inside the guard’s ${near(b.cap)} NEAR allowance for payees your rules never named.`;
-    return text;
+    return within ? `${text} ${within}` : text;
   }
 
   // What the verdict means, with the terms spelled out, behind a disclosure: the headline already gives both figures.
@@ -961,8 +1004,26 @@
     if (m <= 0) full.push("With the SIEGE guard in front, no attack got any money out.");
     else full.push(`With the SIEGE guard, the most any attack got was ${near(m)} NEAR${b?.withinBudget ? `, inside its ${near(b.cap)} NEAR allowance (the most the guard lets go to payees your rules never named, ${hours(b.hours)})` : ""}.`);
     $("#means-full").textContent = full.join(" ");
+    trace(attacks.outlayer);
     $("#means-more").hidden = false;
     return full.join(" ");
+  }
+
+  // The worst attack, payment by payment, under the fix: what it paid, to whom, and whether typical limits let it out.
+  function trace(a) {
+    const ol = $("#trace");
+    ol.replaceChildren();
+    const steps = a?.steps ?? [];
+    const KEEP = 5;
+    for (const s of steps.slice(0, KEEP)) {
+      const dest = s.routedTo || s.to;
+      const out = s.verdict === "allow" && !legit.has(dest) && !(s.kind === "call" && !s.routedTo);
+      const word = s.verdict !== "allow" ? "stopped" : out ? "lost" : "paid";
+      const to = el("span", { class: "trace__to" }, account(s.to));
+      if (s.kind === "call") to.append(el("span", { class: "via", text: ` ${s.method} → ` }), s.routedTo ? account(s.routedTo) : el("span", { class: "via", text: "itself" }));
+      ol.append(el("li", { class: `trace__step trace__step--${word}` }, to, el("span", { class: "trace__amt num", text: `${near(s.amount)} NEAR` }), el("span", { class: "trace__v", text: word === "lost" ? "Lost" : word === "stopped" ? "Stopped" : "Paid" })));
+    }
+    if (steps.length > KEEP) ol.append(el("li", { class: "trace__more" }, `${steps.length - KEEP} more payments in `, el("a", { href: "#evidence", text: "the evidence" })));
   }
 
   function onDone(d) {
@@ -984,16 +1045,18 @@
     // Rules already struck through during the run keep their line; a rule first found leaking now gets it drawn.
     const inked = new Set($$(".clause--breach", clausesEl).map((li) => li.dataset.index));
     const byIndex = new Map(L.rules.map((r) => [r.index, r]));
+    // What the guard's best attack sent in all, the same sum the cap's bar uses for typical limits.
+    const guardSent = (attacks.mandate?.steps ?? []).filter((x) => x.verdict === "allow").reduce((a, x) => a + x.amount, 0);
     clausesEl.replaceChildren();
     for (const s of d.sentences) {
       const r = byIndex.get(s.index);
-      const cn = r.cap ? capNote(r.cap, L.rules) : null;
+      const cn = r.cap ? capNote(r.cap, L.rules, guardSent) : null;
       const fresh = r.leaked && !inked.has(String(s.index)) ? " clause--fresh" : "";
       clausesEl.append(
         el(
           "li",
           { class: `clause clause--${r.leaked ? "breach" : "held"}${fresh}`, "data-index": s.index, "data-guard": r.guard },
-          clauseText(s),
+          clauseText(s, r.leaked),
           cn ? cn.bar : strikeFor(s.index),
           s.findings.length ? noteFor(s.findings, s) : cn?.note ?? noteFor([], s),
         ),
@@ -1019,7 +1082,7 @@
     if (matchMedia("(max-width: 40rem)").matches) $("#siege-h").scrollIntoView({ behavior: "auto", block: "start" });
     siegeBtn.removeAttribute("aria-busy");
     btnLabel.textContent = "Lay siege again";
-    announce(`Siege finished. ${said} Rules that typical limits lost on are struck through in coral.`, true);
+    announce(`Siege finished. ${said} Rules that typical limits lost on are marked Leaked in the margin.`, true);
     // A keyboard user who started the siege lands on the verdict, then tabs on to the clause details and ledgers.
     if (focusAfter()) $("#siege-verdict").focus({ preventScroll: true });
   }
@@ -1301,13 +1364,12 @@
   // screen before anyone presses a button. Any real siege, an example pick or an edit replaces it.
   // "Replay this siege" plays the same recording round by round, paced like a live run, with no load on the server.
   let recording = null;
+  // A recorded run says so beside its headline, with the replay next to it; the header button says it runs a live one.
   function exampleLabel(replaying) {
-    const exEl = $("#siege-example");
-    exEl.hidden = false;
+    $("#siege-example").hidden = false;
     $("#replay-btn").hidden = replaying;
-    $("#siege-example-text").replaceChildren(...(replaying
-      ? ["Replaying a recorded siege on the rules shown."]
-      : ["A recorded siege on the rules shown. Press ", el("b", { text: "Lay siege" }), " to run your own."]));
+    $("#siege-example-text").replaceChildren(replaying ? "Replaying the recorded example" : "Recorded example", el("span", { class: "siege__tag-more", text: ", not a live run" }));
+    btnLabel.textContent = "Lay siege on your rules";
   }
   function playRecording(ex, animate) {
     resetSiege();
@@ -1340,6 +1402,8 @@
   // On phones the secondary blocks start folded, so the result and the rules lead; the proof line opens the vault record.
   if (matchMedia("(max-width: 40rem)").matches) $$("[data-fold-phone]").forEach((d) => (d.open = false));
   $("#proof-more").addEventListener("click", () => ($("#chain").open = true));
+  // The section index opens a folded section it points at.
+  $$(".index a").forEach((a) => a.addEventListener("click", () => { const t = $(a.getAttribute("href")); const d = t?.closest("details") ?? (t?.tagName === "DETAILS" ? t : null); if (d) d.open = true; }));
   $("#replay-btn").addEventListener("click", async () => {
     if (!recording) return;
     if (ta.value.trim() !== recording.mandate) {

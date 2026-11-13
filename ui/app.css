@@ -749,3 +749,101 @@ a.btn { text-decoration: none; }
 .main { padding-bottom: var(--space-xl); }
 .export { padding-bottom: var(--space-md); }
 .doc > .disclose:last-child { border-bottom: 0; }
+
+/* ---------- round 10: a section index, the red pen as a margin note, a third colour for the allowance, a live feed ---------- */
+/* within allowance: NEAR amber under black text (12.1:1); thin marks on white use a darker ochre (3.6:1 on white) */
+:root { --color-allow: var(--near-amber); --color-allow-ink: var(--near-black); --color-allow-mark: #b07d00; }
+
+/* the section index, in the bar on wide screens */
+.index { display: flex; align-items: center; gap: var(--space-md); margin-left: var(--space-lg); font-size: var(--text-sm); }
+.index a { color: var(--color-on-band-2); text-decoration: none; padding-block: var(--space-2xs); }
+.index a:hover { color: var(--color-on-band); text-decoration: underline 1px; text-underline-offset: 4px; }
+.index a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 2px; }
+@media (max-width: 56rem) { .index { display: none; } }
+
+/* a leaked rule: the words stay whole; a coral rule runs down the margin and a small stamp is set in before the text */
+.clause__ink, .clause--breach .clause__ink, .clause--fresh .clause__ink { background: none; animation: none; }
+.clause__text { position: relative; display: block; }
+.clause--breach .clause__text::before { content: ""; position: absolute; left: calc(-1 * var(--space-sm) - 2px); top: 0.25em; bottom: 0.25em; width: 3px; border-radius: 2px; background: var(--color-breach); transform-origin: top; }
+@media (prefers-reduced-motion: no-preference) { .clause--fresh .clause__text::before { animation: margin-in 600ms var(--ease-in-out) both; } }
+@keyframes margin-in { from { transform: scaleY(0); } to { transform: none; } }
+.stamp { display: inline-block; vertical-align: 0.22em; margin-right: var(--space-xs); padding: 0 var(--space-2xs); border: 1.5px solid var(--color-breach); border-radius: 2px; background: var(--color-paper); color: var(--color-ink); font: 700 var(--text-xs)/1.45 var(--font-body); font-stretch: normal; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { .clause--fresh .stamp { animation: stamp-in var(--dur-long) var(--ease-out) 300ms both; } }
+@keyframes stamp-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+.key__line { background: none; font-size: inherit; font-weight: 400; }
+.key__line .stamp { margin-right: 0; }
+.rulesum__row--leak .rulesum__ink { background: none; }
+.rulesum__row--leak .rulesum__text { box-shadow: inset 3px 0 0 var(--color-breach); padding-left: var(--space-xs); }
+.rulesum__text .stamp { vertical-align: 0.1em; }
+@media (prefers-reduced-motion: reduce) { .clause--fresh .clause__text::before, .clause--fresh .stamp { animation: none; } }
+
+/* within allowance: the guard's chip, its card's bar and its rule count, in amber; coral means only what typical limits lost */
+.note__guard--budget .note__loss, .now__v--budget, .line__v--budget, .feed__v--budget, .key__badge--budget { background: var(--color-allow); color: var(--color-allow-ink); }
+.step--allowance .step__v { background: var(--color-allow); color: var(--color-allow-ink); }
+.guard[data-outcome="budget"] .budget__fill { transform: none; transform-origin: left; width: calc(var(--used, 0) * 100%); background: var(--color-allow); box-shadow: inset -2px 0 0 var(--color-ink); }
+@media (prefers-reduced-motion: no-preference) { .guard[data-outcome="budget"] .budget__fill { animation: allow-fill var(--dur-long) var(--ease-out); } }
+@keyframes allow-fill { from { transform: scaleX(0); } to { transform: none; } }
+.guard[data-outcome="budget"] .guard__clauses { align-self: flex-start; padding: 0 var(--space-2xs); border-radius: 3px; background: var(--color-allow); color: var(--color-allow-ink); }
+.clause[data-guard="budget"] .strike__row[data-guard="mandate"] .strike__cell[data-r="hit"] { background: var(--color-allow-mark); }
+
+/* a cap's bar: both guards on the same scale, the cap marked on each */
+.capbar .strike__row { grid-template-columns: 4rem minmax(0, 1fr) 3.25rem; }
+.capbar__val { font-size: var(--text-sm); font-weight: 600; text-align: right; }
+.capbar__fill { width: calc(var(--w, 1) * 100%); }
+.capbar .strike__row[data-guard="mandate"] .capbar__fill { background: var(--color-hold-2); }
+.capbar__label { grid-column: 2; padding-right: 3.75rem; font-size: var(--text-xs); color: var(--color-ink-2); }
+@media (prefers-reduced-motion: no-preference) { .clause--fresh .capbar__fill { animation: bar-in 600ms var(--ease-in-out) both; } }
+@keyframes bar-in { from { transform: scaleX(0); } to { transform: none; } }
+
+/* the live feed: real attempts from the engine, six lines, monospace */
+.feed { display: grid; gap: var(--space-3xs); margin-top: var(--space-xs); font: 400 0.8125rem/1.5 var(--font-mono); }
+.feed[hidden] { display: none; }
+.siege[data-state="done"] .feed { display: none; }
+.feed__head, .feed__line { display: grid; grid-template-columns: minmax(0, 1fr) 4.25rem 5.5rem; gap: var(--space-xs); align-items: baseline; }
+.feed__head { padding-bottom: var(--space-3xs); border-bottom: 1px solid var(--color-rule); font: 600 var(--text-xs)/1.5 var(--font-body); color: var(--color-ink-2); }
+.feed__lines { list-style: none; margin: 0; padding: 0; display: grid; align-content: start; min-height: calc(6 * 1.5rem); }
+.feed__line { min-height: 1.5rem; }
+.feed__what { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feed__to { color: var(--color-ink); }
+.feed__to mark, .trace__to mark { background: none; color: var(--color-ink); box-shadow: inset 0 -0.4em 0 var(--color-breach); }
+.feed__how { margin-left: var(--space-sm); color: var(--color-ink-2); }
+.feed__v { justify-self: start; padding: 0 var(--space-2xs); border-radius: 2px; color: var(--color-ink); }
+.feed__v--lost { background: var(--color-breach); }
+.feed__v--held { background: var(--color-hold); }
+@media (prefers-reduced-motion: no-preference) { .feed__line--fresh { animation: feed-in var(--dur-short) var(--ease-out) both; } }
+@keyframes feed-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 40rem) { .feed__how { display: none; } .feed__head, .feed__line { grid-template-columns: minmax(0, 1fr) 4rem 5.25rem; } }
+
+/* a recorded run: one line beside the verdict, its status and the replay */
+.siege__example { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: var(--space-xs) var(--space-sm); padding: 0; border: 0; background: none; }
+.siege__example p.siege__tag { flex: none; margin: 0; vertical-align: baseline; padding: 0 var(--space-xs); border: 1.5px solid var(--color-ink); background: var(--color-paper); font-size: var(--text-sm); line-height: 1.9; letter-spacing: 0; }
+.siege__example .btn { min-height: 32px; }
+.siege__within { font-weight: 500; color: var(--color-ink-2); }
+
+/* the testnet proof: one line for each record, label above, the refusal said plainly */
+.chain__row { grid-template-columns: minmax(0, 1fr); gap: var(--space-3xs); }
+.chain__row dd code { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-ink); }
+
+/* the worst attack, open under the fix */
+.next .means-more { justify-self: stretch; padding-top: var(--space-sm); border-top: 1px solid var(--color-rule); }
+.trace { list-style: none; margin: var(--space-xs) 0 0; padding: 0; display: grid; }
+.trace__step { display: grid; grid-template-columns: minmax(0, 1fr) auto 4.5rem; gap: var(--space-sm); align-items: baseline; padding-block: var(--space-2xs); border-top: 1px solid var(--color-rule); color: var(--color-ink); }
+.trace__to { min-width: 0; font-family: var(--font-mono); overflow-wrap: anywhere; }
+.trace__to .via { font-family: var(--font-body); color: var(--color-ink-2); }
+.trace__amt { white-space: nowrap; text-align: right; }
+.trace__v { justify-self: end; padding: 0 var(--space-2xs); border-radius: 3px; font-weight: 600; }
+.trace__step--lost .trace__v { background: var(--color-breach); color: var(--color-breach-ink); }
+.trace__step--stopped .trace__v { background: var(--color-hold); color: var(--color-hold-ink); }
+.trace__step--paid .trace__v { color: var(--color-ink-2); }
+.trace__more { padding-top: var(--space-2xs); border-top: 1px solid var(--color-rule); }
+.trace__more a { color: var(--color-ink); text-underline-offset: 3px; }
+
+/* one column: the verdict and both figures first, then the rules list, open */
+@media (max-width: 70rem) { .rulesum:not([hidden]) { order: 4; } }
+.capbar__label { display: block; padding-right: 0; }
+.capbar__key { display: inline-block; width: 2px; height: 0.9em; margin-right: var(--space-2xs); vertical-align: -0.1em; background: var(--color-ink); }
+.siege__state:empty { display: none; }
+@media (max-width: 40rem) {
+  .siege__tag-more, .guard .budget__text { display: none; }
+  .guard .budget { margin-top: var(--space-2xs); }
+}

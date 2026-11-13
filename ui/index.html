@@ -33,6 +33,9 @@
 <header class="bar">
   <div class="container bar__in">
     <a class="wordmark" href="/" aria-label="SIEGE, home">SIEGE</a>
+    <nav class="index" aria-label="Sections">
+      <a href="#doc-h">Rules</a><a href="#siege-h">Result</a><a href="#next">Fix</a><a href="#chain">Proof</a><a href="#export">Use it</a>
+    </nav>
     <button type="button" class="btn btn--primary" id="siege-btn" aria-keyshortcuts="Control+Enter Meta+Enter"><span class="btn__label">Lay siege</span><kbd>Ctrl Enter</kbd></button>
   </div>
 </header>
@@ -79,10 +82,10 @@
       <span class="doc__acts">
         <label class="doc__pick" for="example-select">Load example</label>
         <select id="example-select" class="input doc__select">
-          <option value="" selected>Choose rules</option>
-          <option value="open">Open invoices</option>
-          <option value="fixed">Rules with the fix applied</option>
-          <option value="whitelist">Named payees</option>
+          <option value="" hidden>Your own rules</option>
+          <option value="open" selected>Default rules</option>
+          <option value="fixed">Default rules, fixed</option>
+          <option value="whitelist">Named payees only</option>
         </select>
       </span>
     </div>
@@ -101,7 +104,7 @@
     <p class="doc__status" id="doc-status" role="status" aria-live="polite"></p>
     <p class="doc__count" id="doc-count" hidden></p>
 
-    <details class="reading" id="reading-box" open data-fold-phone>
+    <details class="reading" id="reading-box">
       <summary><h2 id="reading-h">How SIEGE reads it</h2></summary>
       <dl class="reading__list" id="reading"><div class="reading__row"><dt>Status</dt><dd>Start the server to read these rules.</dd></div></dl>
     </details>
@@ -193,7 +196,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
   </section>
 
   <section class="siege" aria-labelledby="siege-h" id="siege" data-state="idle">
-    <details class="rulesum" id="rulesum" hidden>
+    <details class="rulesum" id="rulesum" open hidden>
       <summary><span class="rulesum__title" id="rulesum-h">Your rules</span> <span class="rulesum__sum" id="rulesum-sum"></span></summary>
       <ol class="rulesum__list" id="rulesum-list"></ol>
       <a class="rulesum__edit" href="#doc-h">Edit them</a>
@@ -202,18 +205,22 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
       <h2 id="siege-h" tabindex="-1">The siege</h2>
       <p class="siege__state" id="siege-state">Not started</p>
     </div>
+    <div class="siege__example" id="siege-example" hidden>
+      <p class="siege__tag" id="siege-example-text">Recorded example</p>
+      <button type="button" class="btn btn--quiet btn--s" id="replay-btn">Replay this siege</button>
+    </div>
     <div class="outcome" id="outcome">
       <p class="siege__verdict" id="siege-verdict" tabindex="-1" hidden></p>
       <p class="bound num" id="bound" hidden></p>
-    </div>
-    <div class="siege__example" id="siege-example" hidden>
-      <p id="siege-example-text"></p>
-      <button type="button" class="btn btn--quiet btn--s" id="replay-btn">Replay this siege</button>
     </div>
     <div class="stage" id="stage" hidden>
       <div class="stage__track" aria-hidden="true"><span class="stage__fill" id="stage-fill"></span></div>
       <p class="stage__text num" id="stage-text"></p>
       <p class="stage__now" id="stage-now" hidden></p>
+      <div class="feed" id="feed" aria-hidden="true" hidden>
+        <p class="feed__head"><span>Latest attempts</span><span>Typical</span><span>Guard</span></p>
+        <ol class="feed__lines" id="feed-lines"></ol>
+      </div>
     </div>
     <div class="sum">
       <p class="siege__sum num" id="siege-sum" hidden></p>
@@ -267,7 +274,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
         <p class="guard__compare" hidden></p>
       </article>
     </div>
-    <p class="proof" id="proof"><span class="proof__lead">On NEAR testnet</span><a class="proof__item proof__item--paid" href="https://testnet.nearblocks.io/txns/8bC9SjkJ84zWxwDfKJc89VewVchozHAsXF7QY1PCGoLJ" rel="noopener">Paid, guard-signed ✓</a><a class="proof__item proof__item--refused" href="https://testnet.nearblocks.io/txns/4uKP4WRBGq8f9gdSiYm3qVTGfmPRtUgKHTe3GSTzAvxX" rel="noopener">Refused without it (BAD_SIGNATURE) ✓</a><a class="proof__item" href="#chain" id="proof-more">See the transactions</a></p>
+    <p class="proof" id="proof"><span class="proof__lead">On NEAR testnet</span><a class="proof__item proof__item--paid" href="https://testnet.nearblocks.io/txns/8bC9SjkJ84zWxwDfKJc89VewVchozHAsXF7QY1PCGoLJ" rel="noopener">Paid, guard-signed ✓</a><a class="proof__item" href="#chain" id="proof-more">See the transactions</a></p>
     <section class="timeline" id="timeline" aria-labelledby="timeline-h" hidden>
       <h3 id="timeline-h">Round by round</h3>
       <div class="timeline__rows" id="timeline-rows"></div>
@@ -282,6 +289,11 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
         <button type="button" class="btn btn--primary" id="next-fix-btn">Apply this fix and lay siege again</button>
         <p class="next__payoff" id="next-payoff" hidden></p>
       </div>
+      <details class="means-more" id="means-more" open hidden>
+        <summary>How the worst attack worked</summary>
+        <p id="means-full"></p>
+        <ol class="trace" id="trace"></ol>
+      </details>
     </section>
     <details class="chain" id="chain" open data-fold-phone>
       <summary><h3 id="chain-h">SIEGE vault, enforced on NEAR testnet</h3></summary>
@@ -289,7 +301,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
       <dl class="chain__rows">
         <div class="chain__row"><dt>Vault</dt><dd><span class="chain__what">SIEGE vault</span><a class="mono" href="https://testnet.nearblocks.io/address/vault.siege-c0d4426c.testnet" rel="noopener">vault.siege-c0d4426c.testnet</a></dd></div>
         <div class="chain__row"><dt>Paid</dt><dd><span class="chain__what">A guard-signed 0.01 NEAR invoice</span><a class="mono" href="https://testnet.nearblocks.io/txns/8bC9SjkJ84zWxwDfKJc89VewVchozHAsXF7QY1PCGoLJ" rel="noopener">8bC9SjkJ84zWxwDfKJc89VewVchozHAsXF7QY1PCGoLJ</a></dd></div>
-        <div class="chain__row"><dt>Refused <code>(BAD_SIGNATURE)</code></dt><dd><span class="chain__what">The agent’s key paying <span class="mono">drainer.testnet</span> without the guard</span><a class="mono" href="https://testnet.nearblocks.io/txns/4uKP4WRBGq8f9gdSiYm3qVTGfmPRtUgKHTe3GSTzAvxX" rel="noopener">4uKP4WRBGq8f9gdSiYm3qVTGfmPRtUgKHTe3GSTzAvxX</a></dd></div>
+        <div class="chain__row chain__row--refused"><dt>Agent tried to pay without the guard: refused</dt><dd><span class="chain__what">The agent’s own key sent <span class="mono">drainer.testnet</span> a payment with no guard signature; the vault answered <code>BAD_SIGNATURE</code></span><a class="mono" href="https://testnet.nearblocks.io/txns/4uKP4WRBGq8f9gdSiYm3qVTGfmPRtUgKHTe3GSTzAvxX" rel="noopener">4uKP4WRBGq8f9gdSiYm3qVTGfmPRtUgKHTe3GSTzAvxX</a></dd></div>
         <div class="chain__row"><dt>Proxy</dt><dd><span class="chain__what">An allowed transfer through a live <button type="button" class="term" data-tip="outlayer" aria-describedby="def-outlayer">OutLayer</button> wallet; the injected one never reached the chain</span><a class="mono" href="https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p" rel="noopener">HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p</a></dd></div>
       </dl>
       <p class="chain__all"><a href="https://github.com/StarAtNyte/siege/blob/main/docs/TESTNET.md" rel="noopener">Every testnet transaction and refusal</a></p>
@@ -320,10 +332,6 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
         </section>
       </div>
       </div>
-    </details>
-    <details class="means-more" id="means-more" hidden>
-      <summary>How the worst attack worked</summary>
-      <p id="means-full"></p>
     </details>
   </section>
 </main>
