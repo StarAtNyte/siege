@@ -257,10 +257,12 @@
   function rulesSummary(L = null, d = null) {
     const box = $("#rulesum");
     const sentences = d?.sentences ?? compiled?.sentences ?? [];
-    if (!sentences.length) return void (box.hidden = true);
+    const jump = $("#rules-jump");
+    if (!sentences.length) return void (box.hidden = jump.hidden = true);
     const list = $("#rulesum-list");
     list.replaceChildren();
     $("#rulesum-h").textContent = `Your rules (${sentences.length})`;
+    jump.textContent = `Your rules (${sentences.length})`;
     $("#rulesum-sum").textContent = L ? (L.leaked ? `${L.leaked} of ${L.total} leaked on typical limits` : "none leaked") : "";
     const byIndex = new Map((L?.rules ?? []).map((r) => [r.index, r]));
     for (const s of sentences) {
@@ -278,8 +280,11 @@
           ...out),
       );
     }
-    box.hidden = false;
+    box.hidden = jump.hidden = false;
   }
+
+  // On a phone the link under the verdict jumps to the rules in brief, opened.
+  $("#rules-jump").addEventListener("click", () => ($("#rulesum").open = true));
 
   // ---------- export ----------
   function staleExport() {

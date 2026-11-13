@@ -862,3 +862,9 @@ a.btn { text-decoration: none; }
   .trace__to { grid-column: 1 / -1; overflow-wrap: normal; }
   .trace__amt { justify-self: start; text-align: left; }
 }
+/* phone: a link from the verdict down to the rules in brief, which sit below the cards there */
+.rules-jump { display: none; }
+@media (max-width: 70rem) {
+  .rules-jump:not([hidden]) { display: inline-block; margin-top: var(--space-2xs); padding-block: var(--space-3xs); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink); text-underline-offset: 3px; }
+  .rulesum { scroll-margin-top: var(--space-md); }
+}
