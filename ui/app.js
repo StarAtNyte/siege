@@ -1043,7 +1043,7 @@
     v.hidden = false;
     const cap = $("#vault-cap");
     cap.hidden = !vault;
-    if (vault) cap.replaceChildren(`All of it went to payees your rules never named. `, el("b", { text: `The NEAR vault caps those at ${near(b.cap)} NEAR a day, even when the guard signs,` }), " so a fooled guard can’t give away more.");
+    if (vault) cap.replaceChildren(`All of it went to payees your rules never named. `, el("b", { text: `Your rules allow ${near(b.cap)} NEAR a day to new payees, and the NEAR vault enforces that cap even when the guard signs,` }), " so a fooled guard can’t give away more.");
     const said = [text, within, vault ? cap.textContent : ""].filter(Boolean).join(" ");
     return said;
   }
