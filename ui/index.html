@@ -43,7 +43,7 @@
 <section class="stakes" id="stakes" aria-label="About SIEGE" tabindex="-1" data-open="false">
   <div class="container stakes__in">
     <h1 class="hero">Can your AI agent’s wallet be drained?</h1>
-    <p class="stakes__why">One poisoned email can make an AI agent pay a thief, and <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button></span> payments can’t be undone. SIEGE attacks your agent’s spending rules first, with test money. <button type="button" class="stakes__toggle" id="stakes-open" aria-controls="stakes-more" aria-expanded="false">How it works</button></p>
+    <p class="stakes__why">One poisoned email can make an AI agent pay a thief. SIEGE attacks your rules off-chain with test amounts; only the vault and its proof transactions are on <span class="nowrap"><button type="button" class="term" data-tip="near" aria-describedby="def-near">NEAR</button> testnet</span>. <button type="button" class="stakes__toggle" id="stakes-open" aria-controls="stakes-more" aria-expanded="false">How it works</button></p>
     <p class="stakes__what">SIEGE is an intent guard plus a NEAR vault that won’t pay without the guard’s signature. <a href="#export" data-opens="export">Add it to your agent</a> as an MCP server, a proxy or a library.</p>
     <div class="stakes__more" id="stakes-more">
     <ol class="stakes__beats">
@@ -345,7 +345,7 @@ claude mcp add siege -e MANDATE="Pay any vendor invoice up to 10 NEAR per transa
   </section>
 </main>
 <div class="defs" hidden>
-  <span id="def-near">A public blockchain. SIEGE runs on its test network, so no real money moves.</span>
+  <span id="def-near">A public blockchain. SIEGE’s vault runs on its test network, so no real money moves.</span>
   <span id="def-outlayer">A custody wallet for AI agents on NEAR. Its policy is what typical limits means here: per-payment and daily caps, and an allowlist only where your rules name payees.</span>
   <span id="def-guard">SIEGE’s guard sits in front of the wallet. It checks each payment against your rules, and reads who asked for it and why.</span>
   <span id="def-round">Each round, the attacker builds new attacks from the ones that worked best, against both guards. Thirty rounds.</span>
