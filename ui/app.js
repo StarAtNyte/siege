@@ -951,8 +951,9 @@
     const where = all.filter((r) => r.typicalLoss > 0).map((r) => r.index + 1);
     const span = b.hours === 24 ? "in one day" : `in ${hours(b.hours).replace(/^per /, "one ")}`;
     const capWord = b.hours === 24 ? `the ${near(b.cap)} NEAR daily cap` : `the ${near(b.cap)} NEAR cap ${hours(b.hours)}`;
-    const what = el("p", { class: "note__guard note__guard--breach" }, el("span", { class: "note__who", text: "Typical limits" }), " ", el("span", { class: "note__loss", text: `${near(b.paid)} sent ${span}` }));
-    const why = el("p", { class: "note__why", text: `Payments fired at once raced past ${capWord}.${where.length ? ` The same NEAR is counted under rule${where.length > 1 ? "s" : ""} ${list(where.map(String))}, not added again.` : ""}` });
+    const overlap = where.length ? `The same NEAR is counted under rule${where.length > 1 ? "s" : ""} ${list(where.map(String))}, not added again.` : null;
+    const what = el("p", { class: "note__guard note__guard--breach" }, el("span", { class: "note__who", text: "Typical limits" }), " ", el("span", { class: "note__loss", text: `${near(b.paid)} sent ${span}`, ...(overlap ? { title: overlap } : {}) }));
+    const why = el("p", { class: "note__why", text: `Payments fired at once raced past ${capWord}.` });
     const note = el("div", { class: "note" }, what, el("p", { class: "note__guard note__guard--held" }, el("span", { class: "note__who", text: "SIEGE guard" }), " ", el("span", { class: "note__loss", text: "held" })), why);
     // Drawn in the strips' frame: the same "Typical" label column, one bar for the best attack's busiest window, the cap marked on it.
     const bar = el(
