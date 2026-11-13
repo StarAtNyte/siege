@@ -55,12 +55,12 @@ Run on 2026-11-12 with `node --import tsx src/mcp/demo.ts --testnet`. The tool c
 
 ```
 make install                      # includes the pinned wasm-opt (npm binaryen@123.0.0)
-rustup toolchain install 1.97.1 --target wasm32-unknown-unknown
+rustup toolchain install 1.97.1 --target wasm32-unknown-unknown --component rust-src
 RUSTUP_TOOLCHAIN=1.97.1 make contract-build
 # OK: sha256 da4f7ca4146d00c74011cfee05b20d9220f9c8b37e99a51c388a5997f8f09a2f matches the deployed vault (code hash FhCBFTKPd2mA7E6vZwn78rz6Jyzx8FDRgH9XR5KSkmx2)
 ```
 
-The inputs are pinned: rustc 1.97.1 (the build checks it), `Cargo.lock` (`--locked`), and binaryen 123. The deployed wasm embeds panic-location paths from the machine that built it (`/home/nitiz/.cargo/...`, `/home/nitiz/.rustup/toolchains/stable-...`). `contract/Makefile` remaps your cargo home and toolchain to those paths with `--remap-path-prefix`, so the bytes match from any checkout location. A future redeploy should remap to neutral paths instead.
+The inputs are pinned: rustc 1.97.1 with the rust-src component (the build checks both; without rust-src a few std paths embed as `/rustc/<commit>/...` and the wasm comes out 176 bytes shorter), `Cargo.lock` (`--locked`), and binaryen 123. The deployed wasm embeds panic-location paths from the machine that built it (`/home/nitiz/.cargo/...`, `/home/nitiz/.rustup/toolchains/stable-...`). `contract/Makefile` remaps your cargo home and toolchain to those paths with `--remap-path-prefix`, so the bytes match from any checkout location. A future redeploy should remap to neutral paths instead.
 
 The NEAR code hash is the base58 encoding of the wasm's sha256. To read it from chain:
 

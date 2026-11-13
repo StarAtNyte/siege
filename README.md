@@ -59,7 +59,7 @@ The full flow is under [How the SIEGE guard decides](#how-the-siege-guard-decide
 
 ## Proof on NEAR testnet
 
-The vault is deployed and exercised on testnet, with every transaction linked in [docs/TESTNET.md](docs/TESTNET.md). Refused payments show "Success" on nearblocks: the call ran; the payment was refused; the reason is in the event log (Execution Plan tab). `make contract-build` rebuilds the deployed wasm byte for byte and checks its hash (needs rustc 1.97.1). One proxied transfer through a live OutLayer testnet wallet: tx [`HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p`](https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p) (details under [The guard proxy](#the-guard-proxy)).
+The vault is deployed and exercised on testnet, with every transaction linked in [docs/TESTNET.md](docs/TESTNET.md). Refused payments show "Success" on nearblocks: the call ran; the payment was refused; the reason is in the event log (Execution Plan tab). `make contract-build` rebuilds the deployed wasm byte for byte and checks its hash (needs rustc 1.97.1 with the rust-src component). One proxied transfer through a live OutLayer testnet wallet: tx [`HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p`](https://testnet.nearblocks.io/txns/HRUoqjuLiek27zGAfbDEyKDbXRp66Gf4qhDVe3ra4k2p) (details under [The guard proxy](#the-guard-proxy)).
 
 ## Use it in your agent
 
@@ -306,7 +306,7 @@ npm run proxy     # guard proxy (see above)
 docker build -t siege . && docker run -p 8686:8686 siege
 make install      # npm + uv
 make test         # vault contract tests (Rust) + unit tests + typecheck
-make contract-build  # rebuild the deployed vault wasm byte for byte and check its sha256 (rustc 1.97.1)
+make contract-build  # rebuild the deployed vault wasm byte for byte and check its sha256 (rustc 1.97.1 + rust-src)
 make threat       # two-key vault: compromised agent vs compromised guard
 make eval         # the table above
 make attack       # evolutionary search, writes results/attack_*.json

@@ -2,12 +2,16 @@ SHELL := /bin/bash
 
 # Reproducible build of the deployed vault (vault.darwin-siege-mw23cmc8.testnet, 80,021 bytes,
 # code hash FhCBFTKPd2mA7E6vZwn78rz6Jyzx8FDRgH9XR5KSkmx2). The bytes depend on:
-#   - the Rust toolchain: 1.97.1 (checked below; `rustup toolchain install 1.97.1 --target wasm32-unknown-unknown`,
+#   - the Rust toolchain: 1.97.1 with the rust-src component (both checked below;
+#     `rustup toolchain install 1.97.1 --target wasm32-unknown-unknown --component rust-src`,
 #     then `RUSTUP_TOOLCHAIN=1.97.1 make contract-build` if it is not your default),
 #   - the dependency versions: Cargo.lock (built with --locked),
 #   - wasm-opt: binaryen 123, pinned as the npm devDependency `binaryen@123.0.0` (`npm install` at the repo root),
 #   - panic-location strings: the deployed build embeds the paths of the machine that built it. The remaps below map
 #     this machine's cargo home and toolchain to those paths, so any checkout on any machine yields the same bytes.
+#     With rust-src installed, rustc names a few inlined std/core/alloc sources by their sysroot path
+#     (.../lib/rustlib/src/rust/library/...) instead of /rustc/<commit>/library/...; without it the wasm is 176 bytes
+#     shorter and the hash differs, so rust-src is required.
 RUST_VERSION = 1.97.1
 WASM_OPT = ../node_modules/.bin/wasm-opt
 CARGO_HOME_DIR = $(or $(CARGO_HOME),$(HOME)/.cargo)
@@ -24,6 +28,7 @@ test:
 
 build:
 	@rustc --version | grep -q '^rustc $(RUST_VERSION) ' || { echo "contract-build needs rustc $(RUST_VERSION) for byte-identical output (found: $$(rustc --version)). rustup toolchain install $(RUST_VERSION) --target wasm32-unknown-unknown, then RUSTUP_TOOLCHAIN=$(RUST_VERSION) make contract-build"; exit 1; }
+	@test -d $(SYSROOT)/lib/rustlib/src/rust/library || { echo "contract-build needs the rust-src component for byte-identical output: rustup component add --toolchain $(RUST_VERSION) rust-src"; exit 1; }
 	@test -x $(WASM_OPT) || { echo "wasm-opt (binaryen 123) missing: run npm install at the repo root"; exit 1; }
 	RUSTFLAGS="$(RUSTFLAGS_WASM)" cargo build --locked --target wasm32-unknown-unknown --release
 	mkdir -p res

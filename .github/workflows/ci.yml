@@ -8,9 +8,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: npm }
       - uses: astral-sh/setup-uv@v5
-      - name: "Rust 1.97.1 with the wasm target (pinned, so the contract build reproduces the deployed bytes)"
+      - name: "Rust 1.97.1 with the wasm target and rust-src (pinned, so the contract build reproduces the deployed bytes)"
         run: |
-          rustup toolchain install 1.97.1 --profile minimal --target wasm32-unknown-unknown
+          rustup toolchain install 1.97.1 --profile minimal --target wasm32-unknown-unknown --component rust-src
           echo "RUSTUP_TOOLCHAIN=1.97.1" >> "$GITHUB_ENV"
       - run: make install
       - name: make test (Rust contract tests, unit tests, typecheck)
