@@ -24,14 +24,14 @@ Every number in this README maps to a command and a committed file in [CLAIMS.md
 
 ## Try it
 
-Live: open [near-siege.onrender.com](https://near-siege.onrender.com), write a mandate and press "Lay siege". The free host may take about a minute to wake.
+Live: open [near-siege.onrender.com](https://near-siege.onrender.com), the page opens on a recorded siege of the default rules. Press "Lay a live siege on your rules" to run it yourself, or "Edit rules" to write your own and then "Lay siege". The free host may take about a minute to wake.
 
 Local, with no API key, NEAR account or `.env`. Prerequisites: Node 22.22.2 or later (near-api-js requires it; CI uses 24), [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12 if needed) and Rust with cargo (for the contract's unit tests).
 
 ```
 git clone https://github.com/StarAtNyte/siege && cd siege
 make install      # npm install + uv sync, about a minute
-npm start         # the web app on http://127.0.0.1:8686: write a mandate, press "Lay siege"
+npm start         # the web app on http://127.0.0.1:8686: "Edit rules", then "Lay siege"
 ```
 
 More commands, each printing the table it writes to `results/` (the printed tables and `results/` call the SIEGE guard by its name in the code, `Mandate`):
@@ -113,7 +113,7 @@ AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custod
 
 Three ways to use it:
 
-- **The web app** (`npm start`): write your mandate, press *Lay siege*, and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (per-payment and daily caps, plus an allowlist only where your rules name payees, as in a plain OutLayer policy) and the *SIEGE guard* (which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Try single transactions, then export the OutLayer policy and the guard config.
+- **The web app** (`npm start`): press *Edit rules* to write your spending rules, press *Lay siege* (*Lay a live siege on your rules* while the recorded example is on screen), and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (per-payment and daily caps, plus an allowlist only where your rules name payees, as in a plain OutLayer policy) and the *SIEGE guard* (which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Check one payment under *Try a transaction*, then copy the OutLayer policy and the guard config from *Use it in your agent*.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
 - **The library**: `import { MandateGuard, compileMandate } from "siege"` (install and run as in [Use it in your agent](#use-it-in-your-agent)).
 - **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
