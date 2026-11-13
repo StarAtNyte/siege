@@ -1,0 +1,47 @@
+[
+ {
+  "id": "s1_load",
+  "text": "Can your A.I. agent's wallet be drained? Siege attacks its spending rules with test money. In this recorded example, the best attack took one hundred twenty-eight point five three Near past typical limits, and one point oh two past the guard.",
+  "caption": "Can your AI agent's wallet be drained? SIEGE attacks its spending rules with test money. In this recorded example, the best attack took 128.53 NEAR past typical limits, and 1.02 past the guard."
+ },
+ {
+  "id": "s2_rules",
+  "text": "Each rule shows where money leaked. Rule one allows any payee. One attack paid acme supplies-s dot testnet, one letter off the real vendor.",
+  "caption": "Each rule shows where money leaked. Rule one allows any payee. One attack paid acme-suppliess.testnet, one letter off the real vendor."
+ },
+ {
+  "id": "s3_siege",
+  "text": "Now a live siege. Each round, the attacker builds new attacks from the ones that worked best: lookalike payees, forged documents, changed addresses. Both guards face the same thirty rounds.",
+  "caption": "Now a live siege. Each round, the attacker builds new attacks from the ones that worked best: lookalike payees, forged documents, changed addresses. Both guards face the same thirty rounds."
+ },
+ {
+  "id": "s4_verdict",
+  "text": "Same verdict: one hundred twenty-eight point five three on typical limits, one point oh two on the guard. Siege points to rule one: name the payees.",
+  "caption": "Same verdict: 128.53 NEAR on typical limits, 1.02 on the guard. SIEGE points to rule one: name the payees."
+ },
+ {
+  "id": "s4_fix",
+  "text": "Apply the fix, and the siege runs again on the new rules. Same attacker, same thirty rounds.",
+  "caption": "Apply the fix, and the siege runs again on the new rules. Same attacker, same thirty rounds."
+ },
+ {
+  "id": "s4_after",
+  "text": "Rule one now holds at zero Near, and the guard stopped every attack. Without it, the attacker still took ninety-one point oh eight.",
+  "caption": "Rule one now holds at 0.00 NEAR, and the guard stopped every attack. Without it, the attacker still took 91.08."
+ },
+ {
+  "id": "s5_try",
+  "text": "Try a transaction checks one payment. A forged invoice makes the agent call pool dot testnet, with the money routed to drainer dot testnet. Typical limits would send it. The Siege guard refuses it.",
+  "caption": "Try a transaction checks one payment. A forged invoice makes the agent call pool dot testnet, with the money routed to drainer dot testnet. Typical limits would send it. The SIEGE guard refuses it."
+ },
+ {
+  "id": "s6_proof",
+  "text": "The same guard signs for a two-key vault on Near testnet. A guard-signed payment went through. The agent's own key, without the guard, was refused: bad signature.",
+  "caption": "The same guard signs for a two-key vault on NEAR testnet. A guard-signed payment went through. The agent's own key, without the guard, was refused: BAD_SIGNATURE."
+ },
+ {
+  "id": "s7_end",
+  "text": "Write your rules, lay siege, and fix the leak first.",
+  "caption": "Write your rules, lay siege, and fix the leak first."
+ }
+]
