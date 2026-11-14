@@ -345,7 +345,7 @@ Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](ht
 
 ## Provenance and credits
 
-Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. Nothing was copied from another project. No template or scaffold was used.
+Written from 2026-11-04 to 2026-11-13; no code predates 2026-11-04. Most of the code, tests and docs were written with Claude Code (Anthropic) under the author's direction; the author reviewed and ran it. Nothing was copied from another project. No template or scaffold was used.
 
 Libraries:
 

@@ -14,7 +14,7 @@ export const JUDGE_MODEL = "claude-haiku-5-5";
 const PRICE_IN = 0.1 / 1e6; // $/token
 const PRICE_OUT = 0.5 / 1e6;
 const BUDGET_USD = Number(process.env.NEAR_LLM_BUDGET_USD ?? 25);
-const BUDGET_FILE = process.env.NEAR_LLM_BUDGET_FILE ?? path.join(os.homedir(), ".near-hackathon-llm-spend.json");
+const BUDGET_FILE = process.env.NEAR_LLM_BUDGET_FILE ?? path.join(os.homedir(), ".siege-llm-spend.json");
 
 export class BudgetExceeded extends Error {
   name = "BudgetExceeded";
