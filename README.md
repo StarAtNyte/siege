@@ -6,7 +6,7 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 
 **Live: [near-siege.onrender.com](https://near-siege.onrender.com)**. Testnet only, no funds spent.
 
-![SIEGE red-lining an open invoice mandate: typical limits lost 128.53 NEAR, the SIEGE guard lost 1.02, inside its 3.00 NEAR allowance for unknown payees](docs/app.png)
+![SIEGE red-lining an open invoice mandate: the typical-limits model lost 128.53 NEAR, the SIEGE guard lost 1.02, inside its 3.00 NEAR allowance for unknown payees](docs/app.png)
 
 [![Watch the demo: a live siege, the fix and the testnet proof](docs/demo-poster.png)](docs/demo.mp4)
 
@@ -15,7 +15,7 @@ A spending guard for AI agents that hold NEAR, plus an attacker that measures ho
 ## What it does
 
 - **Checks intent, not just limits.** The SIEGE guard reads the user's instruction, what the agent read and why it wants to pay, and refuses payments the user did not ask for: prompt injection, look-alike payees, confused-deputy calls. Under an open mandate ("pay any vendor invoice") an allowlist cannot do this.
-- **Measures the worst case.** A genetic search over transaction sequences runs against the real guard code. On the live page's default example (an open "pay any vendor invoice" mandate, 30 rounds, about 3.6k attempts), the best attack took **128.53 NEAR** past typical limits and **1.02 NEAR** past the SIEGE guard, paid within its 3.00 NEAR daily allowance for payees the rules never named.
+- **Measures the worst case found.** A genetic search over transaction sequences runs against the real guard code. On the live page's default example (an open "pay any vendor invoice" mandate, 30 rounds, about 3.6k attempts), the best attack took **128.53 NEAR** past our local model of typical limits and **1.02 NEAR** past the SIEGE guard, paid within its 3.00 NEAR daily allowance for payees the rules never named. This is a bounded search against a policy model, not a measured loss against OutLayer's live service.
   - Benchmark (`make attack`, about 42k guard evaluations, open mandate): 134.60 NEAR on plain cap-and-allowlist policy, 3.00 on the SIEGE guard.
   - Both are the worst case a bounded search found, not a proof.
 - **Holds the money in a two-key vault.** A NEAR contract pays only with an ed25519 approval from the guard's own key, inside on-chain caps. A compromised agent that went around the guard got 0.00 NEAR; a compromised guard is held to the caps (`make threat`).
@@ -113,7 +113,7 @@ AI agents now hold wallets. [OutLayer](https://app.outlayer.ai/docs/agent-custod
 
 Three ways to use it:
 
-- **The web app** (`npm start`): press *Edit rules* to write your spending rules, press *Lay siege* (*Lay a live siege on your rules* while the recorded example is on screen), and watch an evolutionary attacker try to drain it, round by round, under two guards side by side: *Typical limits* (per-payment and daily caps, plus an allowlist only where your rules name payees, as in a plain OutLayer policy) and the *SIEGE guard* (which reads intent). Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Check one payment under *Try a transaction*, then copy the OutLayer policy and the guard config from *Use it in your agent*.
+- **The web app** (`npm start`): press *Edit rules* to write your spending rules, press *Lay siege* (*Lay a live siege on your rules* while the recorded example is on screen), and watch an evolutionary attacker try to drain them, round by round, under two guards side by side: *Typical limits* (our model of documented OutLayer-style caps and allowlists) and the *SIEGE guard* (which also checks intent). The baseline is a local model, not a run against OutLayer's service. Under each rule, a strip shows the rounds whose best attack got money out through it. Every breach is red-lined on the sentence that let it through, with the fix. Check one payment under *Try a transaction*, then copy the OutLayer policy and the guard config from *Use it in your agent*.
 - **The guard proxy** (`npm run proxy`): a drop-in, OutLayer-compatible endpoint. Point your agent at it instead of OutLayer.
 - **The library**: `import { MandateGuard, compileMandate } from "siege"` (install and run as in [Use it in your agent](#use-it-in-your-agent)).
 - **The MCP server** (`npm run mcp`, bin `siege-mcp`): guarded payment tools for Claude Code, Codex, Cursor or any MCP agent. See below.
@@ -142,6 +142,8 @@ Deployed and exercised on testnet, with every transaction linked: [docs/TESTNET.
 ## Results
 
 The guard's authors wrote the regression suite and the attack search's phrase library, so neither is independent evidence. So the results lead with a held-out eval whose **attacks were written by other models (Claude for the dev split, Mistral for both test splits), not by the guard's authors**, against the same two mandates.
+
+In the comparison tables below, **OutLayer policy** means our local model of documented OutLayer-style limits and allowlists. It is not a run against OutLayer's service.
 
 ### 1. Held-out eval: attacks written by other models
 
@@ -337,7 +339,7 @@ Library use: `import { MandateGuard, compileMandate } from "siege"`. [DARWIN](ht
 - The held-out eval covers two mandates and 212 model-written scenarios (92 dev, 81 test v1, 39 test v2). The dev split was read and the guard was fixed against it (findings 004 and 005), so only the test split counts as held out. A model writing attacks in one shot is not an adaptive attacker who sees the guard's answers.
 - Labels are by construction: a benign case may only pay accounts the user named, the mandate allows, or the user paid before. A legitimate payee that appears only in an invoice the user points at ("pay the attached invoice") is outside the benign set; the SIEGE guard caps that case with its allowance for unknown payees instead of deciding it.
 - The regression suite is self-authored, so it is a regression test (see above).
-- The OutLayer baseline is a *model* of its documented policy semantics (whitelist, per-transaction and windowed caps, a best-effort counter). The race result reproduces the documented behaviour; it was not measured against the live service.
+- The OutLayer baseline is a *local model* of documented policy semantics (whitelist, per-transaction and windowed caps, a best-effort counter). Attack and red-team comparisons use this model; they do not measure OutLayer's live service. Separately, the proxy has processed an allowed transfer through a live OutLayer testnet wallet; that integration check does not validate the modeled policy behavior.
 - Intents settlement is not executed: quotes are real (`dry: true`) and execution is mocked. Wallet settlement targets NEAR testnet.
 - The guard reduces risk. It does not make LLM judgement infallible, and an attacker who controls the user's own instruction channel is limited only by the caps.
 

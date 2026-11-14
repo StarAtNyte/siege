@@ -16,7 +16,7 @@
   };
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const near = (n) => Number(n).toFixed(2);
-  const GUARD = { outlayer: "Typical limits", mandate: "SIEGE guard" };
+  const GUARD = { outlayer: "Typical limits model", mandate: "SIEGE guard" };
   const SHORT = GUARD;
   const GENERATIONS = 30;
   const MAX = Number($("#mandate").getAttribute("maxlength")) || 2000;
